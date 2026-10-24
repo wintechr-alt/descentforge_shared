@@ -2049,10 +2049,21 @@ const camp={
         heroCount:[2,4],requiresAct2:false},
   nodes:[], dialogues:[], shop:{replace:false,items:[]}, intro:'',
   /* con qué empieza el grupo: una campaña para veteranos no arranca de cero */
-  start:{gold:0,items:[]}
+  start:{gold:0,items:[],loadout:{}}
 };
 /* Cómo es un documento recién abierto, para importar sobre él (ver exportar.js). */
 const STATE0=JSON.stringify(state), CAMP0=JSON.stringify(camp);
+function ensureCampLoadout(heroId){
+  camp.start=camp.start||{};
+  camp.start.loadout=camp.start.loadout||{};
+  const L=camp.start.loadout[heroId]=camp.start.loadout[heroId]||{trinket:'',slots:[{a:'',b:'',c:''},{a:'',b:'',c:''}]};
+  if(!Array.isArray(L.slots)) L.slots=[{a:'',b:'',c:''},{a:'',b:'',c:''}];
+  while(L.slots.length<2) L.slots.push({a:'',b:'',c:''});
+  return L;
+}
+function partAName(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?(w.name_en||w.name):id; }
+function classOfPartA(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?w.class:''; }
+function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot===slot && (!cls||x.class===cls)); }
 /* El cuadro narrativo NO tiene «sin fondo»: cuando le llega `None` (el 0) el
    juego no toca la imagen y el cuadro sale con la pantalla en blanco. Se miró
    en el juego oficial: de sus 1.052 cuadros narrativos, ninguno usa el 0. Así
@@ -7354,7 +7365,30 @@ function renderCampMeta(el){
       </select></div>
     ${(camp.start.skills||[]).length?`<div style="margin-bottom:9px">${camp.start.skills.map(s=>
       `<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-skilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
-    <p class="help">${T('startSkillsHelp')}</p>`;
+    <p class="help">${T('startSkillsHelp')}</p>
+
+    <h3>Hero loadout (experimental)</h3>
+    <p class="help">Stores which weapons and trinkets are currently equipped for each hero. This is stored in the campaign; it is not applied to saves automatically yet.</p>
+    ${ (DATA.heroes||[]).filter(h=>h.id.startsWith('HERO_')).map(h => {
+      const L=ensureCampLoadout(h.id);
+      const makeOpts=(list,selected)=>list.map(w=>`<option value="${esc(w.id)}" ${selected===w.id?'selected':''}>${esc(w.name_en||w.name)}</option>`).join('');
+      const partsA=(DATA.weaponParts||[]).filter(w=>w.slot==='A');
+      const trinketOpts=(DATA.gear||[]).filter(g=>g.kind==='trinket').map(g=>`<option value="${esc(g.id)}" ${L.trinket===g.id?'selected':''}>${esc(g.name_en||g.name)}</option>`).join('');
+      return `<div style="margin:8px 0;padding:6px;border:1px solid #ccc;border-radius:4px">
+        <b>${esc(h.name)}</b>
+        <div class="field"><label>Trinket</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').trinket=this.value;}); renderRight();"><option value="">(none)</option>${trinketOpts}</select></div>
+        ${ L.slots.map((slot,i)=>{
+          const cls=slot.a?classOfPartA(slot.a):'';
+          const bOpts=makeOpts(matchingParts('B',cls),slot.b);
+          const cOpts=makeOpts(matchingParts('C',cls),slot.c);
+          return `
+            <div class="field"><label>Slot ${i+1} Part A</label><select onchange="cambio(()=>{const L=ensureCampLoadout('${esc(h.id)}'); L.slots[${i}].a=this.value; L.slots[${i}].b=''; L.slots[${i}].c='';}); renderRight();"><option value="">(none)</option>${makeOpts(partsA,slot.a)}</select></div>
+            <div class="field"><label>Part B</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').slots[${i}].b=this.value;}); renderRight();"><option value="">(none)</option>${bOpts}</select></div>
+            <div class="field"><label>Part C</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').slots[${i}].c=this.value;}); renderRight();"><option value="">(none)</option>${cOpts}</select></div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}
+` ;
 
   el.querySelector('#cm_name').oninput=e=>{m.name=e.target.value;};
   el.querySelector('#cm_author').oninput=e=>{m.author=e.target.value;};
