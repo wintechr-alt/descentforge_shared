@@ -2085,6 +2085,77 @@ function ensureCampLoadout(heroId){
 function partAName(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?(w.name_en||w.name):id; }
 function classOfPartA(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?w.class:''; }
 function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot===slot && (!cls||x.class===cls)); }
+
+function nombreParte(id){
+  if(!id) return '(none)';
+  const w=(DATA.weaponParts||[]).find(x=>x.id===id);
+  if(w) return w.name_en||w.name||id;
+  const g=(DATA.gear||[]).find(x=>x.id===id);
+  if(g) return g.name_en||g.name||id;
+  return id;
+}
+function opcionesLoadout(heroId, field, slotIndex){
+  if(field==='trinket'){
+    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket')
+      .map(g=>({id:g.id,name:g.name_en||g.name})));
+  }
+  if(field==='A'){
+    return [{id:'',name:'(none)'}].concat((DATA.weaponParts||[]).filter(w=>w.slot==='A')
+      .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
+  }
+  const L=ensureCampLoadout(heroId);
+  const cls = L.slots[slotIndex] && L.slots[slotIndex].a ? classOfPartA(L.slots[slotIndex].a) : '';
+  const slot = field;
+  return [{id:'',name:'(none)'}].concat(matchingParts(slot, cls)
+    .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
+}
+function aplicarLoadout(heroId, field, slotIndex, value){
+  cambio(()=>{
+    const L=ensureCampLoadout(heroId);
+    if(field==='trinket') L.trinket=value;
+    else if(field==='A'){
+      L.slots[slotIndex].a=value;
+      if(value){
+        const cls=classOfPartA(value);
+        const b0=matchingParts('B',cls).find(x=>/_0$/.test(x.id));
+        const c0=matchingParts('C',cls).find(x=>/_0$/.test(x.id));
+        L.slots[slotIndex].b=b0?b0.id:'';
+        L.slots[slotIndex].c=c0?c0.id:'';
+      } else { L.slots[slotIndex].b=''; L.slots[slotIndex].c=''; }
+    } else if(field==='B') L.slots[slotIndex].b=value;
+    else if(field==='C') L.slots[slotIndex].c=value;
+  });
+  renderRight();
+}
+function abrirPickerLoadout(heroId, field, slotIndex){
+  const opts=opcionesLoadout(heroId, field, slotIndex);
+  const L=ensureCampLoadout(heroId);
+  let cur='';
+  if(field==='trinket') cur=L.trinket;
+  else cur=L.slots[slotIndex][field.toLowerCase()];
+  let idx=opts.findIndex(o=>o.id===cur);
+  if(idx<0) idx=0;
+  const title=T('start')+' · '+heroId.replace('HERO_','')+' · '+field+(slotIndex>=0?' '+(slotIndex+1):'');
+  const body=`
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="sm" id="hlPrev">◀</button>
+      <div class="card" id="hlCard" style="flex:1;min-height:90px;text-align:center;padding:8px"></div>
+      <button class="sm" id="hlNext">▶</button>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;justify-content:center">
+      <button class="primary" id="hlApply">${TS('Usar','Use')}</button>
+      <button id="hlCancel">${TS('Cancelar','Cancel')}</button>
+    </div>`;
+  openDlg(title, body, '');
+  const upd=()=>{ const it=opts[idx]; document.getElementById('hlCard').innerHTML=
+    `<b>${esc(it.name||'(none)')}</b><br><small>${esc(it.id||'')}</small>`+
+    (it.cls?`<br><small>${esc(it.cls)}</small>`:''); };
+  document.getElementById('hlPrev').onclick=()=>{ idx=(idx-1+opts.length)%opts.length; upd(); };
+  document.getElementById('hlNext').onclick=()=>{ idx=(idx+1)%opts.length; upd(); };
+  document.getElementById('hlApply').onclick=()=>{ aplicarLoadout(heroId, field, slotIndex, opts[idx].id); dlg.close(); };
+  document.getElementById('hlCancel').onclick=()=>dlg.close();
+  upd();
+}
 /* El cuadro narrativo NO tiene «sin fondo»: cuando le llega `None` (el 0) el
    juego no toca la imagen y el cuadro sale con la pantalla en blanco. Se miró
    en el juego oficial: de sus 1.052 cuadros narrativos, ninguno usa el 0. Así
@@ -7389,28 +7460,23 @@ function renderCampMeta(el){
     <p class="help">${T('startSkillsHelp')}</p>
 
     <h3>Hero loadout (experimental)</h3>
-    <p class="help">Stores which weapons and trinkets are currently equipped for each hero. This is stored in the campaign; it is not applied to saves automatically yet.</p>
+    <p class="help">Stores which weapons and trinkets are currently equipped for each hero. Click a button to pick from a card popup (left/right to move). Stored in the campaign; not applied to saves automatically yet.</p>
     ${ (DATA.heroes||[]).filter(h=>h.id.startsWith('HERO_')).map(h => {
       const L=ensureCampLoadout(h.id);
-      const makeOpts=(list,selected)=>list.map(w=>`<option value="${esc(w.id)}" ${selected===w.id?'selected':''}>${esc(w.name_en||w.name)}</option>`).join('');
-      const partsA=(DATA.weaponParts||[]).filter(w=>w.slot==='A');
-      const trinketOpts=(DATA.gear||[]).filter(g=>g.kind==='trinket').map(g=>`<option value="${esc(g.id)}" ${L.trinket===g.id?'selected':''}>${esc(g.name_en||g.name)}</option>`).join('');
+      const parteName=id=>{ const w=(DATA.weaponParts||[]).find(x=>x.id===id); const g=(DATA.gear||[]).find(x=>x.id===id);
+        return (w?w.name_en||w.name : g?g.name_en||g.name : id)||'(none)'; };
       return `<div style="margin:8px 0;padding:6px;border:1px solid #ccc;border-radius:4px">
         <b>${esc(h.name)}</b>
-        <div class="field"><label>Trinket</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').trinket=this.value;}); renderRight();"><option value="">(none)</option>${trinketOpts}</select></div>
+        <div class="field"><label>Trinket</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','trinket',-1)">${esc(parteName(L.trinket))}</button></div>
         ${ L.slots.map((slot,i)=>{
-          const cls=slot.a?classOfPartA(slot.a):'';
-          const bOpts=makeOpts(matchingParts('B',cls),slot.b);
-          const cOpts=makeOpts(matchingParts('C',cls),slot.c);
           return `
-            <div class="field"><label>Slot ${i+1} Part A</label><select onchange="cambio(()=>{const L=ensureCampLoadout('${esc(h.id)}'); L.slots[${i}].a=this.value; L.slots[${i}].b=''; L.slots[${i}].c='';}); renderRight();"><option value="">(none)</option>${makeOpts(partsA,slot.a)}</select></div>
-            <div class="field"><label>Part B</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').slots[${i}].b=this.value;}); renderRight();"><option value="">(none)</option>${bOpts}</select></div>
-            <div class="field"><label>Part C</label><select onchange="cambio(()=>{ensureCampLoadout('${esc(h.id)}').slots[${i}].c=this.value;}); renderRight();"><option value="">(none)</option>${cOpts}</select></div>`;
+            <div class="field"><label>Slot ${i+1} Part A</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','A',${i})">${esc(parteName(slot.a))}</button></div>
+            <div class="field"><label>Part B</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','B',${i})">${esc(parteName(slot.b))}</button></div>
+            <div class="field"><label>Part C</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','C',${i})">${esc(parteName(slot.c))}</button></div>`;
         }).join('')}
       </div>`;
     }).join('')}
-` ;
-
+`;
   el.querySelector('#cm_name').oninput=e=>{m.name=e.target.value;};
   el.querySelector('#cm_author').oninput=e=>{m.author=e.target.value;};
   el.querySelector('#cm_desc').oninput=e=>{m.description=e.target.value;};
