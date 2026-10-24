@@ -2104,28 +2104,47 @@ function pintarPantallaLoadout(){
   const el=document.getElementById('hlPantallaBody');
   if(!el) return;
   const tabs=heroes.map(h=>`<button class="sm" style="margin:2px" onclick="hlPantallaHero='${h.id}'; pintarPantallaLoadout();">${esc(h.name||h.id)}</button>`).join('');
-  const makeOpts=(list,selected)=>list.map(w=>`<option value="${w.id}" ${selected===w.id?'selected':''}>${esc(w.name_en||w.name||w.id)}</option>`).join('');
-  const trinketOpts=makeOpts((DATA.gear||[]).filter(g=>g.kind==='trinket'), L.trinket);
-  const partsA=(DATA.weaponParts||[]).filter(w=>w.slot==='A');
-  const slotHtml=(slot,i)=>{
-    const cls=slot.a?classOfPartA(slot.a):'';
-    const bOpts=makeOpts(matchingParts('B',cls), slot.b);
-    const cOpts=makeOpts(matchingParts('C',cls), slot.c);
-    return `<div style="flex:1;min-width:220px;border:1px solid #ccc;border-radius:6px;padding:8px">
-      <b>Slot ${i+1}</b>
-      <div class="field"><label>Part A</label><select onchange="const v=this.value; cambio(()=>{const L=ensureCampLoadout('${hero}'); L.slots[${i}].a=v; if(v){const c=classOfPartA(v);const b0=matchingParts('B',c).find(x=>/_0$/.test(x.id));const c0=matchingParts('C',c).find(x=>/_0$/.test(x.id));L.slots[${i}].b=b0?b0.id:'';L.slots[${i}].c=c0?c0.id:'';}else{L.slots[${i}].b='';L.slots[${i}].c='';}}); pintarPantallaLoadout();"><option value="">(none)</option>${makeOpts(partsA,slot.a)}</select></div>
-      <div class="field"><label>Part B</label><select onchange="cambio(()=>{ensureCampLoadout('${hero}').slots[${i}].b=this.value;});"><option value="">(none)</option>${bOpts}</select></div>
-      <div class="field"><label>Part C</label><select onchange="cambio(()=>{ensureCampLoadout('${hero}').slots[${i}].c=this.value;});"><option value="">(none)</option>${cOpts}</select></div>
+  const arr=(field,slotIndex,value)=>`
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},-1)">◀</button>
+      <span style="flex:1;text-align:center">${esc(nombreParte(value))}</span>
+      <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},1)">▶</button>
     </div>`;
-  };
   el.innerHTML=`
     <div style="margin-bottom:8px">${tabs}</div>
-    <div class="field"><label>Trinket</label><select onchange="cambio(()=>{ensureCampLoadout('${hero}').trinket=this.value;});"><option value="">(none)</option>${trinketOpts}</select></div>
+    <div class="field"><label>Trinket</label>${arr('trinket',-1,L.trinket)}</div>
     <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
-      ${L.slots.map(slotHtml).join('')}
+      ${L.slots.map((slot,i)=>`
+        <div style="flex:1;min-width:220px;border:1px solid #ccc;border-radius:6px;padding:8px">
+          <b>Slot ${i+1}</b>
+          <div class="field"><label>Part A</label>${arr('A',i,slot.a)}</div>
+          <div class="field"><label>Part B</label>${arr('B',i,slot.b)}</div>
+          <div class="field"><label>Part C</label>${arr('C',i,slot.c)}</div>
+        </div>`).join('')}
     </div>
-    <p class="help" style="margin-top:8px">Uses level-1 defaults; change Part A to repopulate B/C with that weapon’s “no part” options.</p>`;
+    <p class="help" style="margin-top:8px">Use arrows to move through candidates (wraps). Changing Part A resets B/C to that weapon’s “no part”.</p>`;
 }
+function hlArrow(hero, field, slotIndex, delta){
+  const L=ensureCampLoadout(hero);
+  const opts=opcionesLoadout(hero, field, slotIndex);
+  let cur = field==='trinket' ? L.trinket : L.slots[slotIndex][field.toLowerCase()];
+  let idx=opts.findIndex(o=>o.id===cur);
+  if(idx<0) idx=0;
+  idx=(idx+delta+opts.length)%opts.length;
+  const val=opts[idx].id;
+  cambio(()=>{
+    if(field==='trinket') L.trinket=val;
+    else if(field==='A'){
+      L.slots[slotIndex].a=val;
+      if(val){ const c=classOfPartA(val); const b0=matchingParts('B',c).find(x=>/_0$/.test(x.id)); const c0=matchingParts('C',c).find(x=>/_0$/.test(x.id));
+        L.slots[slotIndex].b=b0?b0.id:''; L.slots[slotIndex].c=c0?c0.id:''; }
+      else { L.slots[slotIndex].b=''; L.slots[slotIndex].c=''; }
+    } else if(field==='B') L.slots[slotIndex].b=val;
+    else if(field==='C') L.slots[slotIndex].c=val;
+  });
+  pintarPantallaLoadout();
+}
+
 
 function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot===slot && (!cls||x.class===cls)); }
 
