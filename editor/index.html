@@ -2107,7 +2107,10 @@ function pintarPantallaLoadout(){
   const arr=(field,slotIndex,value)=>`
     <div style="display:flex;align-items:center;gap:6px">
       <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},-1)">◀</button>
-      <span style="flex:1;text-align:center">${esc(nombreParte(value))}</span>
+      <div style="flex:1;text-align:center">
+        ${imagenParte(value)?`<img src="${imagenParte(value)}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">`:''}
+        <div style="font-size:12px">${esc(nombreParte(value))}</div>
+      </div>
       <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},1)">▶</button>
     </div>`;
   el.innerHTML=`
@@ -2148,6 +2151,12 @@ function hlArrow(hero, field, slotIndex, delta){
 
 function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot===slot && (!cls||x.class===cls)); }
 
+function imagenParte(id){
+  if(!id) return '';
+  if(id.indexOf('WEAPON_PART_')===0) return 'img/weapon/'+id+'.png';
+  if(id.indexOf('TRINKET')===0) return 'img/trinket/'+id+'.png';
+  return '';
+}
 function nombreParte(id){
   if(!id) return '(none)';
   const w=(DATA.weaponParts||[]).find(x=>x.id===id);
