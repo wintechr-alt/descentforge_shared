@@ -7502,6 +7502,7 @@ function renderCampMeta(el){
       :`<p class="empty">${T('shopEmpty')}</p>`}
 
     <h3>${T('start')}</h3>
+    <div style="margin-bottom:8px"><button class="sm" onclick="abrirInicioPopup()">${TS('Abrir inventario inicial','Open starting inventory')}</button></div>
     <p class="help">${T('startHelp')}</p>
     <div class="field"><label>${T('startGold')}</label>
       <input id="cm_startg" type="number" min="0" value="${numero(camp.start.gold)}"></div>
@@ -11474,6 +11475,49 @@ flash(T('hint'));
 addEventListener('resize',draw);
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{texPat={};draw();});
 new MutationObserver(()=>{texPat={};draw();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
+<script>
+function abrirInicioPopup(){
+  openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
+  pintarInicioPopup();
+  const d=document.getElementById('iniDone'); if(d) d.onclick=()=>dlg.close();
+}
+function pintarInicioPopup(){
+  const el=document.getElementById('iniBody'); if(!el) return;
+  const campRef=camp;
+  el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
+    <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
+    <div class="field"><label>${T('startAdd')}</label>
+      <select id="ini_starti"><option value="">${T('nAddItem')}</option>
+        ${GRUPOS_INICIO().map(([k,l])=>l.length?
+          `<optgroup label="${esc(T('startGroup_'+k))}">${l.map(x=>`<option value="${esc(x.id)}">${esc(L(x,'name'))}${x.act>1?' · '+T('propsAct',x.act):''}</option>`).join('')}</optgroup>`:'').join('')}</select></div>
+    ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
+      const k=grupoDeInicio(it.id);
+      const cuenta=k==='materials'||k==='loot';
+      return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
+        <span style="flex:1" title="${esc(it.id)}">${esc(nombreDeInicio(it.id))}
+          <small style="opacity:.7">· ${esc(k?T('startGroup_'+k):it.id)}</small></span>
+        ${cuenta?`<input type="number" min="1" value="${esc(it.qty||1)}" data-iniqty="${i}" style="max-width:60px" title="${esc(T('startQty'))}">`:''}
+        <button class="sm" data-inidel="${i}">✕</button></div>`;}).join('')
+      :`<p class="empty">${T('startEmpty')}</p>`}
+    <p class="help">${T('startQtyHelp')}</p>
+
+    <div class="field"><label>${T('startSkills')}</label>
+      <select id="ini_starts"><option value="">${T('startAddSkill')}</option>
+        ${(DATA.heroes||[]).filter(h=>h.id.startsWith('HERO_')).map(h=>{
+          const l=(DATA.skills||[]).filter(s=>s.hero===h.id);
+          return l.length?`<optgroup label="${esc(h.name)}">${l.map(s=>`<option value="${esc(s.id)}">${esc(nombreHabilidad(s.id))}</option>`).join('')}</optgroup>`:'';}).join('')}</select></div>
+    ${ (campRef.start.skills||[]).length?`<div style="margin-bottom:9px">${campRef.start.skills.map(s=>`<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-iniskilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
+    <p class="help">${T('startSkillsHelp')}</p>`;
+  el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
+  el.querySelector('#ini_starti').onchange=e=>{ if(!e.target.value) return;
+    cambio(()=>{ if(!camp.start.items.some(i=>i.id===e.target.value)) camp.start.items.push({id:e.target.value,qty:1}); }); pintarInicioPopup(); renderRight(); };
+  el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
+  el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
+  el.querySelector('#ini_starts').onchange=e=>{ if(!e.target.value) return;
+    cambio(()=>{ const a=camp.start.skills||(camp.start.skills=[]); if(!a.includes(e.target.value)) a.push(e.target.value); }); pintarInicioPopup(); renderRight(); };
+  el.querySelectorAll('[data-iniskilldel]').forEach(a=>a.onclick=ev=>{ ev.preventDefault(); cambio(()=>{ camp.start.skills=camp.start.skills.filter(s=>s!==a.dataset.iniskilldel); }); pintarInicioPopup(); renderRight(); });
+}
 </script>
 </body>
 </html>
