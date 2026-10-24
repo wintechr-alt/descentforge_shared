@@ -2140,9 +2140,6 @@ function hlArrow(hero, field, slotIndex, delta){
     if(field==='trinket') L.trinket=val;
     else if(field==='A'){
       L.slots[slotIndex].a=val;
-      if(val){ const c=classOfPartA(val); const b0=matchingParts('B',c).find(x=>/_0$/.test(x.id)); const c0=matchingParts('C',c).find(x=>/_0$/.test(x.id));
-        L.slots[slotIndex].b=b0?b0.id:''; L.slots[slotIndex].c=c0?c0.id:''; }
-      else { L.slots[slotIndex].b=''; L.slots[slotIndex].c=''; }
     } else if(field==='B') L.slots[slotIndex].b=val;
     else if(field==='C') L.slots[slotIndex].c=val;
   });
@@ -2197,13 +2194,6 @@ function aplicarLoadout(heroId, field, slotIndex, value){
     if(field==='trinket') L.trinket=value;
     else if(field==='A'){
       L.slots[slotIndex].a=value;
-      if(value){
-        const cls=classOfPartA(value);
-        const b0=matchingParts('B',cls).find(x=>/_0$/.test(x.id));
-        const c0=matchingParts('C',cls).find(x=>/_0$/.test(x.id));
-        L.slots[slotIndex].b=b0?b0.id:'';
-        L.slots[slotIndex].c=c0?c0.id:'';
-      } else { L.slots[slotIndex].b=''; L.slots[slotIndex].c=''; }
     } else if(field==='B') L.slots[slotIndex].b=value;
     else if(field==='C') L.slots[slotIndex].c=value;
   });
