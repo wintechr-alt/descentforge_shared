@@ -2153,8 +2153,8 @@ function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot
 
 function imagenParte(id){
   if(!id) return '';
-  if(id.indexOf('WEAPON_PART_')===0) return 'img/weapon/'+id+'.png';
-  if(id.indexOf('TRINKET')===0) return 'img/trinket/'+id+'.png';
+  if(id.indexOf('WEAPON_PART_')===0) return '../img/weapon/'+id+'.png';
+  if(id.indexOf('TRINKET')===0) return '../img/trinket/'+id+'.png';
   return '';
 }
 function nombreParte(id){
