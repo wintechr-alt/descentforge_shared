@@ -11523,11 +11523,23 @@ function renderInicioAdd(){
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
     <button class="sm" type="button" onclick="cambio(()=>{ const cs=candidatosGrupo(); const cur=cs[ini_item_idx||0]; if(cur && cur.id) addStartItem(cur.id); }); pintarInicioPopup(); renderRight();">Add this item</button>
-    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
-    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().filter(x=>(x.act||1)<=1).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
-    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().filter(x=>(x.act||1)>=2).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo()).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)<=1)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)>=2)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
   </div>`;
   return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${tabs}</div>`+card;
+}
+function esMejoraStart(id){ return /_PLUS$|_UPGRADED$/i.test(String(id||'')); }
+function preferidos(items){
+  const byBase=new Map();
+  (items||[]).forEach(x=>{
+    if(!x||!x.id) return;
+    const base=baseStartId(x.id);
+    const cur=byBase.get(base);
+    if(!cur) byBase.set(base,x);
+    else if(esMejoraStart(x.id) && !esMejoraStart(cur.id)) byBase.set(base,x);
+  });
+  return [...byBase.values()];
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
