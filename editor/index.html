@@ -11515,9 +11515,9 @@ function pintarInicioPopup(){
       const cuenta=k==='materials'||k==='loot';
       const img=imagenInicio(it.id);
       return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
-        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
-        <span style="flex:1" title="${esc(it.id)}">${esc(nombreDeInicio(it.id))}
-          <small style="opacity:.7">· ${esc(k?T('startGroup_'+k):it.id)}</small></span>
+        ${img?`<img src="${img}" alt="" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span style="flex:1" title="${esc(it.id)}"><span style="font-size:13px;font-weight:600">${esc(nombreDeInicio(it.id))}</span>
+          <br><small style="opacity:.7">${esc(it.id)} · ${esc(k?T('startGroup_'+k):it.id)}</small></span>
         ${cuenta?`<input type="number" min="1" value="${esc(it.qty||1)}" data-iniqty="${i}" style="max-width:60px" title="${esc(T('startQty'))}">`:''}
         <button class="sm" data-inidel="${i}">✕</button></div>`;}).join('')
       :`<p class="empty">${T('startEmpty')}</p>`}
