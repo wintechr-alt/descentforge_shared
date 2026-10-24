@@ -11468,6 +11468,8 @@ function imagenInicio(id){
   if(c.indexOf('MAT_')===0) return '../img/crafting_material/'+c+'.png';
   return '';
 }
+let ini_item_idx=0;
+function candidatosInicio(){ return GRUPOS_INICIO().flatMap(([k,l])=> (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:x.act}))); }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11479,9 +11481,17 @@ function pintarInicioPopup(){
   el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
     <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
     <div class="field"><label>${T('startAdd')}</label>
-      <select id="ini_starti"><option value="">${T('nAddItem')}</option>
-        ${GRUPOS_INICIO().map(([k,l])=>l.length?
-          `<optgroup label="${esc(T('startGroup_'+k))}">${l.map(x=>`<option value="${esc(x.id)}">${esc(L(x,'name'))}${x.act>1?' · '+T('propsAct',x.act):''}</option>`).join('')}</optgroup>`:'').join('')}</select></div>
+      ${ (candidatosInicio().length)?(function(){ const cs=candidatosInicio(); let idx=(typeof ini_item_idx==='number')?ini_item_idx:0; if(idx>=cs.length) idx=0; ini_item_idx=idx; const cur=cs[idx]; const img=imagenInicio(cur.id); return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px;margin-bottom:6px">
+        <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx-1+candidatosInicio().length)%candidatosInicio().length; pintarInicioPopup();">◀</button>
+        <div style="flex:1;text-align:center">
+          ${img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">`:''}
+          <div style="font-size:14px;font-weight:600">${esc(nombreDeInicio(cur.id))}</div>
+          <small style="opacity:.7">${esc(T('startGroup_'+cur.group))}${cur.act>1?' · '+T('propsAct',cur.act):''}</small>
+        </div>
+        <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx+1)%candidatosInicio().length; pintarInicioPopup();">▶</button>
+      </div>
+      <button class="sm" type="button" onclick="cambio(()=>{ const cs=candidatosInicio(); const cur=cs[ini_item_idx||0]; if(cur && cur.id && !camp.start.items.some(i=>i.id===cur.id)) camp.start.items.push({id:cur.id,qty:1}); }); pintarInicioPopup(); renderRight();">${TS('Add this item','Add this item')}</button>`;})()
+      : `<p class="empty">${T('startEmpty')}</p>`}
     ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
       const k=grupoDeInicio(it.id);
       const cuenta=k==='materials'||k==='loot';
@@ -11503,8 +11513,6 @@ function pintarInicioPopup(){
     ${ (campRef.start.skills||[]).length?`<div style="margin-bottom:9px">${campRef.start.skills.map(s=>`<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-iniskilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
     <p class="help">${T('startSkillsHelp')}</p>`;
   el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
-  el.querySelector('#ini_starti').onchange=e=>{ if(!e.target.value) return;
-    cambio(()=>{ if(!camp.start.items.some(i=>i.id===e.target.value)) camp.start.items.push({id:e.target.value,qty:1}); }); pintarInicioPopup(); renderRight(); };
   el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
   el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
   el.querySelector('#ini_starts').onchange=e=>{ if(!e.target.value) return;
