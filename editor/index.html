@@ -7551,6 +7551,7 @@ function renderCampMeta(el){
         <button class="sm" data-startdel="${i}">✕</button></div>`;}).join('')
       :`<p class="empty">${T('startEmpty')}</p>`}
     <p class="help">${T('startQtyHelp')}</p>
+    <div style="margin:6px 0"><button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); renderRight(); pintarInicioPopup();">${TS('Clear all items','Clear all items')}</button></div>
 
     <div class="field"><label>${T('startSkills')}</label>
       <select id="cm_starts"><option value="">${T('startAddSkill')}</option>
@@ -11552,6 +11553,7 @@ function pintarInicioPopup(){
         <button class="sm" data-inidel="${i}">✕</button></div>`;}).join('')
       :`<p class="empty">${T('startEmpty')}</p>`}
     <p class="help">${T('startQtyHelp')}</p>
+    <div style="margin:6px 0"><button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); renderRight(); pintarInicioPopup();">${TS('Clear all items','Clear all items')}</button></div>
 
     <div class="field"><label>${T('startSkills')}</label>
       <select id="ini_starts"><option value="">${T('startAddSkill')}</option>
