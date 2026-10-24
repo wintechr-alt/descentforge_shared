@@ -2053,14 +2053,14 @@ const camp={
   start:{gold:0,items:[],loadout:{}}
 };
 /* Cómo es un documento recién abierto, para importar sobre él (ver exportar.js). */
-function baseStartId(id){ return String(id||'').trim().replace(/_PLUS$|_UPGRADED$/i,''); }
+function baseStartId(id){ id=String(id||'').trim(); if(/_PLUS$/i.test(id)) return id.slice(0,-5); if(/_UPGRADED$/i.test(id)) return id.slice(0,-9); return id; }
 function addStartItem(id){
   id=String(id||'').trim(); if(!id) return;
   camp.start=camp.start||{gold:0,items:[]};
   if(!Array.isArray(camp.start.items)) camp.start.items=[];
   const base=baseStartId(id);
   camp.start.items=camp.start.items.filter(i=> !(baseStartId(i.id)===base && i.id!==id));
-  if(!camp.start.items.some(i=>i.id===id)) addStartItem(id);
+  if(!camp.start.items.some(i=>i.id===id)) camp.start.items.push({id:id,qty:1});
 }
 const STATE0=JSON.stringify(state), CAMP0=JSON.stringify(camp);
 const HERO_DEFAULT_LOADOUT_CLASSES={
