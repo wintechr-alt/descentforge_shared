@@ -7535,25 +7535,6 @@ function renderCampMeta(el){
     ${(camp.start.skills||[]).length?`<div style="margin-bottom:9px">${camp.start.skills.map(s=>
       `<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-skilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
     <p class="help">${T('startSkillsHelp')}</p>
-
-    <h3>Hero loadout (experimental)</h3>
-    <p class="help">Stores which weapons and trinkets are currently equipped for each hero. Click a button to pick from a card popup (left/right to move). Stored in the campaign; not applied to saves automatically yet.</p>
-    <div style="margin-bottom:8px"><button class="sm" onclick="abrirPantallaLoadout()">Open loadout screen</button></div>
-    ${ (DATA.heroes||[]).filter(h=>h.id.startsWith('HERO_')).map(h => {
-      const L=ensureCampLoadout(h.id);
-      const parteName=id=>{ const w=(DATA.weaponParts||[]).find(x=>x.id===id); const g=(DATA.gear||[]).find(x=>x.id===id);
-        return (w?w.name_en||w.name : g?g.name_en||g.name : id)||'(none)'; };
-      return `<div style="margin:8px 0;padding:6px;border:1px solid #ccc;border-radius:4px">
-        <b>${esc(h.name)}</b>
-        <div class="field"><label>Trinket</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','trinket',-1)">${esc(parteName(L.trinket))}</button></div>
-        ${ L.slots.map((slot,i)=>{
-          return `
-            <div class="field"><label>Slot ${i+1} Part A</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','A',${i})">${esc(parteName(slot.a))}</button></div>
-            <div class="field"><label>Part B</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','B',${i})">${esc(parteName(slot.b))}</button></div>
-            <div class="field"><label>Part C</label><button class="sm" type="button" onclick="abrirPickerLoadout('${esc(h.id)}','C',${i})">${esc(parteName(slot.c))}</button></div>`;
-        }).join('')}
-      </div>`;
-    }).join('')}
 `;
   el.querySelector('#cm_name').oninput=e=>{m.name=e.target.value;};
   el.querySelector('#cm_author').oninput=e=>{m.author=e.target.value;};
