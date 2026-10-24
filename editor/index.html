@@ -2053,12 +2053,33 @@ const camp={
 };
 /* Cómo es un documento recién abierto, para importar sobre él (ver exportar.js). */
 const STATE0=JSON.stringify(state), CAMP0=JSON.stringify(camp);
+const HERO_DEFAULT_LOADOUT_CLASSES={
+  HERO_BRYNN:['Sword','Warhammer'],
+  HERO_SYRUS:['Staff','Wand'],
+  HERO_GALADEN:['DualBlades','Bow'],
+  HERO_VAERIX:['Warbell','Spear'],
+  HERO_KEHLI:['Hammer','Crossbow'],
+  HERO_CHANCE:['Gauntlet','ThrowingKnives']
+};
 function ensureCampLoadout(heroId){
   camp.start=camp.start||{};
   camp.start.loadout=camp.start.loadout||{};
   const L=camp.start.loadout[heroId]=camp.start.loadout[heroId]||{trinket:'',slots:[{a:'',b:'',c:''},{a:'',b:'',c:''}]};
   if(!Array.isArray(L.slots)) L.slots=[{a:'',b:'',c:''},{a:'',b:'',c:''}];
   while(L.slots.length<2) L.slots.push({a:'',b:'',c:''});
+  // seed blanks with each hero's normal starting weapons at level 1
+  const classes=HERO_DEFAULT_LOADOUT_CLASSES[heroId]||[];
+  L.slots.forEach((slot,i)=>{
+    if(slot.a) return;
+    const cls=classes[i];
+    if(!cls) return;
+    const partA=(DATA.weaponParts||[]).find(w=>w.slot==='A' && w.class===cls && String(w.id).endsWith('_1'));
+    if(partA) slot.a=partA.id;
+    const b0=(DATA.weaponParts||[]).find(w=>w.slot==='B' && w.class===cls && /_0$/.test(w.id));
+    if(b0) slot.b=b0.id;
+    const c0=(DATA.weaponParts||[]).find(w=>w.slot==='C' && w.class===cls && /_0$/.test(w.id));
+    if(c0) slot.c=c0.id;
+  });
   return L;
 }
 function partAName(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?(w.name_en||w.name):id; }
