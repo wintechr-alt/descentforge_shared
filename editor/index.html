@@ -11486,8 +11486,40 @@ function imagenInicio(id){
   if(c.indexOf('MAT_')===0) return '../img/crafting_material/'+c+'.png';
   return '';
 }
-let ini_item_idx=0;
-function candidatosInicio(){ return GRUPOS_INICIO().flatMap(([k,l])=> (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:x.act}))); }
+let ini_item_idx=0; let ini_grupo=0;
+function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:x.act})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
+function candidatosInicio(){ return candidatosGrupo(); }
+function renderInicioAdd(){
+  const grupos=GRUPOS_INICIO();
+  if(ini_grupo>=grupos.length) ini_grupo=0;
+  const g=grupos[ini_grupo]||grupos[0]||['',[]];
+  const k=g[0]||'';
+  const l=g[1]||[];
+  const cs=l.map(x=>({id:x.id,name:L(x,'name'),group:k,act:x.act})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id)));
+  let idx=(typeof ini_item_idx==='number')?ini_item_idx:0; if(idx>=cs.length) idx=0; ini_item_idx=idx;
+  const cur=cs[idx]||{id:'',name:'',group:k,act:1};
+  const img=imagenInicio(cur.id);
+  const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; ini_item_idx=0; pintarInicioPopup();">${esc(T('startGroup_'+gk))} (${(gl||[]).length})</button>`).join('');
+  if(!cs.length){
+    return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${tabs}</div><p class="empty">${T('startEmpty')}</p>`;
+  }
+  const card=`<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px;margin-bottom:6px">
+    <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx-1+cs.length)%cs.length; pintarInicioPopup();">&#9664;</button>
+    <div style="flex:1;text-align:center">
+      ${img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">`:''}
+      <div style="font-size:14px;font-weight:600">${esc(nombreDeInicio(cur.id))}</div>
+      <small style="opacity:.7">${esc(T('startGroup_'+cur.group))}${cur.act>1?' · '+T('propsAct',cur.act):''}</small>
+    </div>
+    <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx+1)%cs.length; pintarInicioPopup();">&#9654;</button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+    <button class="sm" type="button" onclick="cambio(()=>{ const cs=candidatosGrupo(); const cur=cs[ini_item_idx||0]; if(cur && cur.id && !camp.start.items.some(i=>i.id===cur.id)) camp.start.items.push({id:cur.id,qty:1}); }); pintarInicioPopup(); renderRight();">Add this item</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().forEach(x=>{ if(!camp.start.items.some(i=>i.id===x.id)) camp.start.items.push({id:x.id,qty:1}); }); }); pintarInicioPopup(); renderRight();">Add all</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().filter(x=>(x.act||1)<=1).forEach(x=>{ if(!camp.start.items.some(i=>i.id===x.id)) camp.start.items.push({id:x.id,qty:1}); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
+    <button class="sm" type="button" onclick="cambio(()=>{ candidatosGrupo().filter(x=>(x.act||1)>=2).forEach(x=>{ if(!camp.start.items.some(i=>i.id===x.id)) camp.start.items.push({id:x.id,qty:1}); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
+  </div>`;
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${tabs}</div>`+card;
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11499,17 +11531,7 @@ function pintarInicioPopup(){
   el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
     <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
     <div class="field"><label>${T('startAdd')}</label>
-      ${ (candidatosInicio().length)?(function(){ const cs=candidatosInicio(); let idx=(typeof ini_item_idx==='number')?ini_item_idx:0; if(idx>=cs.length) idx=0; ini_item_idx=idx; const cur=cs[idx]; const img=imagenInicio(cur.id); return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px;margin-bottom:6px">
-        <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx-1+candidatosInicio().length)%candidatosInicio().length; pintarInicioPopup();">◀</button>
-        <div style="flex:1;text-align:center">
-          ${img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">`:''}
-          <div style="font-size:14px;font-weight:600">${esc(nombreDeInicio(cur.id))}</div>
-          <small style="opacity:.7">${esc(T('startGroup_'+cur.group))}${cur.act>1?' · '+T('propsAct',cur.act):''}</small>
-        </div>
-        <button class="sm" type="button" onclick="ini_item_idx=(ini_item_idx+1)%candidatosInicio().length; pintarInicioPopup();">▶</button>
-      </div>
-      <button class="sm" type="button" onclick="cambio(()=>{ const cs=candidatosInicio(); const cur=cs[ini_item_idx||0]; if(cur && cur.id && !camp.start.items.some(i=>i.id===cur.id)) camp.start.items.push({id:cur.id,qty:1}); }); pintarInicioPopup(); renderRight();">${TS('Add this item','Add this item')}</button>`;})()
-      : `<p class="empty">${T('startEmpty')}</p>`}
+      ${renderInicioAdd()}</div>
     ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
       const k=grupoDeInicio(it.id);
       const cuenta=k==='materials'||k==='loot';
