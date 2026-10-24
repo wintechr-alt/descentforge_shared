@@ -11496,7 +11496,7 @@ function imagenInicio(id){
   return '';
 }
 let ini_item_idx=0; let ini_grupo=0;
-function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:x.act})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
+function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
 function candidatosInicio(){ return candidatosGrupo(); }
 function renderInicioAdd(){
   const grupos=GRUPOS_INICIO();
@@ -11540,6 +11540,17 @@ function preferidos(items){
     else if(esMejoraStart(x.id) && !esMejoraStart(cur.id)) byBase.set(base,x);
   });
   return [...byBase.values()];
+}
+function itemActOf(x){
+  if(!x) return 1;
+  if(Number.isFinite(x.act)) return x.act;
+  const id=String(x.id||'');
+  const m=/_(\d+)(?:_UPGRADED)?$/.exec(id);
+  if(m && id.indexOf('WEAPON_PART_')===0){ const n=parseInt(m[1]); return (n>=4)?2:1; }
+  if(id==='WEAPON_DRAGONSBANE' || id==='WEAPON_GRASP_OF_FEAR' || id==='WEAPON_SUNBURST') return 2;
+  const sk=(DATA.skills||[]).find(s=>s.id===id);
+  if(sk && (sk.act==='II'||sk.act===2)) return 2;
+  return 1;
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
