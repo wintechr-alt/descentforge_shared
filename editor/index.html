@@ -2086,13 +2086,27 @@ function ensureCampLoadout(heroId){
 function partAName(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?(w.name_en||w.name):id; }
 function classOfPartA(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?w.class:''; }
 let hlPantallaHero=null;
+function syncLoadoutToStartItems(){
+  camp.start=camp.start||{gold:0,items:[]};
+  if(!Array.isArray(camp.start.items)) camp.start.items=[];
+  const ids=new Set(camp.start.items.map(i=>i.id));
+  Object.keys(camp.start.loadout||{}).forEach(h=>{
+    const L=camp.start.loadout[h]; if(!L) return;
+    if(L.trinket && !ids.has(L.trinket)){ camp.start.items.push({id:L.trinket,qty:1}); ids.add(L.trinket); }
+    (L.slots||[]).forEach(sl=>{ [sl.a,sl.b,sl.c].forEach(id=>{
+      if(id && !ids.has(id)){ camp.start.items.push({id:id,qty:1}); ids.add(id); }
+    }); });
+  });
+}
 function abrirPantallaLoadout(){
   const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
   if(!heroes.length) return;
   if(!hlPantallaHero || !heroes.some(h=>h.id===hlPantallaHero)) hlPantallaHero=heroes[0].id;
+  syncLoadoutToStartItems();
   openDlg(TS('Hero loadout','Hero loadout'),
     `<div id="hlPantallaBody"></div>`,
     `<button id="hlPantallaDone">${TS('Hecho','Done')}</button>`);
+  syncLoadoutToStartItems();
   pintarPantallaLoadout();
   const done=document.getElementById('hlPantallaDone');
   if(done) done.onclick=()=>dlg.close();
@@ -2102,6 +2116,7 @@ function pintarPantallaLoadout(){
   const hero=hlPantallaHero || (heroes[0]&&heroes[0].id);
   hlPantallaHero=hero;
   const L=ensureCampLoadout(hero);
+  syncLoadoutToStartItems();
   const el=document.getElementById('hlPantallaBody');
   if(!el) return;
   const tabs=heroes.map(h=>`<button class="sm" style="margin:2px" onclick="hlPantallaHero='${h.id}'; pintarPantallaLoadout();">${esc(h.name||h.id)}</button>`).join('');
@@ -2175,7 +2190,9 @@ function nombreParte(id){
 }
 function opcionesLoadout(heroId, field, slotIndex){
   if(field==='trinket'){
-    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket')
+    const L=ensureCampLoadout(heroId);
+    const used=new Set(Object.keys(camp.start.loadout||{}).filter(h=>h!==heroId).map(h=> (camp.start.loadout[h]||{}).trinket).filter(Boolean));
+    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && (!used.has(g.id) || g.id===L.trinket))
       .map(g=>({id:g.id,name:g.name_en||g.name})));
   }
   if(field==='A'){
@@ -2197,6 +2214,7 @@ function aplicarLoadout(heroId, field, slotIndex, value){
     } else if(field==='B') L.slots[slotIndex].b=value;
     else if(field==='C') L.slots[slotIndex].c=value;
   });
+  syncLoadoutToStartItems();
   renderRight();
 }
 function abrirPickerLoadout(heroId, field, slotIndex){
