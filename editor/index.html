@@ -707,6 +707,7 @@
   <div class="langsel" id="themesel">
     <button data-th="light" data-ttl="thLight">☀</button><button data-th="dark" data-ttl="thDark">☾</button>
   </div>
+  <button id="btnLoadout" onclick="abrirPantallaLoadout()">Loadout</button>
   <button id="btnImport" data-t="open"></button>
   <button class="primary" id="btnExport" data-t="export"></button>
 </header>
@@ -2108,7 +2109,7 @@ function pintarPantallaLoadout(){
     <div style="display:flex;align-items:center;gap:6px">
       <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},-1)">◀</button>
       <div style="flex:1;text-align:center">
-        ${imagenParte(value)?`<img src="${imagenParte(value)}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">`:''}
+        ${imagenParte(value)?`<div style="position:relative;display:inline-block"><img src="${imagenParte(value)}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${esMejora(value)?'<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>':''}</div>`:''}
         <div style="font-size:12px">${esc(nombreParte(value))}</div>
       </div>
       <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},1)">▶</button>
@@ -2151,18 +2152,28 @@ function hlArrow(hero, field, slotIndex, delta){
 
 function matchingParts(slot,cls){ return (DATA.weaponParts||[]).filter(x=>x.slot===slot && (!cls||x.class===cls)); }
 
+function esMejora(id){ return /_UPGRADED$|_PLUS$/.test(id||''); }
 function imagenParte(id){
   if(!id) return '';
-  if(id.indexOf('WEAPON_PART_')===0) return '../img/weapon/'+id+'.png';
-  if(id.indexOf('TRINKET')===0) return '../img/trinket/'+id+'.png';
+  const base=(id||'').replace(/_UPGRADED$|_PLUS$/,'');
+  if(base.indexOf('WEAPON_PART_')===0) return '../img/weapon/'+base+'.png';
+  if(base.indexOf('TRINKET')===0) return '../img/trinket/'+base+'.png';
   return '';
 }
 function nombreParte(id){
   if(!id) return '(none)';
   const w=(DATA.weaponParts||[]).find(x=>x.id===id);
-  if(w) return w.name_en||w.name||id;
+  if(w){
+    let n=w.name_en||w.name||id;
+    if(esMejora(id) && !/plus|mejorado/i.test(n)) n+=' Plus';
+    return n;
+  }
   const g=(DATA.gear||[]).find(x=>x.id===id);
-  if(g) return g.name_en||g.name||id;
+  if(g){
+    let n=g.name_en||g.name||id;
+    if(esMejora(id) && !/plus|mejorado/i.test(n)) n+=' Plus';
+    return n;
+  }
   return id;
 }
 function opcionesLoadout(heroId, field, slotIndex){
@@ -2219,8 +2230,10 @@ function abrirPickerLoadout(heroId, field, slotIndex){
     </div>`;
   openDlg(title, body, '');
   const upd=()=>{ const it=opts[idx]; const img=imagenParte(it.id);
+    const badge=esMejora(it.id)?`<div style="font-size:11px;color:#d9a441;font-weight:700">Plus</div>`:'';
     document.getElementById('hlCard').innerHTML=
-    (img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">`:'')+
+    (img?`<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">${esMejora(it.id)?'<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>':''}</div>`:'')+
+    badge+
     `<b>${esc(it.name||'(none)')}</b><br><small>${esc(it.id||'')}</small>`+
     (it.cls?`<br><small>${esc(it.cls)}</small>`:''); };
   document.getElementById('hlPrev').onclick=()=>{ idx=(idx-1+opts.length)%opts.length; upd(); };
