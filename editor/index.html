@@ -11477,6 +11477,16 @@ matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{texPat=
 new MutationObserver(()=>{texPat={};draw();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 </script>
 <script>
+function imagenInicio(id){
+  if(!id) return '';
+  const c=id.trim();
+  if(c.indexOf('WEAPON_PART_')===0) return '../img/weapon/'+c+'.png';
+  if(c.indexOf('TRINKET')===0) return '../img/trinket/'+c+'.png';
+  if(c.indexOf('ARMOR')===0) return '../img/armor/'+c+'.png';
+  if(c.indexOf('CSM_')===0) return '../img/csm/'+c+'.png';
+  if(c.indexOf('MAT_')===0) return '../img/crafting_material/'+c+'.png';
+  return '';
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11494,7 +11504,9 @@ function pintarInicioPopup(){
     ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
       const k=grupoDeInicio(it.id);
       const cuenta=k==='materials'||k==='loot';
+      const img=imagenInicio(it.id);
       return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
+        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
         <span style="flex:1" title="${esc(it.id)}">${esc(nombreDeInicio(it.id))}
           <small style="opacity:.7">· ${esc(k?T('startGroup_'+k):it.id)}</small></span>
         ${cuenta?`<input type="number" min="1" value="${esc(it.qty||1)}" data-iniqty="${i}" style="max-width:60px" title="${esc(T('startQty'))}">`:''}
