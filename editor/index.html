@@ -2103,7 +2103,7 @@ function syncLoadoutToStartItems(){
     const L=camp.start.loadout[h]; if(!L) return;
     if(L.trinket && !ids.has(L.trinket)){ addStartItem(L.trinket); ids.add(L.trinket); }
     (L.slots||[]).forEach(sl=>{ [sl.a,sl.b,sl.c].forEach(id=>{
-      if(id && !ids.has(id)){ addStartItem(id); ids.add(id); }
+      if(id && !/_0$/.test(id) && !ids.has(id)){ addStartItem(id); ids.add(id); }
     }); });
   });
 }
