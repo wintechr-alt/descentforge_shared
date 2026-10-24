@@ -2218,7 +2218,9 @@ function abrirPickerLoadout(heroId, field, slotIndex){
       <button id="hlCancel">${TS('Cancelar','Cancel')}</button>
     </div>`;
   openDlg(title, body, '');
-  const upd=()=>{ const it=opts[idx]; document.getElementById('hlCard').innerHTML=
+  const upd=()=>{ const it=opts[idx]; const img=imagenParte(it.id);
+    document.getElementById('hlCard').innerHTML=
+    (img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">`:'')+
     `<b>${esc(it.name||'(none)')}</b><br><small>${esc(it.id||'')}</small>`+
     (it.cls?`<br><small>${esc(it.cls)}</small>`:''); };
   document.getElementById('hlPrev').onclick=()=>{ idx=(idx-1+opts.length)%opts.length; upd(); };
