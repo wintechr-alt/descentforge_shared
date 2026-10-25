@@ -11590,9 +11590,9 @@ function renderInicioAdd(){
     const imgFor=(fam)=>imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId);
     const hasToggle=(id)=> (camp.start.items||[]).some(i=>i.id===id);
     body = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-      <button class="sm" type="button" onclick="cambio(()=>{ familyList.forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId); }); }); pintarInicioPopup(); renderRight();">Add all</button>
-      <button class="sm" type="button" onclick="cambio(()=>{ familyList.filter(f=>(f.act||1)<=1).forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
-      <button class="sm" type="button" onclick="cambio(()=>{ familyList.filter(f=>(f.act||1)>=2).forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ addBulkStartItems('all'); }); pintarInicioPopup(); renderRight();">Add all</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ addBulkStartItems('act1'); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ addBulkStartItems('act2'); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
       <button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); pintarInicioPopup(); renderRight();">Clear all</button>
     </div>
     <table style="width:100%;border-collapse:collapse">
@@ -11723,6 +11723,29 @@ function pintarGoldMateriales(){
 }
 function _glabel(k){ if(k==='weaponParts_common') return TS('Common weapons','Common weapons'); if(String(k).indexOf('weaponParts_')===0){ const h=(DATA.heroes||[]).find(x=>x.id===String(k).replace('weaponParts_','')); return h?h.name:k; } return T('startGroup_'+k); }
 function esMejoraStart(id){ return /_PLUS$|_UPGRADED$/i.test(String(id||'')); }
+function addBulkStartItems(mode){
+  const g=GRUPOS_INICIO().filter(x=>x&&x[0]!=='loot')[ini_grupo]||GRUPOS_INICIO().filter(x=>x&&x[0]!=='loot')[0];
+  const l=g?g[1]||[]:[];
+  const families=new Map();
+  (l||[]).forEach(x=>{
+    const raw=String(x.id||'');
+    const isRecipe=raw.indexOf('RECIPE_')===0;
+    const base=itemFamilyId(raw);
+    if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'', baseIdItem:base, upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x), cls:x.class||''});
+    const f=families.get(base);
+    if(!f.cls && x.class) f.cls=x.class;
+    if(isRecipe){ if(/_PLUS$|_UPGRADED$/i.test(recipeToItem(raw))) f.plusRecipeId=raw; else f.recipeBaseId=raw; }
+    else { if(/_PLUS$|_UPGRADED$/i.test(raw)) f.upgradedItemId=raw; else f.baseItemId=raw; }
+    f.act=f.act||itemActOf(x);
+  });
+  [...families.values()].forEach(fam=>{
+    if(mode==='act1' && (fam.act||1)>1) return;
+    if(mode==='act2' && (fam.act||1)<2) return;
+    const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId;
+    if(prefer) addStartItem(prefer);
+    if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
+  });
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
