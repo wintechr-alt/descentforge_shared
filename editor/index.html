@@ -11828,6 +11828,25 @@ function addAllUpgradedStartItems(){
     if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
   });
 }
+function addAllUpgradedGlobal(){
+  const allowedAct2=(camp.meta.act!=='I')||!!camp.meta.requiresAct2;
+  const grupos=GRUPOS_INICIO().filter(g=>g&&g[0]!=='loot');
+  const byBase=new Map();
+  grupos.forEach(([k,l])=>{
+    (l||[]).forEach(x=>{
+      if(!x||!x.id) return;
+      const base=itemFamilyId(x.id);
+      const cur=byBase.get(base);
+      if(!cur) byBase.set(base,x);
+      else if(esMejoraStart(x.id) && !esMejoraStart(cur.id)) byBase.set(base,x);
+    });
+  });
+  [...byBase.values()].forEach(x=>{
+    const act=itemActOf(x);
+    if(act>=2 && !allowedAct2) return;
+    if(esMejoraStart(x.id)){ addStartItem(x.id); const rid=RECIPE_ID_EXCEPTIONS[x.id] || ('RECIPE_' + x.id); if(rid && (DATA.recipes||[]).some(r=>r.id===rid)) addStartItem(rid); }
+  });
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11839,6 +11858,7 @@ function pintarInicioPopup(){
   el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
     <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
     <div class="field"><label>${T('startAdd')}</label>
+      <div style="margin-bottom:8px"><button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedGlobal(); }); pintarInicioPopup(); renderRight();">I want it all</button></div>
       ${renderInicioAdd()}</div>
     ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
       const k=grupoDeInicio(it.id);
