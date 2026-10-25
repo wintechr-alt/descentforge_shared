@@ -7529,7 +7529,10 @@ function renderCampMeta(el){
       :`<p class="empty">${T('shopEmpty')}</p>`}
 
     <h3>${T('start')}</h3>
-    <div style="margin-bottom:8px"><button class="sm" onclick="abrirInicioPopup()">${TS('Abrir inventario inicial','Open starting inventory')}</button></div>
+    <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">
+    <button class="sm" onclick="abrirInicioPopup()">${TS('Abrir inventario inicial','Open starting inventory')}</button>
+    <button class="sm" onclick="abrirGoldMateriales()">${TS('Oro y materiales','Gold & Materials')}</button>
+  </div>
     <p class="help">${T('startHelp')}</p>
     <div class="field"><label>${T('startGold')}</label>
       <input id="cm_startg" type="number" min="0" value="${numero(camp.start.gold)}"></div>
@@ -7615,7 +7618,7 @@ function GRUPOS_INICIO(){
   const gear=DATA.gear||[];
   return [['armor',gear.filter(g=>g.kind==='armor')],['trinket',gear.filter(g=>g.kind==='trinket')],
           ['recipes',DATA.recipes||[]],
-          ['weaponParts',DATA.weaponParts||[]],['materials',DATA.materials||[]],['loot',DATA.loot||[]]];
+          ['weaponParts',DATA.weaponParts||[]],['loot',DATA.loot||[]]];
 }
 function grupoDeInicio(id){
   const g=GRUPOS_INICIO().find(([,l])=>l.some(x=>x.id===id));
@@ -11551,6 +11554,43 @@ function itemActOf(x){
   const sk=(DATA.skills||[]).find(s=>s.id===id);
   if(sk && (sk.act==='II'||sk.act===2)) return 2;
   return 1;
+}
+
+function cantidadMaterialInicio(id){
+  const items=camp.start.items||[];
+  const e=items.find(i=>i.id===id);
+  return e ? (e.qty||0) : 0;
+}
+function setCantidadMaterialInicio(id, qty){
+  camp.start=camp.start||{gold:0,items:[]};
+  if(!Array.isArray(camp.start.items)) camp.start.items=[];
+  qty=Math.max(0, Math.round(qty||0));
+  const i=camp.start.items.findIndex(x=>x.id===id);
+  if(qty<=0){ if(i>=0) camp.start.items.splice(i,1); }
+  else if(i>=0) camp.start.items[i].qty=qty;
+  else camp.start.items.push({id:id, qty:qty});
+}
+function abrirGoldMateriales(){
+  openDlg(TS('Oro y materiales','Gold & Materials'), `<div id="gmBody"></div>`, `<button id="gmDone">${TS('Hecho','Done')}</button>`);
+  pintarGoldMateriales();
+  const d=document.getElementById('gmDone'); if(d) d.onclick=()=>dlg.close();
+}
+function pintarGoldMateriales(){
+  const el=document.getElementById('gmBody'); if(!el) return;
+  el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
+    <input id="gm_gold" type="number" min="0" value="${numero(camp.start.gold)}"></div>
+    <p class="help">${T('startQtyHelp')}</p>
+    ${(DATA.materials||[]).map(m=>{
+      const img=imagenInicio(m.id);
+      const q=cantidadMaterialInicio(m.id);
+      return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
+        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span style="flex:1" title="${esc(m.id)}">${esc(L(m,'name'))}</span>
+        <input type="number" min="0" value="${esc(q)}" data-gmq="${esc(m.id)}" style="max-width:70px" title="${esc(T('startQty'))}">
+      </div>`;
+    }).join('')}`;
+  el.querySelector('#gm_gold').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarGoldMateriales(); renderRight(); };
+  el.querySelectorAll('[data-gmq]').forEach(c=>c.onchange=()=>cambio(()=>{ setCantidadMaterialInicio(c.dataset.gmq, +c.value); pintarGoldMateriales(); renderRight(); }));
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
