@@ -11722,6 +11722,7 @@ function pintarGoldMateriales(){
   if(gmInitial) gmInitial.onclick=()=>{ cambio(()=>{ setInitialMaterials(); }); pintarGoldMateriales(); renderRight(); };
 }
 function _glabel(k){ if(k==='weaponParts_common') return TS('Common weapons','Common weapons'); if(String(k).indexOf('weaponParts_')===0){ const h=(DATA.heroes||[]).find(x=>x.id===String(k).replace('weaponParts_','')); return h?h.name:k; } return T('startGroup_'+k); }
+function esMejoraStart(id){ return /_PLUS$|_UPGRADED$/i.test(String(id||'')); }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11771,7 +11772,10 @@ function pintarInicioPopup(){
   el.querySelectorAll('[data-starttoggle]').forEach(cb=>{
     cb.disabled = (!act2AllowedBind && (+(cb.dataset.act||1))>=2);
     cb.onchange=()=>{ const id=cb.dataset.starttoggle;
-      cambio(()=>{ if(cb.checked) addStartItem(id); else camp.start.items=camp.start.items.filter(i=>i.id!==id); });
+      cambio(()=>{ if(cb.checked) addStartItem(id); else camp.start.items=camp.start.items.filter(i=>i.id!==id);
+        if(esMejoraStart(id)){ const rid=RECIPE_ID_EXCEPTIONS[id] || ('RECIPE_' + id);
+          if(cb.checked) addStartItem(rid); else camp.start.items=camp.start.items.filter(i=>i.id!==rid); }
+      });
       pintarInicioPopup(); renderRight(); };
   });
   lockBaseUpgradedPairs();
