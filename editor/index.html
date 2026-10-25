@@ -11762,7 +11762,7 @@ function pintarInicioPopup(){
       const up=row.querySelector('input[data-role="upgraded"]');
       if(!base || !up) return;
       if(up.checked){ base.checked=true; base.disabled=true; base.style.opacity=.45; }
-      else if(base.checked){ up.disabled=true; up.style.opacity=.45; }
+      else if(base.checked){ up.disabled=false; up.style.opacity=1; }
       else { base.disabled=false; up.disabled=false; base.style.opacity=1; up.style.opacity=1; }
       if(!act2AllowedBind && (+(base.dataset.act||1))>=2){ base.disabled=true; base.style.opacity=.45; }
       if(!act2AllowedBind && (+(up.dataset.act||1))>=2){ up.disabled=true; up.style.opacity=.45; }
