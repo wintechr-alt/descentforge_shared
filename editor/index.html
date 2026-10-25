@@ -11755,7 +11755,6 @@ function addBulkStartItems(mode){
     if(mode==='act2' && (fam.act||1)<2) return;
     const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId;
     if(prefer) addStartItem(prefer);
-    if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
   });
 }
 
@@ -11824,7 +11823,6 @@ function addAllUpgradedStartItems(){
   });
   [...families.values()].forEach(fam=>{
     if(fam.upgradedItemId) addStartItem(fam.upgradedItemId);
-    if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
   });
 }
 function addAllUpgradedGlobal(){
