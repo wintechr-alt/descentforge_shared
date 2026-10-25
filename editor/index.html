@@ -11579,6 +11579,7 @@ function pintarGoldMateriales(){
   const el=document.getElementById('gmBody'); if(!el) return;
   el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
     <input id="gm_gold" type="number" min="0" value="${numero(camp.start.gold)}"></div>
+    <div style="margin:6px 0"><button class="sm" type="button" id="gm_initial">${TS('Añadir inicial','Add initial')}</button></div>
     <p class="help">${T('startQtyHelp')}</p>
     ${(DATA.materials||[]).map(m=>{
       const img=imagenInicio(m.id);
@@ -11591,6 +11592,17 @@ function pintarGoldMateriales(){
     }).join('')}`;
   el.querySelector('#gm_gold').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarGoldMateriales(); renderRight(); };
   el.querySelectorAll('[data-gmq]').forEach(c=>c.onchange=()=>cambio(()=>{ setCantidadMaterialInicio(c.dataset.gmq, +c.value); pintarGoldMateriales(); renderRight(); }));
+  const gmInitial=el.querySelector('#gm_initial');
+  if(gmInitial) gmInitial.onclick=()=>{ cambio(()=>{ setInitialMaterials(); }); pintarGoldMateriales(); renderRight(); };
+}
+function setInitialMaterials(){
+  camp.start=camp.start||{gold:0,items:[]};
+  (DATA.materials||[]).forEach(m=>{
+    const id=m.id;
+    let qty=10;
+    if(id==='MAT_CLOTH'||id==='MAT_MINERALS'||id==='MAT_BONE'||id==='MAT_LEATHER'||id==='MAT_METAL'||id==='MAT_HERBS'||id==='MAT_CURIOS') qty=100;
+    setCantidadMaterialInicio(id, qty);
+  });
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
