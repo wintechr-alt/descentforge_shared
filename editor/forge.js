@@ -7,7 +7,7 @@ if(!Array.isArray(state.weaponParts)||!state.weaponParts.length)state.weaponPart
 if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:state.weaponParts}));}catch(e){};if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function prettyName(s){return String(s==null?'':s).replace(//g,' Plus').replace(/^\s+|\s+$/g,'');}
+function prettyName(s){return String(s==null?'':s).replace(//g,' Plus').replace(/\s+/g,' ').trim();}
 function partFlavor(p){if(!p) return ''; if(p.text) return p.text; try{ const k=(p.class||'')+'|'+(p.slot||'')+'|'+prettyName(p.name_en||p.name||''); if(typeof PART_EFFECTS!=='undefined' && PART_EFFECTS[k]) return PART_EFFECTS[k]; }catch(e){}; return ''; }
 const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
@@ -113,7 +113,10 @@ function carouselHTML(cls,slot,showImage){
   const arr=partVariants(cls,slot).filter(function(w){return inStartInv(w.id);});
   if(!arr.length) return '<div style="color:var(--dim);font-size:12px;text-align:center;padding:8px 0;">none</div>';
   let idx=carIdx[carKey(cls,slot)];
-  if(idx==null || idx<0 || idx>=arr.length) idx=0;
+  if(idx==null || idx<0 || idx>=arr.length){
+    const withFlavor=arr.filter(function(w){return partFlavor(w);});
+    idx = withFlavor.length ? arr.indexOf(withFlavor[0]) : 0;
+  }
   const p=arr[idx];
   const name=prettyName(p.name_en||p.name||p.id);
   const flavor=prettyName(partFlavor(p));
