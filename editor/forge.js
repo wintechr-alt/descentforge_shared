@@ -364,15 +364,32 @@ function renderSharedCategory(){
 function renderItemPoolCategory(){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
-  const allItems = (typeof DATA!=='undefined' && Array.isArray(DATA.loot)) ? DATA.loot : [];
   const invIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items)) ? camp.start.items.map(function(i){return i.id;}) : [];
-  const avail = allItems.filter(function(x){ return invIds.indexOf(x.id) === -1; });
+  const allItems = [];
+  if(typeof GRUPOS_INICIO==='function'){
+    GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){
+      (g[1]||[]).forEach(function(x){ allItems.push(x); });
+    });
+  }
+  const avail = allItems.filter(function(x, idx){ return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')); });
+  function imageFor(id){
+    id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
+    let folder=null;
+    if(/ARMOR/.test(id)) folder='armor';
+    else if(/TRINKET/.test(id)) folder='trinket';
+    else if(/WEAPON_PART/.test(id)) folder='weapon';
+    else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
+    if(!folder) return '';
+    return '<img src="../img/'+folder+'/'+base+'.png" style="width:34px;height:34px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+  }
   const rows = avail.map(function(x){
-    const name = prettyName(x.name_en||x.name||x.id);
+    const name = prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
+    const img = imageFor(x.id);
     return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
-      '<span>'+esc(name)+'</span></div>';
+      img+'<span>'+esc(name)+'</span></div>';
   }).join('');
   main.innerHTML=
+    '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Available recipes and items not in Starting Inventory.</div>' +
     (avail.length ? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No available items.</p>') +
     '<div>'+ (rows||'') +'</div>';
 }
