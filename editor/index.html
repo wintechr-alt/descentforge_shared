@@ -11766,10 +11766,12 @@ function pintarSkillsPopup(){
     <div style="max-height:260px;overflow:auto;border:1px solid rgba(128,128,128,.3);border-radius:4px">
       ${list.map(s=>{
         const checked=(camp.start.skills||[]).includes(s.id);
-        const img=imagenInicio? '': '';
-        return `<div style="display:flex;gap:6px;align-items:center;padding:4px;border-bottom:1px solid rgba(128,128,128,.25)">
-          <input type="checkbox" data-skskill="${esc(s.id)}" ${checked?'checked':''}>
-          <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(nombreHabilidad(s.id))}</div><small style="opacity:.7">${esc(s.id)}</small></div>
+        return `<div style="display:flex;gap:8px;align-items:flex-start;padding:6px;border-bottom:1px solid rgba(128,128,128,.25)">
+          <input type="checkbox" data-skskill="${esc(s.id)}" ${checked?'checked':''} style="margin-top:3px;flex:0 0 auto">
+          <div style="flex:1;min-width:0;line-height:1.25">
+            <div style="font-size:13px;font-weight:600;white-space:normal">${esc(nombreHabilidad(s.id))}</div>
+            <small style="opacity:.7;white-space:normal">${esc(s.id)}</small>
+          </div>
         </div>`;
       }).join('')}
     </div>
