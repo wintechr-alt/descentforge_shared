@@ -11522,77 +11522,83 @@ let ini_item_idx=0; let ini_grupo=0;
 function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
 function candidatosInicio(){ return candidatosGrupo(); }
 function renderInicioAdd(){
-  const grupos=GRUPOS_INICIO().filter(g=>g && g[0]!=='loot' && g[0]!=='skill');
+  const grupos=GRUPOS_INICIO();
   if(ini_grupo>=grupos.length) ini_grupo=0;
   const g=grupos[ini_grupo]||grupos[0]||['',[]];
   const k=g[0]||'';
   const l=g[1]||[];
-  const cs=(l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)}));
   const isMaterial = k==='materials';
-  const rows=[];
-  const byBase=new Map();
-  cs.forEach(x=>{
-    const base=baseStartId(x.id);
-    if(!byBase.has(base)) byBase.set(base,{baseId:base, baseItem:null, upgradedItem:null, act:x.act});
-    const r=byBase.get(base);
-    if(x.id===base) r.baseItem=x; else r.upgradedItem=x;
-    r.act = r.act || x.act;
+  const families=new Map();
+  (l||[]).forEach(x=>{
+    const raw=String(x.id||'');
+    const isRecipe=raw.indexOf('RECIPE_')===0;
+    const core=isRecipe?raw.slice(7):raw;
+    const base=core.replace(/_PLUS$|_UPGRADED$/i,'');
+    if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'RECIPE_'+base, baseIdItem:base,
+      upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x)});
+    const f=families.get(base);
+    if(isRecipe){
+      if(raw==='RECIPE_'+base || raw==='RECIPE_'+base+'_PLUS' || raw==='RECIPE_'+base+'_UPGRADED'){
+        // match exact recipe/plus recipe ids by suffix
+        if(raw==='RECIPE_'+base) f.recipeBaseId=raw;
+        else f.plusRecipeId=raw;
+      }
+    } else {
+      if(raw===base) f.baseItemId=raw;
+      else f.upgradedItemId=raw;
+    }
+    f.act = f.act || itemActOf(x);
   });
-  const rowList=[...byBase.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
+  const familyList=[...families.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
   const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; pintarInicioPopup();">${esc(T('startGroup_'+gk))} (${(gl||[]).length})</button>`).join('');
   let body='';
   if(isMaterial){
-    body = cs.map(x=>{
+    body = (l||[]).map(x=>{
       const q=(camp.start.items||[]).find(i=>i.id===x.id);
       const qty=q?q.qty||0:0;
       const img=imagenInicio(x.id);
       return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
-        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
-        <span style="flex:1" title="${esc(x.id)}">${esc(nombreDeInicio(x.id))}</span>
+        ${img?`<img src="${img}" alt="" style="width:32px;height:32px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span style="flex:1" title="${esc(x.id)}">${esc(L(x,'name'))}</span>
         <input type="number" min="0" value="${esc(qty)}" data-gmq="${esc(x.id)}" style="max-width:70px" title="${esc(T('startQty'))}">
       </div>`;
     }).join('');
+    body += `<p class="help" style="margin-top:6px">${T('startQtyHelp')}</p>`;
   } else {
-    const bulk = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo()).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
-      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)<=1)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
-      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)>=2)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
-      <button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||[]).length=0; }); pintarInicioPopup(); renderRight();">Clear all</button>
-    </div>`;
-    body = bulk + `<table style="width:100%;border-collapse:collapse">
+    const imgFor=(fam)=>imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId);
+    const hasToggle=(id)=> (camp.start.items||[]).some(i=>i.id===id);
+    body = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      <button class="sm" type="button" onclick="cambio(()=>{ familyList.forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId); }); }); pintarInicioPopup(); renderRight();">Add all</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ familyList.filter(f=>(f.act||1)<=1).forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ familyList.filter(f=>(f.act||1)>=2).forEach(fam=>{ const prefer=fam.upgradedItemId||fam.baseItemId||fam.baseId; if(prefer) addStartItem(prefer); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); pintarInicioPopup(); renderRight();">Clear all</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
       <tr>
         <th style="text-align:left;border:1px solid rgba(128,128,128,.35);padding:4px">ID</th>
-        <th style="width:68px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Base</th>
-        <th style="width:92px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Upgraded</th>
+        <th style="width:64px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Recipe</th>
+        <th style="width:56px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Base</th>
+        <th style="width:80px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Plus recipe</th>
+        <th style="width:72px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Upgraded</th>
       </tr>
-      ${rowList.map(r=>`<tr>
+      ${familyList.map(fam=>`<tr>
         <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
           <div style="display:flex;gap:6px;align-items:center">
-            ${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)?`<img src="${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
+            ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
             <div>
-              ${esc(r.baseItem ? nombreDeInicio(r.baseItem.id) : (r.upgradedItem ? nombreDeInicio(r.upgradedItem.id) : r.baseId))}
-              <br><small style="opacity:.7">${esc(r.baseId)} · Act ${r.act||1}</small>
+              ${esc(fam.baseId)}
+              <br><small style="opacity:.7">Act ${fam.act||1}</small>
             </div>
           </div>
         </td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${r.baseItem?`<input type="checkbox" data-starttoggle="${esc(r.baseItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.baseItem.id)?'checked':''}>`:''}</td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${r.upgradedItem?`<input type="checkbox" data-starttoggle="${esc(r.upgradedItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.upgradedItem.id)?'checked':''}>`:''}</td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" ${hasToggle(fam.recipeBaseId)?'checked':''}>`:''}</td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" ${hasToggle(fam.baseItemId)?'checked':''}>`:''}</td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" ${hasToggle(fam.plusRecipeId)?'checked':''}>`:''}</td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" ${hasToggle(fam.upgradedItemId)?'checked':''}>`:''}</td>
       </tr>`).join('')}
     </table>`;
   }
-  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body + (isMaterial?`<p class="help" style="margin-top:6px">${T('startQtyHelp')}</p>`:'');
-}
-function esMejoraStart(id){ return /_PLUS$|_UPGRADED$/i.test(String(id||'')); }
-function preferidos(items){
-  const byBase=new Map();
-  (items||[]).forEach(x=>{
-    if(!x||!x.id) return;
-    const base=baseStartId(x.id);
-    const cur=byBase.get(base);
-    if(!cur) byBase.set(base,x);
-    else if(esMejoraStart(x.id) && !esMejoraStart(cur.id)) byBase.set(base,x);
-  });
-  return [...byBase.values()];
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body;
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
