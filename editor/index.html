@@ -7625,23 +7625,9 @@ function GRUPOS_INICIO(){
     .concat(recipes.filter(r=>/^RECIPE_TRINKET/.test(r.id||'')))]);
   grupos.push(['consumables', (DATA.consumables||[])
     .concat(recipes.filter(r=>/^RECIPE_CSM_/.test(r.id||'')))]);
-  const porHeroe={};
-  HERO_ORDER.forEach(h=>porHeroe[h]=[]);
-  const comunes=[];
-  (DATA.weaponParts||[]).forEach(w=>{
-    const hero=HERO_FOR_CLASS[w.class]||null;
-    if(hero) porHeroe[hero].push(w); else comunes.push(w);
-  });
-  (recipes||[]).forEach(r=>{
-    if(!/^RECIPE_WEAPON_PART_/.test(r.id||'')) return;
-    const item=recipeToItem(r.id);
-    const base=(DATA.weaponParts||[]).find(x=>x.id===item);
-    const hero=base? (HERO_FOR_CLASS[base.class]||null) : null;
-    if(hero) porHeroe[hero].push(r); else comunes.push(r);
-  });
-  if(comunes.length) grupos.push(['weaponParts_common', comunes]);
-  HERO_ORDER.forEach(h=>{ if((porHeroe[h]||[]).length) grupos.push(['weaponParts_'+h, porHeroe[h]]); });
-  grupos.push(['loot', (DATA.loot||[])]);
+  const weaponItems = (DATA.weaponParts||[]).concat(recipes.filter(r=>/^RECIPE_WEAPON_PART_/.test(r.id||'')));
+  grupos.push(['weaponParts', weaponItems]);
+  grupos.push(['loot', DATA.loot||[]]);
   return grupos.filter(g=> (g[1]||[]).length);
 }
 function grupoDeInicio(id){
@@ -11654,7 +11640,7 @@ function renderWeaponRows(familyList, act2Allowed, kind){
   sorted.forEach(fam=>{
     const hero=HERO_FOR_CLASS[fam.cls]||'';
     const cls=fam.cls||'';
-    if(hero!==lastHero){ lastHero=hero; lastClass=null; out.push(`<tr><td colspan="5" style="background:rgba(128,128,128,.18);font-weight:700;padding:4px">${esc(heroNameById(hero))}</td></tr>`); }
+    if(hero!==lastHero){ lastHero=hero; lastClass=null; out.push(`<tr><td colspan="5" style="background:rgba(128,128,128,.18);font-weight:700;padding:4px">${esc(hero?heroNameById(hero):TS('Common weapons','Common weapons'))}</td></tr>`); }
     if(cls!==lastClass){ lastClass=cls; out.push(`<tr><td colspan="5" style="background:rgba(128,128,128,.10);font-style:italic;padding:3px 8px">${esc(cls)}</td></tr>`); }
     out.push(`<tr style="${(!act2Allowed && (fam.act||1)>=2)?'opacity:.45':''}">
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
@@ -11848,9 +11834,6 @@ function pintarInicioPopup(){
   el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
   el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
   el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
-  el.querySelector('#ini_starts').onchange=e=>{ if(!e.target.value) return;
-    cambio(()=>{ const a=camp.start.skills||(camp.start.skills=[]); if(!a.includes(e.target.value)) a.push(e.target.value); }); pintarInicioPopup(); renderRight(); };
-  el.querySelectorAll('[data-iniskilldel]').forEach(a=>a.onclick=ev=>{ ev.preventDefault(); cambio(()=>{ camp.start.skills=camp.start.skills.filter(s=>s!==a.dataset.iniskilldel); }); pintarInicioPopup(); renderRight(); });
 }
 </script>
 </body>
