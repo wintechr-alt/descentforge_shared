@@ -13,7 +13,7 @@ const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
-  '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);display:flex;align-items:center;justify-content:space-between;">'+
+  '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);display:flex;align-items:center;justify-content:center;gap:14px;">'+
     '<h1 style="margin:0;font-size:18px;">Forge</h1>'+
     '<button id="forgeStartInv" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Starting inventory</button>'+
   '</div>'+
