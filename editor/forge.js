@@ -36,8 +36,8 @@ let selected=null;
 const carIdx={};
 function carKey(cls,slot){return cls+'|'+slot;}
 function partVariants(cls,slot){return state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});}
-function inStartInv(id){try{return !!(window.camp && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(function(i){return i.id===id;}));}catch(e){return false;}}
-function setStartInv(id,on){try{if(!window.camp||!camp.start) return;if(!Array.isArray(camp.start.items)) camp.start.items=[];if(on){if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});}else{camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});}if(typeof renderRight==='function') renderRight();}catch(e){}}
+function inStartInv(id){try{return !!(typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(function(i){return i.id===id;}));}catch(e){return false;}}
+function setStartInv(id,on){try{if(typeof camp==='undefined'||!camp) return; camp.start=camp.start||{items:[]}; if(!Array.isArray(camp.start.items)) camp.start.items=[]; if(on){if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});}else{camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});} if(typeof renderRight==='function') renderRight();}catch(e){}}
 const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
 function renderList(){
   const q=(overlay.querySelector('#forgeSearch').value||'').toLowerCase();
@@ -176,10 +176,35 @@ function renderHeroWeapons(){
   });
   const addBtn=overlay.querySelector('#forgeAddAllAct');
   if(addBtn) addBtn.addEventListener('click',function(){
-    if(typeof addAllUpgradedGlobal==='function'){ addAllUpgradedGlobal(); }
-    else if(window.camp && window.camp.start && Array.isArray(window.camp.start.items)){
-      state.weaponParts.forEach(function(w){ if(!window.camp.start.items.some(function(i){return i.id===w.id;})) window.camp.start.items.push({id:w.id,qty:1}); });
-    }
+    try {
+      const allowedAct2= (typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
+      if(typeof camp==='undefined'){ console.warn('no camp'); return; }
+      camp.start=camp.start||{items:[]};
+      if(!Array.isArray(camp.start.items)) camp.start.items=[];
+      const ids=[];
+      if(typeof GRUPOS_INICIO==='function'){
+        GRUPOS_INICIO().filter(function(g){return g&&g[0]!=='loot';}).forEach(function(g){
+          (g[1]||[]).forEach(function(x){
+            const id=String(x.id||'');
+            if(!id) return;
+            if(typeof esMejoraStart==='function' && !esMejoraStart(id)) return;
+            const act=(typeof itemActOf==='function')? itemActOf(x) : 1;
+            if(act>=2 && !allowedAct2) return;
+            ids.push(id);
+          });
+        });
+      } else {
+        state.weaponParts.forEach(function(w){
+          if(/_UPGRADED$/.test(w.id)) ids.push(w.id);
+        });
+      }
+      const seen=new Set();
+      ids.filter(function(id){ if(seen.has(id)) return false; seen.add(id); return true; }).forEach(function(id){
+        if(typeof addStartItem==='function') addStartItem(id);
+        else if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});
+      });
+      if(typeof renderRight==='function') renderRight();
+    } catch(e){ console.error('ADD_ALL_ERR', e && (e.stack||e)); }
     renderHeroWeapons();
   });
   const manageBtn=overlay.querySelector('#forgeManageStart');
@@ -196,6 +221,41 @@ function renderEditorTarget(){
   e.innerHTML=fields(p);
   bindEditor(p);
 }
+function renderSimpleCategory(title, items){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  const rows=items.map(function(x){
+    const name = (typeof L==='function') ? L(x,'name') : (x.name_en||x.name||x.id);
+    const isIn=inStartInv(x.id);
+    return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+      '<span>'+esc(name)+'</span>'+
+      '<span style="font-size:11px;color:'+(isIn?'var(--verd)':'var(--dim)')+';">'+(isIn?'In Starting Inventory':'Not in Starting Inventory')+'</span>'+
+    '</div>';
+  }).join('');
+  main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+
+      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all for selected Act</button>'+
+      '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
+    '</div>'+
+    '<h2 style="margin:0 0 8px 0;font-size:16px;">'+esc(title)+'</h2>'+
+    '<div>'+ (rows||'<p style="color:var(--dim);">No items found.</p>') +'</div>';
+  const addBtn=main.querySelector('#forgeAddAllAct');
+  if(addBtn) addBtn.addEventListener('click',function(){
+    const forgeAdd=document.getElementById('forgeAddAllAct');
+    // reuse weapons add all handler via clicking virtual? Just run add all
+    if (typeof addAllUpgradedGlobal==='function') addAllUpgradedGlobal();
+    else {
+      // fallback
+    }
+    renderActiveCategory();
+  });
+  const manageBtn=main.querySelector('#forgeManageStart');
+  if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
+}
+function renderArmorCategory(){ renderSimpleCategory('Armor', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='armor';})) : [])); }
+function renderTrinketsCategory(){ renderSimpleCategory('Trinkets', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='trinket';})) : [])); }
+function renderEnemiesCategory(){ renderSimpleCategory('Enemies', (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []); }
+function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
   activeCat=cat;
@@ -215,7 +275,8 @@ function setCat(cat){
   } else {
     if(searchWrap) searchWrap.style.display='none';
     if(list) list.innerHTML='';
-    if(editor) editor.innerHTML='<p style="color:var(--dim);">Coming soon: '+cat+' editor.</p>';
+    if(editor) editor.innerHTML='';
+    renderActiveCategory();
   }
 }
 overlay.querySelectorAll('[data-forgecat]').forEach(function(b){
@@ -228,7 +289,7 @@ const btn=document.createElement('button');
 btn.textContent='Forge'; btn.id='forgeBtn'; btn.setAttribute('data-forge','1');
 if(modesel) modesel.appendChild(btn);
 function placeForge(){ var h=document.querySelector('header'); var top=h?(h.getBoundingClientRect().bottom||h.offsetHeight||0):0; overlay.style.top=top+'px'; }
-function openForge(){ placeForge(); overlay.style.display='block'; btn.classList.add('on'); if((activeCat||'weapons')==='weapons') renderHeroWeapons(); else setCat(activeCat||'weapons'); }
+function openForge(){ placeForge(); overlay.style.display='block'; btn.classList.add('on'); renderActiveCategory(); }
 function closeForge(){ overlay.style.display='none'; btn.classList.remove('on'); }
 btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
 function showForgeContent(){ setCat(activeCat); }
