@@ -8,6 +8,7 @@ if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:state.weaponParts}));}catch(e){};if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function prettyName(s){return String(s==null?'':s).replace(//g,' Plus').replace(/^\s+|\s+$/g,'');}
+function partFlavor(p){if(!p) return ''; if(p.text) return p.text; try{ const k=(p.class||'')+'|'+(p.slot||'')+'|'+prettyName(p.name_en||p.name||''); if(typeof PART_EFFECTS!=='undefined' && PART_EFFECTS[k]) return PART_EFFECTS[k]; }catch(e){}; return ''; }
 const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
@@ -65,7 +66,7 @@ function fields(p){
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Class</label>'+makeSelect('wClass',classes,p.class)+
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Slot</label>'+makeSelect('wSlot',['A','B','C'],p.slot)+
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;"><input id="wUpgraded" type="checkbox"'+(p.upgrade?' checked':'')+' style="margin-right:6px;">Upgraded</label>'+
-  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Flavor text</label><textarea id="wText" style="width:100%;min-height:48px;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+esc(p.text||'')+'</textarea>'+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Flavor text</label><textarea id="wText" style="width:100%;min-height:48px;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+esc(p.text || partFlavor(p))+'</textarea>'+
   '<div style="margin-top:12px;display:flex;gap:8px;">'+
     '<button id="wSave" style="background:var(--torch);color:var(--ink);font-weight:600;padding:6px 12px;border:0;border-radius:4px;cursor:pointer;">Save</button>'+
     '<button id="wDup" style="background:var(--edge);color:var(--text);padding:6px 12px;border:1px solid var(--edge);border-radius:4px;cursor:pointer;">Duplicate</button>'+
@@ -115,7 +116,7 @@ function carouselHTML(cls,slot,showImage){
   if(idx==null || idx<0 || idx>=arr.length) idx=0;
   const p=arr[idx];
   const name=prettyName(p.name_en||p.name||p.id);
-  const flavor=prettyName(p.text||'');
+  const flavor=prettyName(partFlavor(p));
   const imgBaseId = String(p.id||'').replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'');
   const imgTag = showImage ? '<img src="../img/weapon/'+imgBaseId+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
   return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
