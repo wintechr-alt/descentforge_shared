@@ -106,15 +106,17 @@ function renderHeroPortraits(){
   if(!el) return;
   // keep hero list in left column via separate container
 }
-function carouselHTML(cls,slot){
+function carouselHTML(cls,slot,showImage){
   const arr=partVariants(cls,slot).filter(function(w){return inStartInv(w.id);});
   if(!arr.length) return '<div style="color:var(--dim);font-size:12px;text-align:center;padding:8px 0;">none</div>';
   let idx=carIdx[carKey(cls,slot)];
   if(idx==null || idx<0 || idx>=arr.length) idx=0;
   const p=arr[idx];
   const name=prettyName(p.name_en||p.name||p.id);
+  const imgTag = showImage ? '<img src="../img/weapon/'+p.id+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
   return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
     '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
+    (imgTag? (imgTag+'<div style="margin-bottom:4px;"></div>') : '')+
     '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
       '<button data-step="'+cls+'|'+slot+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>'+
       '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
@@ -134,11 +136,10 @@ function renderHeroWeapons(){
     }).join('')+
   '</div>';
   const columns=classes.map(function(cls){
-    const a=defaultPart(cls,'A');
-    const imgA=a?'<img data-selpart="'+a+'" src="../img/weapon/'+a+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;cursor:pointer;margin-bottom:8px;" onerror="this.style.display=&quot;none&quot;;">':'<div style="padding:20px;color:var(--dim);">no weapon image</div>';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:8px;">'+
       '<div style="font-weight:600;margin-bottom:6px;">'+cls+'</div>'+
-      '<div style="text-align:center;margin-bottom:8px;">'+imgA+'</div>'+
+      carouselHTML(cls,'A',true)+
+      '<div style="height:6px"></div>'+
       carouselHTML(cls,'B')+
       '<div style="height:6px"></div>'+
       carouselHTML(cls,'C')+
@@ -146,7 +147,7 @@ function renderHeroWeapons(){
   }).join('');
   main.innerHTML=
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;justify-content:center;">'+
-      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all for selected Act</button>'+
+      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded for selected Acts</button>'+
       '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">'+
@@ -236,7 +237,7 @@ function renderSimpleCategory(title, items){
   }).join('');
   main.innerHTML=
     '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+
-      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all for selected Act</button>'+
+      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded for selected Acts</button>'+
       '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
     '</div>'+
     '<h2 style="margin:0 0 8px 0;font-size:16px;">'+esc(title)+'</h2>'+
