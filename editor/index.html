@@ -7625,8 +7625,22 @@ function GRUPOS_INICIO(){
     .concat(recipes.filter(r=>/^RECIPE_TRINKET/.test(r.id||'')))]);
   grupos.push(['consumables', (DATA.consumables||[])
     .concat(recipes.filter(r=>/^RECIPE_CSM_/.test(r.id||'')))]);
-  const weaponItems = (DATA.weaponParts||[]).concat(recipes.filter(r=>/^RECIPE_WEAPON_PART_/.test(r.id||'')));
-  grupos.push(['weaponParts', weaponItems]);
+  const porHeroe={};
+  HERO_ORDER.forEach(h=>porHeroe[h]=[]);
+  const comunes=[];
+  (DATA.weaponParts||[]).forEach(w=>{
+    const hero=HERO_FOR_CLASS[w.class]||null;
+    if(hero) porHeroe[hero].push(w); else comunes.push(w);
+  });
+  (recipes||[]).forEach(r=>{
+    if(!/^RECIPE_WEAPON_PART_/.test(r.id||'')) return;
+    const item=recipeToItem(r.id);
+    const base=(DATA.weaponParts||[]).find(x=>x.id===item);
+    const hero=base? (HERO_FOR_CLASS[base.class]||null) : null;
+    if(hero) porHeroe[hero].push(r); else comunes.push(r);
+  });
+  if(comunes.length) grupos.push(['weaponParts_common', comunes]);
+  HERO_ORDER.forEach(h=>{ if((porHeroe[h]||[]).length) grupos.push(['weaponParts_'+h, porHeroe[h]]); });
   grupos.push(['loot', DATA.loot||[]]);
   return grupos.filter(g=> (g[1]||[]).length);
 }
