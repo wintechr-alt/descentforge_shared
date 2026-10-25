@@ -9,13 +9,13 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:stat
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
-overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:#161412;color:#eee;font-family:inherit;overflow:hidden;';
+overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
-  '<div style="padding:10px 18px;background:#0f0d0c;border-bottom:1px solid #3a322a;"><h1 style="margin:0;font-size:18px;">Forge</h1></div>'+
+  '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);"><h1 style="margin:0;font-size:18px;">Forge</h1></div>'+
   '<div style="display:grid;grid-template-columns:300px 1fr;height:calc(100% - 44px);">'+
-    '<div style="border-right:1px solid #3a322a;overflow:auto;padding:10px;">'+
-      '<input id="forgeSearch" placeholder="Search weapon parts..." style="width:100%;padding:6px 8px;margin-bottom:8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
-      '<div id="forgeNew" style="padding:6px 10px;margin-bottom:8px;background:#c89b3c;color:#111;border-radius:4px;cursor:pointer;text-align:center;font-weight:600;">+ New weapon part</div>'+
+    '<div style="border-right:1px solid var(--edge);overflow:auto;padding:10px;">'+
+      '<input id="forgeSearch" placeholder="Search weapon parts..." style="width:100%;padding:6px 8px;margin-bottom:8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+
+      '<div id="forgeNew" style="padding:6px 10px;margin-bottom:8px;background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;text-align:center;font-weight:600;">+ New weapon part</div>'+
       '<div id="forgeList"></div>'+
     '</div>'+
     '<div id="forgeEditor" style="overflow:auto;padding:18px;"></div>'+
@@ -29,9 +29,9 @@ function renderList(){
   list.innerHTML='';
   state.weaponParts.slice().sort(function(a,b){return a.id>b.id?1:-1;}).filter(function(p){return !q||String(p.id).toLowerCase().includes(q)||String(p.name_en||'').toLowerCase().includes(q);}).forEach(function(p){
     const d=document.createElement('div');
-    d.style.cssText='padding:8px;margin-bottom:4px;background:#1e1b18;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;';
-    if(p.id===selected)d.style.outline='1px solid #c89b3c';
-    const img=document.createElement('img');img.src='../img/weapon/'+p.id+'.png';img.style.cssText='width:28px;height:28px;object-fit:contain;background:#111;border-radius:3px;';
+    d.style.cssText='padding:8px;margin-bottom:4px;background:var(--panel2);border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;';
+    if(p.id===selected)d.style.outline='1px solid var(--torch)';
+    const img=document.createElement('img');img.src='../img/weapon/'+p.id+'.png';img.style.cssText='width:28px;height:28px;object-fit:contain;background:var(--ink);border-radius:3px;';
     img.onerror=function(){img.style.display='none';};
     const span=document.createElement('span');span.textContent=p.id;
     d.appendChild(img);d.appendChild(span);
@@ -39,20 +39,20 @@ function renderList(){
     list.appendChild(d);
   });
 }
-function makeSelect(id,values,cur){let h='<select id="'+id+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;margin-top:4px;box-sizing:border-box;">';values.forEach(function(v){h+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>';});h+='</select>';return h;}
+function makeSelect(id,values,cur){let h='<select id="'+id+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;margin-top:4px;box-sizing:border-box;">';values.forEach(function(v){h+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>';});h+='</select>';return h;}
 function fields(p){
-  return '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">ID</label><input id="wId" value="'+esc(p.id)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
-  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Name (ES)</label><input id="wName" value="'+esc(p.name)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
-  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Name (EN)</label><input id="wNameEn" value="'+esc(p.name_en)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
-  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Class</label>'+makeSelect('wClass',classes,p.class)+
-  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Slot</label>'+makeSelect('wSlot',['A','B','C'],p.slot)+
-  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;"><input id="wUpgraded" type="checkbox"'+(p.upgrade?' checked':'')+' style="margin-right:6px;">Upgraded</label>'+
+  return '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">ID</label><input id="wId" value="'+esc(p.id)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Name (ES)</label><input id="wName" value="'+esc(p.name)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Name (EN)</label><input id="wNameEn" value="'+esc(p.name_en)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Class</label>'+makeSelect('wClass',classes,p.class)+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Slot</label>'+makeSelect('wSlot',['A','B','C'],p.slot)+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;"><input id="wUpgraded" type="checkbox"'+(p.upgrade?' checked':'')+' style="margin-right:6px;">Upgraded</label>'+
   '<div style="margin-top:12px;display:flex;gap:8px;">'+
-    '<button id="wSave" style="background:#c89b3c;color:#111;font-weight:600;padding:6px 12px;border:0;border-radius:4px;cursor:pointer;">Save</button>'+
-    '<button id="wDup" style="background:#3a322a;color:#eee;padding:6px 12px;border:1px solid #4a423a;border-radius:4px;cursor:pointer;">Duplicate</button>'+
-    '<button id="wDel" style="background:#3a322a;color:#eee;padding:6px 12px;border:1px solid #4a423a;border-radius:4px;cursor:pointer;">Delete</button>'+
+    '<button id="wSave" style="background:var(--torch);color:var(--ink);font-weight:600;padding:6px 12px;border:0;border-radius:4px;cursor:pointer;">Save</button>'+
+    '<button id="wDup" style="background:var(--edge);color:var(--text);padding:6px 12px;border:1px solid var(--edge);border-radius:4px;cursor:pointer;">Duplicate</button>'+
+    '<button id="wDel" style="background:var(--edge);color:var(--text);padding:6px 12px;border:1px solid var(--edge);border-radius:4px;cursor:pointer;">Delete</button>'+
   '</div>'+
-  '<p id="wMsg" style="color:#7f7;font-size:12px;margin-top:8px;"></p>';
+  '<p id="wMsg" style="color:var(--verd);font-size:12px;margin-top:8px;"></p>';
 }
 function bindEditor(p){
   const msg=overlay.querySelector('#wMsg');
@@ -72,7 +72,7 @@ function bindEditor(p){
 function renderEditor(){
   const e=overlay.querySelector('#forgeEditor');
   const p=state.weaponParts.find(function(x){return x.id===selected;});
-  if(!p){e.innerHTML='<p style="color:#888;">Select a weapon part to edit, or create a new one.</p>';return;}
+  if(!p){e.innerHTML='<p style="color:var(--dim);">Select a weapon part to edit, or create a new one.</p>';return;}
   e.innerHTML=fields(p);
   bindEditor(p);
 }
