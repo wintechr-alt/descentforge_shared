@@ -11657,6 +11657,56 @@ function renderWeaponRows(familyList, act2Allowed, kind){
   });
   return out.join('');
 }
+
+function cantidadMaterialInicio(id){
+  const items=camp.start.items||[];
+  const e=items.find(i=>i.id===id);
+  return e ? (e.qty||0) : 0;
+}
+function setCantidadMaterialInicio(id, qty){
+  camp.start=camp.start||{gold:0,items:[]};
+  if(!Array.isArray(camp.start.items)) camp.start.items=[];
+  qty=Math.max(0, Math.round(qty||0));
+  const i=camp.start.items.findIndex(x=>x.id===id);
+  if(qty<=0){ if(i>=0) camp.start.items.splice(i,1); }
+  else if(i>=0) camp.start.items[i].qty=qty;
+  else camp.start.items.push({id:id, qty:qty});
+}
+function setInitialMaterials(){
+  camp.start=camp.start||{gold:0,items:[]};
+  camp.start.gold=1000;
+  (DATA.materials||[]).forEach(m=>{
+    const id=m.id;
+    let qty=10;
+    if(id==='MAT_CLOTH'||id==='MAT_MINERALS'||id==='MAT_BONE'||id==='MAT_LEATHER'||id==='MAT_METAL'||id==='MAT_HERBS'||id==='MAT_CURIOS') qty=100;
+    setCantidadMaterialInicio(id, qty);
+  });
+}
+function abrirGoldMateriales(){
+  openDlg(TS('Oro y materiales','Gold & Materials'), `<div id="gmBody"></div>`, `<button id="gmDone">${TS('Hecho','Done')}</button>`);
+  pintarGoldMateriales();
+  const d=document.getElementById('gmDone'); if(d) d.onclick=()=>dlg.close();
+}
+function pintarGoldMateriales(){
+  const el=document.getElementById('gmBody'); if(!el) return;
+  el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
+    <input id="gm_gold" type="number" min="0" value="${numero(camp.start.gold)}"></div>
+    <div style="margin:6px 0"><button class="sm" type="button" id="gm_initial">${TS('Añadir inicial','Add initial')}</button></div>
+    <p class="help">${T('startQtyHelp')}</p>
+    ${(DATA.materials||[]).map(m=>{
+      const img=imagenInicio(m.id);
+      const q=cantidadMaterialInicio(m.id);
+      return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
+        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span style="flex:1" title="${esc(m.id)}">${esc(L(m,'name'))}</span>
+        <input type="number" min="0" value="${esc(q)}" data-gmq="${esc(m.id)}" style="max-width:70px" title="${esc(T('startQty'))}">
+      </div>`;
+    }).join('')}`;
+  el.querySelector('#gm_gold').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarGoldMateriales(); renderRight(); };
+  el.querySelectorAll('[data-gmq]').forEach(c=>c.onchange=()=>cambio(()=>{ setCantidadMaterialInicio(c.dataset.gmq, +c.value); pintarGoldMateriales(); renderRight(); }));
+  const gmInitial=el.querySelector('#gm_initial');
+  if(gmInitial) gmInitial.onclick=()=>{ cambio(()=>{ setInitialMaterials(); }); pintarGoldMateriales(); renderRight(); };
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
