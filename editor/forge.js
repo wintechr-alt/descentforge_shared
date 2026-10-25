@@ -12,15 +12,22 @@ overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
   '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);"><h1 style="margin:0;font-size:18px;">Forge</h1></div>'+
-  '<div style="display:grid;grid-template-columns:300px 1fr;height:calc(100% - 44px);">'+
-    '<div style="border-right:1px solid var(--edge);overflow:auto;padding:10px;">'+
+  '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);">'+
+    '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>'+
+    '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>'+
+    '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Weapons</button>'+
+    '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>'+
+  '</div>'+
+  '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">'+
+    '<div id="forgeSearchWrap">'+
       '<input id="forgeSearch" placeholder="Search weapon parts..." style="width:100%;padding:6px 8px;margin-bottom:8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+
       '<div id="forgeNew" style="padding:6px 10px;margin-bottom:8px;background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;text-align:center;font-weight:600;">+ New weapon part</div>'+
-      '<div id="forgeList"></div>'+
     '</div>'+
-    '<div id="forgeEditor" style="overflow:auto;padding:18px;"></div>'+
+    '<div id="forgeList"></div>'+
+    '<div id="forgeEditor" style="margin-top:12px;"></div>'+
   '</div>';
 document.body.appendChild(overlay);
+let activeCat='weapons';
 let selected=null;
 const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
 function renderList(){
@@ -77,16 +84,41 @@ function renderEditor(){
   bindEditor(p);
 }
 function renderAll(){renderList();renderEditor();}
-overlay.querySelector('#forgeSearch').addEventListener('input',renderList);
+function setCat(cat){
+  activeCat=cat;
+  overlay.querySelectorAll('[data-forgecat]').forEach(function(b){
+    const on=b.getAttribute('data-forgecat')===cat;
+    b.style.background=on?'var(--torch)':'var(--panel)';
+    b.style.color=on?'var(--ink)':'var(--text)';
+    b.style.fontWeight=on?'600':'400';
+  });
+  const searchWrap=overlay.querySelector('#forgeSearchWrap');
+  const list=overlay.querySelector('#forgeList');
+  const editor=overlay.querySelector('#forgeEditor');
+  if(cat==='weapons'){
+    if(searchWrap) searchWrap.style.display='block';
+    if(list) list.style.display='block';
+    renderAll();
+  } else {
+    if(searchWrap) searchWrap.style.display='none';
+    if(list) list.innerHTML='';
+    if(editor) editor.innerHTML='<p style="color:var(--dim);">Coming soon: '+cat+' editor.</p>';
+  }
+}
+overlay.querySelectorAll('[data-forgecat]').forEach(function(b){
+  b.addEventListener('click',function(){ setCat(b.getAttribute('data-forgecat')); });
+});
+overlay.querySelector('#forgeSearch').addEventListener('input',function(){ if(activeCat==='weapons') renderList(); });
 overlay.querySelector('#forgeNew').addEventListener('click',function(){const c={id:'WEAPON_PART_NEW',name:'New Part',name_en:'New Part',class:'Rune',slot:'A',upgrade:false};state.weaponParts.push(c);selected=c.id;persist();renderAll();});
 const modesel=document.getElementById('modesel');
 const btn=document.createElement('button');
 btn.textContent='Forge'; btn.id='forgeBtn'; btn.setAttribute('data-forge','1');
 if(modesel) modesel.appendChild(btn);
 function placeForge(){ var h=document.querySelector('header'); var top=h?(h.getBoundingClientRect().bottom||h.offsetHeight||0):0; overlay.style.top=top+'px'; }
-function openForge(){ placeForge(); overlay.style.display='block'; btn.classList.add('on'); renderAll(); }
+function openForge(){ placeForge(); overlay.style.display='block'; btn.classList.add('on'); setCat(activeCat||'weapons'); }
 function closeForge(){ overlay.style.display='none'; btn.classList.remove('on'); }
 btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
+function showForgeContent(){ setCat(activeCat); }
 window.addEventListener('resize',function(){ if(overlay.style.display==='block') placeForge(); });
 if(modesel){
   modesel.addEventListener('click',function(e){ const real=e.target.closest('[data-mode]'); if(real) closeForge(); });
