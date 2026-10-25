@@ -11764,16 +11764,24 @@ function pintarSkillsPopup(){
   const tabs = ['all'].concat(heroes.map(h=>h.id)).map(h=>`<button class="sm" style="${skHero===h?'font-weight:700;':''}" onclick="skHero='${h}'; pintarSkillsPopup();">${h==='all'?TS('Todos','All'):(((DATA.heroes||[]).find(x=>x.id===h)||{}).name||h)}</button>`).join(' ');
   el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>
     <div style="max-height:260px;overflow:auto;border:1px solid rgba(128,128,128,.3);border-radius:4px">
-      ${list.map(s=>{
-        const checked=(camp.start.skills||[]).includes(s.id);
-        return `<div style="display:flex;gap:8px;align-items:flex-start;padding:6px;border-bottom:1px solid rgba(128,128,128,.25)">
-          <input type="checkbox" data-skskill="${esc(s.id)}" ${checked?'checked':''} style="margin-top:3px;flex:0 0 auto">
-          <div style="flex:1;min-width:0;line-height:1.25">
-            <div style="font-size:13px;font-weight:600;white-space:normal">${esc(nombreHabilidad(s.id))}</div>
-            <small style="opacity:.7;white-space:normal">${esc(s.id)}</small>
-          </div>
-        </div>`;
-      }).join('')}
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <th style="text-align:left;border:1px solid rgba(128,128,128,.35);padding:4px">Skill</th>
+          <th style="width:72px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">In party</th>
+        </tr>
+        ${list.map(s=>{
+          const checked=(camp.start.skills||[]).includes(s.id);
+          return `<tr>
+            <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
+              <div style="font-size:13px;font-weight:600">${esc(nombreHabilidad(s.id))}</div>
+              <small style="opacity:.7">${esc(s.id)}</small>
+            </td>
+            <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">
+              <input type="checkbox" data-skskill="${esc(s.id)}" ${checked?'checked':''}>
+            </td>
+          </tr>`;
+        }).join('')}
+      </table>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
       <button class="sm" type="button" onclick="cambio(()=>{ const L=(skHero==='all'?DATA.skills:DATA.skills.filter(s=>s.hero===skHero))||[]; const arr=camp.start.skills||(camp.start.skills=[]); L.forEach(s=>{ if(!arr.includes(s.id)) arr.push(s.id); }); }); pintarSkillsPopup(); renderRight();">Add all</button>
