@@ -118,9 +118,7 @@ function carouselHTML(cls,slot){
       '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
       '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>'+
     '</div>'+
-    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'+
-      '<input type="checkbox" data-addpart="'+p.id+'" '+(inStartInv(p.id)?'checked':'')+' /> Add to starting inventory'+
-    '</label>'+
+    '<div style="font-size:11px;color:'+(inStartInv(p.id)?'var(--verd)':'var(--dim)')+';margin:6px 0;text-align:center;">'+(inStartInv(p.id)?'In Starting Inventory':'Not in Starting Inventory')+'</div>'+
     '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
   '</div>';
 }
@@ -146,6 +144,10 @@ function renderHeroWeapons(){
     '</div>';
   }).join('');
   main.innerHTML=
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'+
+      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all for selected Act</button>'+
+      '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
+    '</div>'+
     '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">'+
       '<div style="display:flex;flex-direction:column;gap:8px;">'+left+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start;">'+columns+'</div>'+
@@ -170,13 +172,20 @@ function renderHeroWeapons(){
       renderHeroWeapons();
     });
   });
-  main.querySelectorAll('[data-addpart]').forEach(function(cb){
-    cb.addEventListener('change',function(){
-      setStartInv(cb.getAttribute('data-addpart'), cb.checked);
-    });
-  });
   main.querySelectorAll('[data-editpart]').forEach(function(b){
     b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); });
+  });
+  const addBtn=overlay.querySelector('#forgeAddAllAct');
+  if(addBtn) addBtn.addEventListener('click',function(){
+    if(typeof addAllUpgradedGlobal==='function'){ addAllUpgradedGlobal(); }
+    else if(window.camp && window.camp.start && Array.isArray(window.camp.start.items)){
+      state.weaponParts.forEach(function(w){ if(!window.camp.start.items.some(function(i){return i.id===w.id;})) window.camp.start.items.push({id:w.id,qty:1}); });
+    }
+    renderHeroWeapons();
+  });
+  const manageBtn=overlay.querySelector('#forgeManageStart');
+  if(manageBtn) manageBtn.addEventListener('click',function(){
+    if(typeof abrirInicioPopup==='function') abrirInicioPopup();
   });
 }
 
