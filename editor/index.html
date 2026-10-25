@@ -11568,6 +11568,7 @@ function renderInicioAdd(){
     f.act = f.act || itemActOf(x);
   });
   let familyList=[...families.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
+  if(!act2Allowed) familyList=familyList.filter(fam=>(fam.act||1)<2);
   if(String(k).indexOf('weaponParts')===0){
     familyList=familyList.sort((a,b)=>{
       const wa=(a.baseId.match(/WEAPON_PART_[ABC]_(.+?)(?:_\d+|_ANCESTRAL)?(?:_UPGRADED)?$/)||['',''])[1]||'';
@@ -11852,14 +11853,15 @@ function abrirInicioPopup(){
 function pintarInicioPopup(){
   const el=document.getElementById('iniBody'); if(!el) return;
   const campRef=camp;
-  el.innerHTML=`<div class="field"><label>${TS('Act','Act')}</label>
+  el.innerHTML=`<div class="field" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <label>${TS('Act','Act')}</label>
     <select id="ini_act" style="padding:4px 6px;border:1px solid #4a423a;border-radius:4px;background:#1e1b18;color:#eee">
       <option value="I" ${campRef.meta.act==='I'?'selected':''}>Act I</option>
       <option value="II" ${campRef.meta.act==='II'?'selected':''}>Act II</option>
       <option value="III" ${campRef.meta.act==='III'?'selected':''}>Act III</option>
-    </select></div>
-    <div class="field"><label>${T('startGold')}</label>
-    <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
+    </select>
+    <label>${T('startGold')}</label>
+    <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}" style="max-width:90px"></div>
     <div class="field"><label>${T('startAdd')}</label>
       <div style="margin-bottom:8px"><button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedGlobal(); }); pintarInicioPopup(); renderRight();">I want it all</button></div>
       ${renderInicioAdd()}</div>
