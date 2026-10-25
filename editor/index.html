@@ -11852,7 +11852,13 @@ function abrirInicioPopup(){
 function pintarInicioPopup(){
   const el=document.getElementById('iniBody'); if(!el) return;
   const campRef=camp;
-  el.innerHTML=`<div class="field"><label>${T('startGold')}</label>
+  el.innerHTML=`<div class="field"><label>${TS('Act','Act')}</label>
+    <select id="ini_act" style="padding:4px 6px;border:1px solid #4a423a;border-radius:4px;background:#1e1b18;color:#eee">
+      <option value="I" ${campRef.meta.act==='I'?'selected':''}>Act I</option>
+      <option value="II" ${campRef.meta.act==='II'?'selected':''}>Act II</option>
+      <option value="III" ${campRef.meta.act==='III'?'selected':''}>Act III</option>
+    </select></div>
+    <div class="field"><label>${T('startGold')}</label>
     <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}"></div>
     <div class="field"><label>${T('startAdd')}</label>
       <div style="margin-bottom:8px"><button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedGlobal(); }); pintarInicioPopup(); renderRight();">I want it all</button></div>
@@ -11894,6 +11900,7 @@ function pintarInicioPopup(){
       pintarInicioPopup(); renderRight(); };
   });
   lockBaseUpgradedPairs();
+  const iniAct=el.querySelector('#ini_act'); if(iniAct) iniAct.onchange=e=>{ cambio(()=>{ const v=e.target.value; camp.meta.act=v; camp.meta.requiresAct2 = (v!=='I'); }); pintarInicioPopup(); renderRight(); };
   el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
   el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
   el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
