@@ -115,6 +115,7 @@ function carouselHTML(cls,slot,showImage){
   if(idx==null || idx<0 || idx>=arr.length) idx=0;
   const p=arr[idx];
   const name=prettyName(p.name_en||p.name||p.id);
+  const flavor=prettyName(p.text||'');
   const imgBaseId = String(p.id||'').replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'');
   const imgTag = showImage ? '<img src="../img/weapon/'+imgBaseId+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
   return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
