@@ -7616,9 +7616,18 @@ function articuloDeTienda(id){
    de salida se entrega justo antes de cargarlo (decidido el 14-oct). */
 function GRUPOS_INICIO(){
   const gear=DATA.gear||[];
-  return [['armor',gear.filter(g=>g.kind==='armor')],['trinket',gear.filter(g=>g.kind==='trinket')],
-          ['recipes',DATA.recipes||[]],
-          ['weaponParts',DATA.weaponParts||[]],['loot',DATA.loot||[]]];
+  const recipes=DATA.recipes||[];
+  return [
+    ['armor', gear.filter(g=>g.kind==='armor')
+      .concat(recipes.filter(r=>/^RECIPE_ARMOR_/.test(r.id||'')))],
+    ['trinket', gear.filter(g=>g.kind==='trinket')
+      .concat(recipes.filter(r=>/^RECIPE_TRINKET/.test(r.id||'')))],
+    ['consumables', (DATA.consumables||[])
+      .concat(recipes.filter(r=>/^RECIPE_CSM_/.test(r.id||'')))],
+    ['weaponParts', (DATA.weaponParts||[])
+      .concat(recipes.filter(r=>/^RECIPE_WEAPON_PART_/.test(r.id||'')))],
+    ['loot', DATA.loot||[]]
+  ].filter(g=> (g[1]||[]).length);
 }
 function grupoDeInicio(id){
   const g=GRUPOS_INICIO().find(([,l])=>l.some(x=>x.id===id));
@@ -11513,7 +11522,7 @@ let ini_item_idx=0; let ini_grupo=0;
 function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
 function candidatosInicio(){ return candidatosGrupo(); }
 function renderInicioAdd(){
-  const grupos=GRUPOS_INICIO();
+  const grupos=GRUPOS_INICIO().filter(g=>g && g[0]!=='loot' && g[0]!=='skill');
   if(ini_grupo>=grupos.length) ini_grupo=0;
   const g=grupos[ini_grupo]||grupos[0]||['',[]];
   const k=g[0]||'';
@@ -11561,8 +11570,8 @@ function renderInicioAdd(){
           <div style="display:flex;gap:6px;align-items:center">
             ${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)?`<img src="${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
             <div>
-              ${esc(r.baseId)}
-              <br><small style="opacity:.7">Act ${r.act||1}</small>
+              ${esc(r.baseItem ? nombreDeInicio(r.baseItem.id) : (r.upgradedItem ? nombreDeInicio(r.upgradedItem.id) : r.baseId))}
+              <br><small style="opacity:.7">${esc(r.baseId)} · Act ${r.act||1}</small>
             </div>
           </div>
         </td>
