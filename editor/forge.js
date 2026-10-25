@@ -1,0 +1,91 @@
+(function(){
+const KEY='descentforge_forge_data_v1';
+function clone(v){return JSON.parse(JSON.stringify(v||[]));}
+let state={weaponParts:[]};
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(Array.isArray(p.weaponParts))state.weaponParts=p.weaponParts;}}catch(e){}
+if(!Array.isArray(state.weaponParts)||!state.weaponParts.length)state.weaponParts=clone((typeof DATA!=="undefined")?DATA.weaponParts:[]);
+if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:state.weaponParts}));}catch(e){};if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+const overlay=document.createElement('div');
+overlay.id='forgeOverlay';
+overlay.style.cssText='position:fixed;inset:0;z-index:10005;display:none;background:#161412;color:#eee;font-family:inherit;overflow:hidden;';
+overlay.innerHTML=
+  '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:52px;background:#0f0d0c;border-bottom:1px solid #3a322a;">'+
+    '<h1 style="margin:0;font-size:18px;">Forge</h1>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<button id="forgeClose" style="width:34px;height:34px;background:none;border:1px solid #3a322a;color:#eee;border-radius:4px;cursor:pointer;">×</button>'+
+    '</div>'+
+  '</div>'+
+  '<div style="display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 52px);">'+
+    '<div style="border-right:1px solid #3a322a;overflow:auto;padding:10px;">'+
+      '<input id="forgeSearch" placeholder="Search weapon parts..." style="width:100%;padding:6px 8px;margin-bottom:8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
+      '<div id="forgeNew" style="padding:6px 10px;margin-bottom:8px;background:#c89b3c;color:#111;border-radius:4px;cursor:pointer;text-align:center;font-weight:600;">+ New weapon part</div>'+
+      '<div id="forgeList"></div>'+
+    '</div>'+
+    '<div id="forgeEditor" style="overflow:auto;padding:18px;"></div>'+
+  '</div>';
+document.body.appendChild(overlay);
+let selected=null;
+const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
+function renderList(){
+  const q=(overlay.querySelector('#forgeSearch').value||'').toLowerCase();
+  const list=overlay.querySelector('#forgeList');
+  list.innerHTML='';
+  state.weaponParts.slice().sort(function(a,b){return a.id>b.id?1:-1;}).filter(function(p){return !q||String(p.id).toLowerCase().includes(q)||String(p.name_en||'').toLowerCase().includes(q);}).forEach(function(p){
+    const d=document.createElement('div');
+    d.style.cssText='padding:8px;margin-bottom:4px;background:#1e1b18;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;';
+    if(p.id===selected)d.style.outline='1px solid #c89b3c';
+    const img=document.createElement('img');img.src='../img/weapon/'+p.id+'.png';img.style.cssText='width:28px;height:28px;object-fit:contain;background:#111;border-radius:3px;';
+    img.onerror=function(){img.style.display='none';};
+    const span=document.createElement('span');span.textContent=p.id;
+    d.appendChild(img);d.appendChild(span);
+    d.addEventListener('click',function(){selected=p.id;renderAll();});
+    list.appendChild(d);
+  });
+}
+function makeSelect(id,values,cur){let h='<select id="'+id+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;margin-top:4px;box-sizing:border-box;">';values.forEach(function(v){h+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>';});h+='</select>';return h;}
+function fields(p){
+  return '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">ID</label><input id="wId" value="'+esc(p.id)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Name (ES)</label><input id="wName" value="'+esc(p.name)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Name (EN)</label><input id="wNameEn" value="'+esc(p.name_en)+'" style="width:100%;padding:6px 8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
+  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Class</label>'+makeSelect('wClass',classes,p.class)+
+  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;">Slot</label>'+makeSelect('wSlot',['A','B','C'],p.slot)+
+  '<label style="display:block;font-size:12px;color:#aaa;margin-top:10px;"><input id="wUpgraded" type="checkbox"'+(p.upgrade?' checked':'')+' style="margin-right:6px;">Upgraded</label>'+
+  '<div style="margin-top:12px;display:flex;gap:8px;">'+
+    '<button id="wSave" style="background:#c89b3c;color:#111;font-weight:600;padding:6px 12px;border:0;border-radius:4px;cursor:pointer;">Save</button>'+
+    '<button id="wDup" style="background:#3a322a;color:#eee;padding:6px 12px;border:1px solid #4a423a;border-radius:4px;cursor:pointer;">Duplicate</button>'+
+    '<button id="wDel" style="background:#3a322a;color:#eee;padding:6px 12px;border:1px solid #4a423a;border-radius:4px;cursor:pointer;">Delete</button>'+
+  '</div>'+
+  '<p id="wMsg" style="color:#7f7;font-size:12px;margin-top:8px;"></p>';
+}
+function bindEditor(p){
+  const msg=overlay.querySelector('#wMsg');
+  const sync=function(){
+    p.id=overlay.querySelector('#wId').value;
+    p.name=overlay.querySelector('#wName').value;
+    p.name_en=overlay.querySelector('#wNameEn').value;
+    p.class=overlay.querySelector('#wClass').value;
+    p.slot=overlay.querySelector('#wSlot').value;
+    p.upgrade=overlay.querySelector('#wUpgraded').checked;
+  };
+  ['wId','wName','wNameEn','wClass','wSlot','wUpgraded'].forEach(function(id){const el=overlay.querySelector('#'+id);if(el)el.addEventListener('input',sync);});
+  const dup=overlay.querySelector('#wDup'); if(dup)dup.addEventListener('click',function(){sync();const c=clone(p);c.id=p.id+'_COPY';state.weaponParts.push(c);selected=c.id;persist();renderAll();});
+  const del=overlay.querySelector('#wDel'); if(del)del.addEventListener('click',function(){state.weaponParts=state.weaponParts.filter(function(x){return x!==p;});selected=null;persist();renderAll();});
+  const save=overlay.querySelector('#wSave'); if(save)save.addEventListener('click',function(){sync();persist();if(msg)msg.textContent='Saved';});
+}
+function renderEditor(){
+  const e=overlay.querySelector('#forgeEditor');
+  const p=state.weaponParts.find(function(x){return x.id===selected;});
+  if(!p){e.innerHTML='<p style="color:#888;">Select a weapon part to edit, or create a new one.</p>';return;}
+  e.innerHTML=fields(p);
+  bindEditor(p);
+}
+function renderAll(){renderList();renderEditor();}
+overlay.querySelector('#forgeSearch').addEventListener('input',renderList);
+overlay.querySelector('#forgeClose').addEventListener('click',function(){overlay.style.display='none';});
+overlay.querySelector('#forgeNew').addEventListener('click',function(){const c={id:'WEAPON_PART_NEW',name:'New Part',name_en:'New Part',class:'Rune',slot:'A',upgrade:false};state.weaponParts.push(c);selected=c.id;persist();renderAll();});
+const btn=document.createElement('button');btn.textContent='Forge';btn.id='forgeBtn';btn.style.cssText='border:0;border-radius:0;padding:5px 11px;font-size:12px;margin-left:8px;cursor:pointer;';
+document.getElementById('modesel').insertAdjacentElement('afterend',btn);
+btn.addEventListener('click',function(){overlay.style.display='block';renderAll();});
+})();
