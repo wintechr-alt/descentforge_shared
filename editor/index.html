@@ -11518,7 +11518,8 @@ function itemActOf(x){
   if(sk && (sk.act==='II'||sk.act===2)) return 2;
   return 1;
 }
-let ini_item_idx=0; let ini_grupo=0;
+let ini_item_idx=0; let ini_grupo=0; let wpHeroFilter='all';
+
 function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
 function candidatosInicio(){ return candidatosGrupo(); }
 function renderInicioAdd(){
@@ -11548,7 +11549,15 @@ function renderInicioAdd(){
     }
     f.act = f.act || itemActOf(x);
   });
-  const familyList=[...families.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
+  let familyList=[...families.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
+  if(k==='weaponParts'){
+    familyList=familyList.filter(fam=>{
+      const hero=HERO_FOR_CLASS[fam.cls]||'';
+      if(wpHeroFilter==='all') return true;
+      if(wpHeroFilter==='common') return !hero;
+      return hero===wpHeroFilter;
+    });
+  }
   const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; pintarInicioPopup();">${esc(T('startGroup_'+gk))} (${(gl||[]).length})</button>`).join('');
   let body='';
   if(isMaterial){
@@ -11636,7 +11645,8 @@ function renderWeaponRows(familyList, act2Allowed, kind){
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
         <div style="display:flex;gap:6px;align-items:center">
           ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
-          <div>${esc(fam.baseId)}<br><small style="opacity:.7">Act ${fam.act||1}</small></div>
+          <div>${esc(fam.baseItem ? nombreDeInicio(fam.baseItem.id) : (fam.upgradedItem ? nombreDeInicio(fam.upgradedItem.id) : fam.baseId))}
+          <br><small style="opacity:.7">${esc(fam.baseId)} · Act ${fam.act||1}</small></div>
         </div>
       </td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
