@@ -12,7 +12,7 @@ overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
   '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);"><h1 style="margin:0;font-size:18px;">Forge</h1></div>'+
-  '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);">'+
+  '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);justify-content:center;">'+
     '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>'+
     '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>'+
     '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Weapons</button>'+
@@ -105,8 +105,8 @@ function renderHeroPortraits(){
   // keep hero list in left column via separate container
 }
 function carouselHTML(cls,slot){
-  const arr=partVariants(cls,slot);
-  if(!arr.length) return '<div style="color:var(--dim);font-size:12px;">no '+slot+' parts</div>';
+  const arr=partVariants(cls,slot).filter(function(w){return inStartInv(w.id);});
+  if(!arr.length) return '<div style="color:var(--dim);font-size:12px;text-align:center;padding:8px 0;">none</div>';
   let idx=carIdx[carKey(cls,slot)];
   if(idx==null || idx<0 || idx>=arr.length) idx=0;
   const p=arr[idx];
@@ -118,7 +118,6 @@ function carouselHTML(cls,slot){
       '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
       '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>'+
     '</div>'+
-    '<div style="font-size:11px;color:'+(inStartInv(p.id)?'var(--verd)':'var(--dim)')+';margin:6px 0;text-align:center;">'+(inStartInv(p.id)?'In Starting Inventory':'Not in Starting Inventory')+'</div>'+
     '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
   '</div>';
 }
@@ -144,7 +143,7 @@ function renderHeroWeapons(){
     '</div>';
   }).join('');
   main.innerHTML=
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;justify-content:center;">'+
       '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all for selected Act</button>'+
       '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
     '</div>'+
