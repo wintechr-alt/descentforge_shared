@@ -33,6 +33,11 @@ const HERO_weapons={'HERO_BRYNN':['Sword','Warhammer'],'HERO_SYRUS':['Staff','Wa
 let selectedHero='HERO_BRYNN';
 let activeCat='weapons';
 let selected=null;
+const carIdx={};
+function carKey(cls,slot){return cls+'|'+slot;}
+function partVariants(cls,slot){return state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});}
+function inStartInv(id){try{return !!(window.camp && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(function(i){return i.id===id;}));}catch(e){return false;}}
+function setStartInv(id,on){try{if(!window.camp||!camp.start) return;if(!Array.isArray(camp.start.items)) camp.start.items=[];if(on){if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});}else{camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});}if(typeof renderRight==='function') renderRight();}catch(e){}}
 const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
 function renderList(){
   const q=(overlay.querySelector('#forgeSearch').value||'').toLowerCase();
@@ -99,6 +104,26 @@ function renderHeroPortraits(){
   if(!el) return;
   // keep hero list in left column via separate container
 }
+function carouselHTML(cls,slot){
+  const arr=partVariants(cls,slot);
+  if(!arr.length) return '<div style="color:var(--dim);font-size:12px;">no '+slot+' parts</div>';
+  let idx=carIdx[carKey(cls,slot)];
+  if(idx==null || idx<0 || idx>=arr.length) idx=0;
+  const p=arr[idx];
+  const name=p.name_en||p.name||p.id;
+  return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
+    '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
+      '<button data-step="'+cls+'|'+slot+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>'+
+      '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
+      '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>'+
+    '</div>'+
+    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'+
+      '<input type="checkbox" data-addpart="'+p.id+'" '+(inStartInv(p.id)?'checked':'')+' /> Add to starting inventory'+
+    '</label>'+
+    '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
+  '</div>';
+}
 function renderHeroWeapons(){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
@@ -111,12 +136,13 @@ function renderHeroWeapons(){
   '</div>';
   const columns=classes.map(function(cls){
     const a=defaultPart(cls,'A');
-    const b=defaultPart(cls,'B');
-    const c=defaultPart(cls,'C');
-    const img=function(id){ return id?'<img data-selpart="'+id+'" src="../img/weapon/'+id+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;cursor:pointer;margin-bottom:8px;" onerror="this.style.display=&quot;none&quot;;">':'<div style="padding:20px;color:var(--dim);">no part</div>'; };
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:8px;">'+
+    const imgA=a?'<img data-selpart="'+a+'" src="../img/weapon/'+a+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;cursor:pointer;margin-bottom:8px;" onerror="this.style.display=&quot;none&quot;;">':'<div style="padding:20px;color:var(--dim);">no weapon image</div>';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:8px;">'+
       '<div style="font-weight:600;margin-bottom:6px;">'+cls+'</div>'+
-      img(a)+img(b)+img(c)+
+      '<div style="text-align:center;margin-bottom:8px;">'+imgA+'</div>'+
+      carouselHTML(cls,'B')+
+      '<div style="height:6px"></div>'+
+      carouselHTML(cls,'C')+
     '</div>';
   }).join('');
   main.innerHTML=
@@ -125,15 +151,35 @@ function renderHeroWeapons(){
       '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start;">'+columns+'</div>'+
     '</div>'+
     '<div id="forgeEditor" style="margin-top:12px;"></div>';
-  // hero button clicks
   main.querySelectorAll('[data-hero]').forEach(function(btn){
     btn.addEventListener('click',function(){ selectedHero=btn.getAttribute('data-hero'); renderHeroWeapons(); });
   });
-  // part image clicks select that part for editing
   main.querySelectorAll('[data-selpart]').forEach(function(img){
     img.addEventListener('click',function(){ selected=img.getAttribute('data-selpart'); renderEditorTarget(); });
   });
+  main.querySelectorAll('[data-step]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const parts=b.getAttribute('data-step').split('|');
+      const cls=parts[0], slot=parts[1], dir=+parts[2];
+      const arr=partVariants(cls,slot);
+      if(!arr.length) return;
+      const key=carKey(cls,slot);
+      let idx=carIdx[key]||0;
+      idx=(idx+dir+arr.length)%arr.length;
+      carIdx[key]=idx;
+      renderHeroWeapons();
+    });
+  });
+  main.querySelectorAll('[data-addpart]').forEach(function(cb){
+    cb.addEventListener('change',function(){
+      setStartInv(cb.getAttribute('data-addpart'), cb.checked);
+    });
+  });
+  main.querySelectorAll('[data-editpart]').forEach(function(b){
+    b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); });
+  });
 }
+
 function renderEditorTarget(){
   const e=overlay.querySelector('#forgeEditor');
   if(!e) return;
