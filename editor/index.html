@@ -11864,7 +11864,6 @@ function pintarInicioPopup(){
     <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}" style="max-width:90px"></div>
     <div class="field"><label>${T('startAdd')}</label>
       <div style="margin-bottom:8px"><button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedGlobal(); }); pintarInicioPopup(); renderRight();">I want it all</button></div>
-      <p class="help" style="margin:4px 0 8px">Add an item</p>
       ${renderInicioAdd()}</div>
     ${campRef.start.items.length?campRef.start.items.map((it,i)=>{
       const k=grupoDeInicio(it.id);
