@@ -11565,6 +11565,17 @@ function renderInicioAdd(){
     f.act = f.act || itemActOf(x);
   });
   let familyList=[...families.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
+  if(String(k).indexOf('weaponParts')===0){
+    familyList=familyList.sort((a,b)=>{
+      const wa=(a.baseId.match(/WEAPON_PART_[ABC]_(.+?)(?:_\d+|_ANCESTRAL)?(?:_UPGRADED)?$/)||['',''])[1]||'';
+      const wb=(b.baseId.match(/WEAPON_PART_[ABC]_(.+?)(?:_\d+|_ANCESTRAL)?(?:_UPGRADED)?$/)||['',''])[1]||'';
+      if(wa!==wb) return String(wa).localeCompare(String(wb));
+      const sa=((a.baseId.match(/WEAPON_PART_([ABC])_/)||['',''])[1]||'');
+      const sb=((b.baseId.match(/WEAPON_PART_([ABC])_/)||['',''])[1]||'');
+      if(sa!==sb) return sa.localeCompare(sb);
+      return String(a.baseId).localeCompare(String(b.baseId));
+    });
+  }
   if(k==='weaponParts'){
     familyList=familyList.filter(fam=>{
       const hero=HERO_FOR_CLASS[fam.cls]||'';
