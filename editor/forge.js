@@ -18,6 +18,7 @@ overlay.innerHTML=
     '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>'+
     '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>'+
     '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Weapons</button>'+
+    '<button data-forgecat="shared" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Shared</button>'+
     '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>'+
   '</div>'+
   '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">'+
@@ -130,9 +131,9 @@ function carouselHTML(cls,slot,showImage){
     '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
     (imgTag? (imgTag+'<div style="margin-bottom:4px;"></div>') : '')+
     '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
-      '<button data-step="'+cls+'|'+slot+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>'+
+      (arr.length>1 ? '<button data-step="'+cls+'|'+slot+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>' : '')+
       '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
-      '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>'+
+      (arr.length>1 ? '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>' : '')+
     '</div>'+
     (flavor ? '<div style="color:var(--dim);font-size:11px;text-align:center;margin-bottom:6px;line-height:1.3;">'+esc(flavor)+'</div>' : '')+
     '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
@@ -284,7 +285,90 @@ function renderEnemiesCategory(){
     '<h2 style="margin:0 0 8px 0;font-size:16px;">Enemies</h2>'+
     '<div>' + (rows||'<p style="color:var(--dim);">No items found.</p>') + '</div>';
 }
-function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
+function sharedVariants(slot,rune){
+  const keyHint=rune.toUpperCase();
+  return partVariants('Rune',slot).filter(function(w){ return String(w.id||'').toUpperCase().indexOf(keyHint)>=0; });
+}
+function sharedCol(rune){
+  const aArr=sharedVariants('A',rune).filter(function(w){ return inStartInv(w.id) || isDefaultPart('Rune','A',w.id); });
+  const cArr=sharedVariants('C',rune).filter(function(w){ return inStartInv(w.id) || isDefaultPart('Rune','C',w.id); });
+  const bId = 'WEAPON_PART_B_'+rune;
+  const bPart = state.weaponParts.find(function(w){ return w.id===bId; });
+  const aKey = 'shared|Rune|A|'+rune;
+  const cKey = 'shared|Rune|C|'+rune;
+  let aIdx = carIdx[aKey];
+  if(aIdx==null || aIdx<0 || aIdx>=aArr.length){ const def=aArr.find(function(w){return isDefaultPart('Rune','A',w.id);}); const wf=aArr.filter(function(w){return partFlavor(w);}); if(def) aIdx=aArr.indexOf(def); else if(wf.length) aIdx=aArr.indexOf(wf[0]); else aIdx=0; }
+  let cIdx = carIdx[cKey];
+  if(cIdx==null || cIdx<0 || cIdx>=cArr.length){ const def=cArr.find(function(w){return isDefaultPart('Rune','C',w.id);}); const wf=cArr.filter(function(w){return partFlavor(w);}); if(def) cIdx=cArr.indexOf(def); else if(wf.length) cIdx=cArr.indexOf(wf[0]); else cIdx=0; }
+  const aCur = aArr.length ? aArr[aIdx] : null;
+  const cCur = cArr.length ? cArr[cIdx] : null;
+  const car = function(cls,slot,arr,idx,key,showImg){
+    if(!arr.length) return '<div style="color:var(--dim);font-size:12px;text-align:center;padding:8px 0;">none</div>';
+    const p=arr[idx];
+    const name=prettyName(p.name_en||p.name||p.id);
+    const imgTag = showImg ? '<img src="../img/weapon/'+String(p.id).replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'')+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
+    const flavor=prettyName(partFlavor(p));
+    return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
+      '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
+      (imgTag? (imgTag+'<div style="margin-bottom:4px;"></div>') : '')+
+      '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
+        (arr.length>1? '<button data-sharedstep="'+key+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>' : '')+
+        '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
+        (arr.length>1? '<button data-sharedstep="'+key+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>' : '')+
+      '</div>'+
+      (flavor ? '<div style="color:var(--dim);font-size:11px;text-align:center;margin-bottom:6px;line-height:1.3;">'+esc(flavor)+'</div>' : '')+
+      '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
+    '</div>';
+  };
+  const bName = bPart ? (prettyName(bPart.name_en||bPart.name||bPart.id)) : 'B (fixed)';
+  const bImg = bPart ? '<img src="../img/weapon/'+String(bPart.id).replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'')+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
+  return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:8px;">'+
+    '<div style="font-weight:600;margin-bottom:6px;">'+rune.replace(/_/g,' ')+'</div>'+
+    car('Rune','A',aArr,aIdx,aKey,true)+
+    '<div style="height:6px"></div>'+
+    '<div style="font-size:11px;color:var(--dim);">B part (fixed)</div>'+
+    bImg+
+    '<div style="font-size:13px;text-align:center;">'+esc(bName)+'</div>'+
+    '<div style="height:6px"></div>'+
+    car('Rune','C',cArr,cIdx,cKey,false)+
+  '</div>';
+}
+function renderSharedCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  const runes=['DRAGONSBANE','FEAR','ICE_STORM','LIGHTNING_STRIKE','RUNE_OF_BLADES','SUNBURST'];
+  const cols=runes.map(function(rune){ return sharedCol(rune); }).join('');
+  main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+
+      '<button id="forgeAddAllAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded for selected Acts</button>'+
+      '<button id="forgeManageStart" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Manage Starting Inventory</button>'+
+    '</div>'+
+    '<h2 style="margin:0 0 8px 0;font-size:16px;">Shared Weapons</h2>'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start;">'+cols+'</div>'+
+    '<div id="forgeEditor" style="margin-top:12px;"></div>';
+  main.querySelectorAll('[data-sharedstep]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const parts=b.getAttribute('data-sharedstep').split('|');
+      const rune=parts[0], slot=parts[1], dir=parseInt(parts[parts.length-1],10);
+      const key='shared|Rune|'+slot+'|'+rune;
+      const arr=sharedVariants(slot,rune).filter(function(w){ return inStartInv(w.id) || isDefaultPart('Rune',slot,w.id); });
+      if(!arr.length) return;
+      let idx=carIdx[key]||0;
+      idx=(idx+dir+arr.length)%arr.length;
+      carIdx[key]=idx;
+      renderSharedCategory();
+    });
+  });
+  main.querySelectorAll('[data-editpart]').forEach(function(b){
+    b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); });
+  });
+  const addBtn=main.querySelector('#forgeAddAllAct');
+  if(addBtn) addBtn.addEventListener('click',function(){ if(typeof addAllUpgradedGlobal==='function') addAllUpgradedGlobal(); renderSharedCategory(); });
+  const manageBtn=main.querySelector('#forgeManageStart');
+  if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
+}
+
+function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
   activeCat=cat;
@@ -301,6 +385,10 @@ function setCat(cat){
     if(searchWrap) searchWrap.style.display='none';
     if(list) list.style.display='none';
     renderHeroWeapons();
+  } else if(cat==='shared'){
+    if(searchWrap) searchWrap.style.display='none';
+    if(list) list.style.display='none';
+    renderSharedCategory();
   } else {
     if(searchWrap) searchWrap.style.display='none';
     if(list) list.innerHTML='';
