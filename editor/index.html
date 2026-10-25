@@ -7630,6 +7630,8 @@ function GRUPOS_INICIO(){
   const comunes=[];
   (DATA.weaponParts||[]).forEach(w=>{
     const hero=HERO_FOR_CLASS[w.class]||null;
+    // common (Rune) weapons include B/C parts with the card: don't list them as starting gear
+    if(!hero && (w.slot==='B' || w.slot==='C')) return;
     if(hero) porHeroe[hero].push(w); else comunes.push(w);
   });
   (recipes||[]).forEach(r=>{
@@ -7637,6 +7639,7 @@ function GRUPOS_INICIO(){
     const item=recipeToItem(r.id);
     const base=(DATA.weaponParts||[]).find(x=>x.id===item);
     const hero=base? (HERO_FOR_CLASS[base.class]||null) : null;
+    if(!hero && base && (base.slot==='B' || base.slot==='C')) return;
     if(hero) porHeroe[hero].push(r); else comunes.push(r);
   });
   if(comunes.length) grupos.push(['weaponParts_common', comunes]);
