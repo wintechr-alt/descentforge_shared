@@ -9,15 +9,10 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:stat
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
-overlay.style.cssText='position:fixed;inset:0;z-index:10005;display:none;background:#161412;color:#eee;font-family:inherit;overflow:hidden;';
+overlay.style.cssText='position:fixed;top:52px;left:0;right:0;bottom:0;z-index:10005;display:none;background:#161412;color:#eee;font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
-  '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:52px;background:#0f0d0c;border-bottom:1px solid #3a322a;">'+
-    '<h1 style="margin:0;font-size:18px;">Forge</h1>'+
-    '<div style="display:flex;gap:8px;">'+
-      '<button id="forgeClose" style="width:34px;height:34px;background:none;border:1px solid #3a322a;color:#eee;border-radius:4px;cursor:pointer;">×</button>'+
-    '</div>'+
-  '</div>'+
-  '<div style="display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 52px);">'+
+  '<div style="padding:10px 18px;background:#0f0d0c;border-bottom:1px solid #3a322a;"><h1 style="margin:0;font-size:18px;">Forge</h1></div>'+
+  '<div style="display:grid;grid-template-columns:300px 1fr;height:calc(100% - 44px);">'+
     '<div style="border-right:1px solid #3a322a;overflow:auto;padding:10px;">'+
       '<input id="forgeSearch" placeholder="Search weapon parts..." style="width:100%;padding:6px 8px;margin-bottom:8px;border:1px solid #3a322a;background:#1e1b18;color:#eee;border-radius:4px;box-sizing:border-box;">'+
       '<div id="forgeNew" style="padding:6px 10px;margin-bottom:8px;background:#c89b3c;color:#111;border-radius:4px;cursor:pointer;text-align:center;font-weight:600;">+ New weapon part</div>'+
@@ -83,9 +78,15 @@ function renderEditor(){
 }
 function renderAll(){renderList();renderEditor();}
 overlay.querySelector('#forgeSearch').addEventListener('input',renderList);
-overlay.querySelector('#forgeClose').addEventListener('click',function(){overlay.style.display='none';});
 overlay.querySelector('#forgeNew').addEventListener('click',function(){const c={id:'WEAPON_PART_NEW',name:'New Part',name_en:'New Part',class:'Rune',slot:'A',upgrade:false};state.weaponParts.push(c);selected=c.id;persist();renderAll();});
-const btn=document.createElement('button');btn.textContent='Forge';btn.id='forgeBtn';btn.style.cssText='border:0;border-radius:0;padding:5px 11px;font-size:12px;margin-left:8px;cursor:pointer;';
-document.getElementById('modesel').insertAdjacentElement('afterend',btn);
-btn.addEventListener('click',function(){overlay.style.display='block';renderAll();});
+const modesel=document.getElementById('modesel');
+const btn=document.createElement('button');
+btn.textContent='Forge'; btn.id='forgeBtn'; btn.setAttribute('data-forge','1');
+if(modesel) modesel.appendChild(btn);
+function openForge(){ overlay.style.display='block'; btn.classList.add('on'); renderAll(); }
+function closeForge(){ overlay.style.display='none'; btn.classList.remove('on'); }
+btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
+if(modesel){
+  modesel.addEventListener('click',function(e){ const real=e.target.closest('[data-mode]'); if(real) closeForge(); });
+}
 })();
