@@ -11606,6 +11606,7 @@ function renderInicioAdd(){
       <button class="sm" type="button" onclick="cambio(()=>{ addBulkStartItems('act1'); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
       <button class="sm" type="button" onclick="cambio(()=>{ addBulkStartItems('act2'); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
       <button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); pintarInicioPopup(); renderRight();">Clear all</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedStartItems(); }); pintarInicioPopup(); renderRight();">I want it all</button>
     </div>
     <table style="width:100%;border-collapse:collapse">
       <tr>
@@ -11804,6 +11805,27 @@ function pintarSkillsPopup(){
         if(cb.checked){ if(!arr.includes(id)) arr.push(id); }
         else { camp.start.skills=arr.filter(s=>s!==id); }
       }); pintarSkillsPopup(); renderRight(); };
+  });
+}
+function addAllUpgradedStartItems(){
+  const grupos=GRUPOS_INICIO().filter(x=>x&&x[0]!=='loot');
+  const g=grupos[ini_grupo]||grupos[0]; if(!g) return;
+  const l=g[1]||[];
+  const families=new Map();
+  (l||[]).forEach(x=>{
+    const raw=String(x.id||'');
+    const isRecipe=raw.indexOf('RECIPE_')===0;
+    const base=itemFamilyId(raw);
+    if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'', baseIdItem:base, upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x), cls:x.class||''});
+    const f=families.get(base);
+    if(!f.cls && x.class) f.cls=x.class;
+    if(isRecipe){ if(/_PLUS$|_UPGRADED$/i.test(recipeToItem(raw))) f.plusRecipeId=raw; else f.recipeBaseId=raw; }
+    else { if(/_PLUS$|_UPGRADED$/i.test(raw)) f.upgradedItemId=raw; else f.baseItemId=raw; }
+    f.act=f.act||itemActOf(x);
+  });
+  [...families.values()].forEach(fam=>{
+    if(fam.upgradedItemId) addStartItem(fam.upgradedItemId);
+    if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
   });
 }
 function abrirInicioPopup(){
