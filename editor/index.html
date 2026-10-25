@@ -11623,9 +11623,9 @@ function renderWeaponRows(familyList, act2Allowed, kind){
         </div>
       </td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-role="base" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-role="upgraded" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
     </tr>`).join('');
   }
   const sorted=[...familyList].sort((a,b)=>{
@@ -11650,9 +11650,9 @@ function renderWeaponRows(familyList, act2Allowed, kind){
         </div>
       </td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-role="base" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-role="upgraded" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
     </tr>`);
   });
   return out.join('');
@@ -11740,6 +11740,18 @@ function pintarInicioPopup(){
           return l.length?`<optgroup label="${esc(h.name)}">${l.map(s=>`<option value="${esc(s.id)}">${esc(nombreHabilidad(s.id))}</option>`).join('')}</optgroup>`:'';}).join('')}</select></div>
     ${ (campRef.start.skills||[]).length?`<div style="margin-bottom:9px">${campRef.start.skills.map(s=>`<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-iniskilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
     <p class="help">${T('startSkillsHelp')}</p>`;
+  function lockBaseUpgradedPairs(){
+    (el.querySelectorAll('table tr')||[]).forEach(row=>{
+      const base=row.querySelector('input[data-role="base"]');
+      const up=row.querySelector('input[data-role="upgraded"]');
+      if(!base || !up) return;
+      if(up.checked){ base.checked=true; base.disabled=true; base.style.opacity=.45; }
+      else if(base.checked){ up.disabled=true; up.style.opacity=.45; }
+      else { base.disabled=false; up.disabled=false; base.style.opacity=1; up.style.opacity=1; }
+      if(!act2AllowedBind && (+(base.dataset.act||1))>=2){ base.disabled=true; base.style.opacity=.45; }
+      if(!act2AllowedBind && (+(up.dataset.act||1))>=2){ up.disabled=true; up.style.opacity=.45; }
+    });
+  }
   const act2AllowedBind = (camp.meta.act!=='I') || !!camp.meta.requiresAct2;
   el.querySelectorAll('[data-starttoggle]').forEach(cb=>{
     cb.disabled = (!act2AllowedBind && (+(cb.dataset.act||1))>=2);
@@ -11747,6 +11759,7 @@ function pintarInicioPopup(){
       cambio(()=>{ if(cb.checked) addStartItem(id); else camp.start.items=camp.start.items.filter(i=>i.id!==id); });
       pintarInicioPopup(); renderRight(); };
   });
+  lockBaseUpgradedPairs();
   el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
   el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
   el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
