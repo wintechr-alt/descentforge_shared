@@ -444,8 +444,23 @@ const btn=document.createElement('button');
 btn.textContent='Forge'; btn.id='forgeBtn'; btn.setAttribute('data-forge','1');
 if(modesel) modesel.appendChild(btn);
 function placeForge(){ var h=document.querySelector('header'); var top=h?(h.getBoundingClientRect().bottom||h.offsetHeight||0):0; overlay.style.top=top+'px'; }
-function openForge(){ placeForge(); overlay.style.display='block'; btn.classList.add('on'); renderActiveCategory(); }
-function closeForge(){ overlay.style.display='none'; btn.classList.remove('on'); }
+function openForge(){ window.__forgeOpen=true; placeForge(); overlay.style.display='block'; btn.classList.add('on'); renderActiveCategory(); }
+function closeForge(){ window.__forgeOpen=false; overlay.style.display='none'; btn.classList.remove('on'); }
+try {
+  if (typeof addStartItem === 'function') {
+    const origAddStartItem = addStartItem;
+    window.addStartItem = function(id){ const r = origAddStartItem.apply(this, arguments); setTimeout(function(){ if (window.__forgeOpen && activeCat === 'itempool') renderActiveCategory(); }, 0); return r; };
+  }
+  if (typeof abrirInicioPopup === 'function') {
+    const origAbrirInicioPopup = abrirInicioPopup;
+    window.abrirInicioPopup = function(){ const r = origAbrirInicioPopup.apply(this, arguments); setTimeout(function(){
+      const done = document.getElementById('iniDone');
+      if (done) done.addEventListener('click', function(){ setTimeout(function(){ if (window.__forgeOpen && activeCat === 'itempool') renderActiveCategory(); }, 0); });
+      if (window.__forgeOpen && activeCat === 'itempool') renderActiveCategory();
+    }, 0); return r; };
+  }
+} catch (e) { console.warn('forge hooks', e); }
+
 btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
 const startInvBtn=overlay.querySelector('#forgeStartInv');
 if(startInvBtn) startInvBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
