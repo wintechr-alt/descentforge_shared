@@ -11544,27 +11544,32 @@ function renderInicioAdd(){
       </div>`;
     }).join('');
   } else {
-    body = `<table style="width:100%;border-collapse:collapse">
-      <tr><th style="text-align:left">${esc(T('startGroup_'+k)||k)}</th><th style="width:60px">Base</th><th style="width:90px">Upgraded</th></tr>
-      ${rowList.map(r=>`<tr>
-        <td style="padding:2px 0">
-          <div style="display:flex;gap:6px;align-items:center">
-            ${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)?`<img src="${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
-            <div>
-              ${r.baseItem||r.upgradedItem? (r.baseItem?esc(nombreDeInicio(r.baseItem.id)):esc(nombreDeInicio(r.upgradedItem.id))) : esc(r.baseId)}
-              <br><small style="opacity:.7">${esc(r.baseId)} · Act ${r.act||1}</small>
-            </div>
-          </div>
-        </td>
-        <td style="text-align:center">${r.baseItem?`<input type="checkbox" data-starttoggle="${esc(r.baseItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.baseItem.id)?'checked':''}>`:''}</td>
-        <td style="text-align:center">${r.upgradedItem?`<input type="checkbox" data-starttoggle="${esc(r.upgradedItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.upgradedItem.id)?'checked':''}>`:''}</td>
-      </tr>`).join('')}
-    </table>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+    const bulk = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
       <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo()).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
       <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)<=1)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
       <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)>=2)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||[]).length=0; }); pintarInicioPopup(); renderRight();">Clear all</button>
     </div>`;
+    body = bulk + `<table style="width:100%;border-collapse:collapse">
+      <tr>
+        <th style="text-align:left;border:1px solid rgba(128,128,128,.35);padding:4px">ID</th>
+        <th style="width:68px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Base</th>
+        <th style="width:92px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Upgraded</th>
+      </tr>
+      ${rowList.map(r=>`<tr>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
+          <div style="display:flex;gap:6px;align-items:center">
+            ${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)?`<img src="${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
+            <div>
+              ${esc(r.baseId)}
+              <br><small style="opacity:.7">Act ${r.act||1}</small>
+            </div>
+          </div>
+        </td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${r.baseItem?`<input type="checkbox" data-starttoggle="${esc(r.baseItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.baseItem.id)?'checked':''}>`:''}</td>
+        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${r.upgradedItem?`<input type="checkbox" data-starttoggle="${esc(r.upgradedItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.upgradedItem.id)?'checked':''}>`:''}</td>
+      </tr>`).join('')}
+    </table>`;
   }
   return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body + (isMaterial?`<p class="help" style="margin-top:6px">${T('startQtyHelp')}</p>`:'');
 }
