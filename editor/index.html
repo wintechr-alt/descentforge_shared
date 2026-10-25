@@ -7532,6 +7532,7 @@ function renderCampMeta(el){
     <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">
     <button class="sm" onclick="abrirInicioPopup()">${TS('Abrir inventario inicial','Open starting inventory')}</button>
     <button class="sm" onclick="abrirGoldMateriales()">${TS('Oro y materiales','Gold & Materials')}</button>
+    <button class="sm" onclick="abrirSkillsPopup()">${TS('Habilidades','Skills')}</button>
   </div>
     <p class="help">${T('startHelp')}</p>
     <div class="field"><label>${T('startGold')}</label>
@@ -11746,6 +11747,44 @@ function addBulkStartItems(mode){
     if(fam.upgradedItemId && fam.plusRecipeId) addStartItem(fam.plusRecipeId);
   });
 }
+
+let skHero='all';
+function abrirSkillsPopup(){
+  openDlg(TS('Habilidades','Skills'), `<div id="skBody"></div>`, `<button id="skDone">${TS('Hecho','Done')}</button>`);
+  pintarSkillsPopup();
+  const d=document.getElementById('skDone'); if(d) d.onclick=()=>dlg.close();
+}
+function pintarSkillsPopup(){
+  const el=document.getElementById('skBody'); if(!el) return;
+  camp.start=camp.start||{gold:0,items:[],skills:[]};
+  const skills=Array.isArray(camp.start.skills)?camp.start.skills:[];
+  const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
+  const allSkills=DATA.skills||[];
+  const list = (skHero==='all' ? allSkills : allSkills.filter(s=>s.hero===skHero)).slice().sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  const tabs = ['all'].concat(heroes.map(h=>h.id)).map(h=>`<button class="sm" style="${skHero===h?'font-weight:700;':''}" onclick="skHero='${h}'; pintarSkillsPopup();">${h==='all'?TS('Todos','All'):(((DATA.heroes||[]).find(x=>x.id===h)||{}).name||h)}</button>`).join(' ');
+  el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>
+    <div style="max-height:260px;overflow:auto;border:1px solid rgba(128,128,128,.3);border-radius:4px">
+      ${list.map(s=>{
+        const checked=(camp.start.skills||[]).includes(s.id);
+        const img=imagenInicio? '': '';
+        return `<div style="display:flex;gap:6px;align-items:center;padding:4px;border-bottom:1px solid rgba(128,128,128,.25)">
+          <input type="checkbox" data-skskill="${esc(s.id)}" ${checked?'checked':''}>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(nombreHabilidad(s.id))}</div><small style="opacity:.7">${esc(s.id)}</small></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <button class="sm" type="button" onclick="cambio(()=>{ const L=(skHero==='all'?DATA.skills:DATA.skills.filter(s=>s.hero===skHero))||[]; const arr=camp.start.skills||(camp.start.skills=[]); L.forEach(s=>{ if(!arr.includes(s.id)) arr.push(s.id); }); }); pintarSkillsPopup(); renderRight();">Add all</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ const L=(skHero==='all'?DATA.skills:DATA.skills.filter(s=>s.hero===skHero))||[]; const ids=new Set(L.map(s=>s.id)); camp.start.skills=(camp.start.skills||[]).filter(s=>!ids.has(s)); }); pintarSkillsPopup(); renderRight();">Clear</button>
+    </div>`;
+  el.querySelectorAll('[data-skskill]').forEach(cb=>{
+    cb.onchange=()=>{ const id=cb.dataset.skskill;
+      cambio(()=>{ const arr=camp.start.skills||(camp.start.skills=[]);
+        if(cb.checked){ if(!arr.includes(id)) arr.push(id); }
+        else { camp.start.skills=arr.filter(s=>s!==id); }
+      }); pintarSkillsPopup(); renderRight(); };
+  });
+}
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
@@ -11772,13 +11811,7 @@ function pintarInicioPopup(){
     <p class="help">${T('startQtyHelp')}</p>
     <div style="margin:6px 0"><button class="sm" type="button" onclick="cambio(()=>{ (camp.start.items||=[]).length=0; }); renderRight(); pintarInicioPopup();">${TS('Clear all items','Clear all items')}</button></div>
 
-    <div class="field"><label>${T('startSkills')}</label>
-      <select id="ini_starts"><option value="">${T('startAddSkill')}</option>
-        ${(DATA.heroes||[]).filter(h=>h.id.startsWith('HERO_')).map(h=>{
-          const l=(DATA.skills||[]).filter(s=>s.hero===h.id);
-          return l.length?`<optgroup label="${esc(h.name)}">${l.map(s=>`<option value="${esc(s.id)}">${esc(nombreHabilidad(s.id))}</option>`).join('')}</optgroup>`:'';}).join('')}</select></div>
-    ${ (campRef.start.skills||[]).length?`<div style="margin-bottom:9px">${campRef.start.skills.map(s=>`<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-iniskilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
-    <p class="help">${T('startSkillsHelp')}</p>`;
+    <p class="help">${TS('Skills are edited with the Skills button above.','Skills are edited with the Skills button above.')}</p>`;
   function lockBaseUpgradedPairs(){
     (el.querySelectorAll('table tr')||[]).forEach(row=>{
       const base=row.querySelector('input[data-role="base"]');
