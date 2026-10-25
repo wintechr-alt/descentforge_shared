@@ -11597,6 +11597,7 @@ function pintarGoldMateriales(){
 }
 function setInitialMaterials(){
   camp.start=camp.start||{gold:0,items:[]};
+  camp.start.gold=1000;
   (DATA.materials||[]).forEach(m=>{
     const id=m.id;
     let qty=10;
