@@ -368,13 +368,17 @@ function renderItemPoolCategory(){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
   const invIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items)) ? camp.start.items.map(function(i){return i.id;}) : [];
+  const invFamilies = new Set(invIds.map(function(id){ return (typeof itemFamilyId==='function') ? itemFamilyId(id) : String(id||'').replace(/^RECIPE_/i,'').replace(/_PLUS$|_UPGRADED$/i,''); }));
   const allItems = [];
   if(typeof GRUPOS_INICIO==='function'){
     GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){
       (g[1]||[]).forEach(function(x){ allItems.push(x); });
     });
   }
-  const avail = allItems.filter(function(x, idx){ return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')); });
+  const avail = allItems.filter(function(x, idx){
+    const fam = (typeof itemFamilyId==='function') ? itemFamilyId(x.id) : String(x.id||'').replace(/^RECIPE_/i,'').replace(/_PLUS$|_UPGRADED$/i,'');
+    return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')) && !invFamilies.has(fam);
+  });
   function imageFor(id){
     id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
     let folder=null;
