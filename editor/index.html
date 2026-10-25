@@ -11615,7 +11615,6 @@ function renderInicioAdd(){
         <th style="text-align:left;border:1px solid rgba(128,128,128,.35);padding:4px">ID</th>
         <th style="width:64px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Recipe</th>
         <th style="width:56px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Base</th>
-        <th style="width:80px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Plus recipe</th>
         <th style="width:72px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Upgraded</th>
       </tr>
       ${renderWeaponRows(familyList, act2Allowed, k)}
@@ -11653,7 +11652,6 @@ function renderWeaponRows(familyList, act2Allowed, kind){
       </td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-role="recipe" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-role="base" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-role="plusrecipe" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-role="upgraded" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
     </tr>`).join('');
   }
@@ -11680,7 +11678,6 @@ function renderWeaponRows(familyList, act2Allowed, kind){
       </td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-role="recipe" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-role="base" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
-      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-role="plusrecipe" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-role="upgraded" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
     </tr>`);
   });
@@ -11883,13 +11880,10 @@ function pintarInicioPopup(){
       const up=row.querySelector('input[data-role="upgraded"]');
       if(!base || !up) return;
       if(up.checked){ base.checked=true; base.disabled=true; base.style.opacity=.45;
-        const plusrec=row.querySelector('input[data-role="plusrecipe"]'); if(plusrec){ plusrec.checked=true; plusrec.disabled=true; plusrec.style.opacity=.45; }
       }
       else if(base.checked){ up.disabled=false; up.style.opacity=1;
-        const plusrec=row.querySelector('input[data-role="plusrecipe"]'); if(plusrec){ plusrec.disabled=false; plusrec.style.opacity=1; }
       }
-      else { base.disabled=false; up.disabled=false; base.style.opacity=1; up.style.opacity=1;
-        const plusrec=row.querySelector('input[data-role="plusrecipe"]'); if(plusrec){ plusrec.disabled=false; plusrec.style.opacity=1; } }
+      else { base.disabled=false; up.disabled=false; base.style.opacity=1; up.style.opacity=1; }
       if(!act2AllowedBind && (+(base.dataset.act||1))>=2){ base.disabled=true; base.style.opacity=.45; }
       if(!act2AllowedBind && (+(up.dataset.act||1))>=2){ up.disabled=true; up.style.opacity=.45; }
     });
