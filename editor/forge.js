@@ -13,9 +13,9 @@ const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
 overlay.innerHTML=
-  '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);display:flex;align-items:center;justify-content:center;gap:14px;">'+
+  '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);display:flex;align-items:center;justify-content:flex-start;position:relative;">'+
     '<h1 style="margin:0;font-size:18px;">Forge</h1>'+
-    '<button id="forgeStartInv" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Starting inventory</button>'+
+    '<button id="forgeStartInv" style="position:absolute;left:50%;transform:translateX(-50%);background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Starting inventory</button>'+
   '</div>'+
   '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);justify-content:center;">'+
     '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>'+
