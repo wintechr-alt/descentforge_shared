@@ -36,6 +36,7 @@ let selected=null;
 const carIdx={};
 function carKey(cls,slot){return cls+'|'+slot;}
 function partVariants(cls,slot){return state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});}
+function carouselItems(cls,slot){return partVariants(cls,slot).filter(function(w){return inStartInv(w.id);});}
 function inStartInv(id){try{return !!(typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(function(i){return i.id===id;}));}catch(e){return false;}}
 function setStartInv(id,on){try{if(typeof camp==='undefined'||!camp) return; camp.start=camp.start||{items:[]}; if(!Array.isArray(camp.start.items)) camp.start.items=[]; if(on){if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});}else{camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});} if(typeof renderRight==='function') renderRight();}catch(e){}}
 const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
@@ -162,7 +163,7 @@ function renderHeroWeapons(){
     b.addEventListener('click',function(){
       const parts=b.getAttribute('data-step').split('|');
       const cls=parts[0], slot=parts[1], dir=+parts[2];
-      const arr=partVariants(cls,slot);
+      const arr=carouselItems(cls,slot);
       if(!arr.length) return;
       const key=carKey(cls,slot);
       let idx=carIdx[key]||0;
