@@ -88,7 +88,10 @@ function renderEditor(){
   bindEditor(p);
 }
 function defaultPart(cls,slot){
-  const arr=state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});
+  let arr=state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});
+  // Prefer a variant that has an image (non-_0 suffix) for the assembled preview.
+  const withImg=arr.filter(function(w){return !/_0$/.test(w.id);});
+  if(withImg.length) arr=withImg;
   return arr.length?arr[0].id:null;
 }
 function renderHeroPortraits(){
