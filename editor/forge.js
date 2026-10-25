@@ -224,14 +224,15 @@ function renderEditorTarget(){
   e.innerHTML=fields(p);
   bindEditor(p);
 }
-function renderSimpleCategory(title, items){
+function renderSimpleCategory(title, items, imgFolder){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
   const rows=items.map(function(x){
     const name = prettyName((typeof L==='function') ? L(x,'name') : (x.name_en||x.name||x.id));
     const isIn=inStartInv(x.id);
+    const img = imgFolder ? '<img src="../img/'+imgFolder+'/'+x.id+'.png" style="width:34px;height:34px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">' : '';
     return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
-      '<span>'+esc(name)+'</span>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+img+'<span>'+esc(name)+'</span></div>'+
       '<span style="font-size:11px;color:'+(isIn?'var(--verd)':'var(--dim)')+';">'+(isIn?'In Starting Inventory':'Not in Starting Inventory')+'</span>'+
     '</div>';
   }).join('');
@@ -255,9 +256,21 @@ function renderSimpleCategory(title, items){
   const manageBtn=main.querySelector('#forgeManageStart');
   if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 }
-function renderArmorCategory(){ renderSimpleCategory('Armor', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='armor';})) : [])); }
-function renderTrinketsCategory(){ renderSimpleCategory('Trinkets', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='trinket';})) : [])); }
-function renderEnemiesCategory(){ renderSimpleCategory('Enemies', (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []); }
+function renderArmorCategory(){ renderSimpleCategory('Armor', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='armor';})) : []), 'armor'); }
+function renderTrinketsCategory(){ renderSimpleCategory('Trinkets', ((typeof DATA!=='undefined' && DATA.gear)? (DATA.gear.filter(function(g){return g.kind==='trinket';})) : []), 'trinket'); }
+function renderEnemiesCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  const items=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : [];
+  const rows=items.map(function(x){
+    const name=prettyName(x.name_en||x.name||x.id);
+    return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+      '<span>'+esc(name)+'</span></div>';
+  }).join('');
+  main.innerHTML=
+    '<h2 style="margin:0 0 8px 0;font-size:16px;">Enemies</h2>'+
+    '<div>' + (rows||'<p style="color:var(--dim);">No items found.</p>') + '</div>';
+}
 function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
