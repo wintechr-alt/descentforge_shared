@@ -11498,6 +11498,17 @@ function imagenInicio(id){
   if(c.indexOf('MAT_')===0) return '../img/crafting_material/'+c+'.png';
   return '';
 }
+function itemActOf(x){
+  if(!x) return 1;
+  if(Number.isFinite(x.act)) return x.act;
+  const id=String(x.id||'');
+  const m=/_([0-9]+)(?:_UPGRADED)?$/.exec(id);
+  if(m && id.indexOf('WEAPON_PART_')===0){ return (parseInt(m[1])>=4)?2:1; }
+  if(id==='WEAPON_DRAGONSBANE'||id==='WEAPON_GRASP_OF_FEAR'||id==='WEAPON_SUNBURST') return 2;
+  const sk=(DATA.skills||[]).find(sx=>sx.id===id);
+  if(sk && (sk.act==='II'||sk.act===2)) return 2;
+  return 1;
+}
 let ini_item_idx=0; let ini_grupo=0;
 function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[0]; const k=g?g[0]:''; const l=g?g[1]||[]:[]; return (l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id))); }
 function candidatosInicio(){ return candidatosGrupo(); }
@@ -11507,38 +11518,67 @@ function renderInicioAdd(){
   const g=grupos[ini_grupo]||grupos[0]||['',[]];
   const k=g[0]||'';
   const l=g[1]||[];
-  const cs=(l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)})).sort((a,b)=>(a.act||1)-(b.act||1) || String(a.name||a.id).localeCompare(String(b.name||b.id)));
+  const cs=(l||[]).map(x=>({id:x.id,name:L(x,'name'),group:k,act:itemActOf(x)}));
+  const isMaterial = k==='materials';
+  const rows=[];
+  const byBase=new Map();
+  cs.forEach(x=>{
+    const base=baseStartId(x.id);
+    if(!byBase.has(base)) byBase.set(base,{baseId:base, baseItem:null, upgradedItem:null, act:x.act});
+    const r=byBase.get(base);
+    if(x.id===base) r.baseItem=x; else r.upgradedItem=x;
+    r.act = r.act || x.act;
+  });
+  const rowList=[...byBase.values()].sort((a,b)=>(a.act||1)-(b.act||1) || String(a.baseId).localeCompare(String(b.baseId)));
   const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; pintarInicioPopup();">${esc(T('startGroup_'+gk))} (${(gl||[]).length})</button>`).join('');
-  const listHtml = cs.map(x=>{
-    const img=imagenInicio(x.id);
-    return `<div style="display:flex;gap:6px;align-items:center;padding:4px;border-bottom:1px solid rgba(128,128,128,.25)">
-      ${img?`<img src="${img}" alt="" style="width:32px;height:32px;object-fit:contain" onerror="this.style.display='none'">`:''}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(nombreDeInicio(x.id))}</div>
-        <small style="opacity:.7">${esc(x.id)} · Act ${x.act||1}</small>
-      </div>
-      <button class="sm" type="button" onclick="cambio(()=>{ if(!camp.start.items.some(i=>i.id==='${esc(x.id)}')) addStartItem('${esc(x.id)}'); }); pintarInicioPopup(); renderRight();">Add</button>
+  let body='';
+  if(isMaterial){
+    body = cs.map(x=>{
+      const q=(camp.start.items||[]).find(i=>i.id===x.id);
+      const qty=q?q.qty||0:0;
+      const img=imagenInicio(x.id);
+      return `<div class="objtext" style="display:flex;gap:6px;align-items:center">
+        ${img?`<img src="${img}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span style="flex:1" title="${esc(x.id)}">${esc(nombreDeInicio(x.id))}</span>
+        <input type="number" min="0" value="${esc(qty)}" data-gmq="${esc(x.id)}" style="max-width:70px" title="${esc(T('startQty'))}">
+      </div>`;
+    }).join('');
+  } else {
+    body = `<table style="width:100%;border-collapse:collapse">
+      <tr><th style="text-align:left">${esc(T('startGroup_'+k)||k)}</th><th style="width:60px">Base</th><th style="width:90px">Upgraded</th></tr>
+      ${rowList.map(r=>`<tr>
+        <td style="padding:2px 0">
+          <div style="display:flex;gap:6px;align-items:center">
+            ${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)?`<img src="${imagenInicio(r.baseItem?r.baseItem.id:r.upgradedItem?r.upgradedItem.id:r.baseId)}" alt="" style="width:28px;height:28px;object-fit:contain" onerror="this.style.display='none'">`:''}
+            <div>
+              ${r.baseItem||r.upgradedItem? (r.baseItem?esc(nombreDeInicio(r.baseItem.id)):esc(nombreDeInicio(r.upgradedItem.id))) : esc(r.baseId)}
+              <br><small style="opacity:.7">${esc(r.baseId)} · Act ${r.act||1}</small>
+            </div>
+          </div>
+        </td>
+        <td style="text-align:center">${r.baseItem?`<input type="checkbox" data-starttoggle="${esc(r.baseItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.baseItem.id)?'checked':''}>`:''}</td>
+        <td style="text-align:center">${r.upgradedItem?`<input type="checkbox" data-starttoggle="${esc(r.upgradedItem.id)}" ${(camp.start.items||[]).some(i=>i.id===r.upgradedItem.id)?'checked':''}>`:''}</td>
+      </tr>`).join('')}
+    </table>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo()).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)<=1)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
+      <button class="sm" type="button" onclick="cambio(()=>{ preferidos(candidatosGrupo().filter(x=>(x.act||1)>=2)).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
     </div>`;
-  }).join('');
-  const bulk = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-    <button class="sm" type="button" onclick="cambio(()=>{ cs.forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all</button>
-    <button class="sm" type="button" onclick="cambio(()=>{ cs.filter(x=>(x.act||1)<=1).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act I</button>
-    <button class="sm" type="button" onclick="cambio(()=>{ cs.filter(x=>(x.act||1)>=2).forEach(x=>{ if(x && x.id) addStartItem(x.id); }); }); pintarInicioPopup(); renderRight();">Add all Act II</button>
-  </div>`;
-  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>
-    <div style="max-height:260px;overflow:auto;border:1px solid rgba(128,128,128,.3);border-radius:4px">${listHtml}</div>
-    ${bulk}`;
+  }
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body + (isMaterial?`<p class="help" style="margin-top:6px">${T('startQtyHelp')}</p>`:'');
 }
-function itemActOf(x){
-  if(!x) return 1;
-  if(Number.isFinite(x.act)) return x.act;
-  const id=String(x.id||'');
-  const m=/_([0-9]+)(?:_UPGRADED)?$/.exec(id);
-  if(m && id.indexOf('WEAPON_PART_')===0){ return (parseInt(m[1])>=4)?2:1; }
-  if(id==='WEAPON_DRAGONSBANE'||id==='WEAPON_GRASP_OF_FEAR'||id==='WEAPON_SUNBURST') return 2;
-  const sk=(DATA.skills||[]).find(s=>s.id===id);
-  if(sk && (sk.act==='II'||sk.act===2)) return 2;
-  return 1;
+function esMejoraStart(id){ return /_PLUS$|_UPGRADED$/i.test(String(id||'')); }
+function preferidos(items){
+  const byBase=new Map();
+  (items||[]).forEach(x=>{
+    if(!x||!x.id) return;
+    const base=baseStartId(x.id);
+    const cur=byBase.get(base);
+    if(!cur) byBase.set(base,x);
+    else if(esMejoraStart(x.id) && !esMejoraStart(cur.id)) byBase.set(base,x);
+  });
+  return [...byBase.values()];
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
@@ -11573,6 +11613,11 @@ function pintarInicioPopup(){
           return l.length?`<optgroup label="${esc(h.name)}">${l.map(s=>`<option value="${esc(s.id)}">${esc(nombreHabilidad(s.id))}</option>`).join('')}</optgroup>`:'';}).join('')}</select></div>
     ${ (campRef.start.skills||[]).length?`<div style="margin-bottom:9px">${campRef.start.skills.map(s=>`<span class="tag">${esc(nombreHabilidad(s))} <a href="#" data-iniskilldel="${esc(s)}">✕</a></span>`).join('')}</div>`:''}
     <p class="help">${T('startSkillsHelp')}</p>`;
+  el.querySelectorAll('[data-starttoggle]').forEach(cb=>{
+    cb.onchange=()=>{ const id=cb.dataset.starttoggle;
+      cambio(()=>{ if(cb.checked) addStartItem(id); else camp.start.items=camp.start.items.filter(i=>i.id!==id); });
+      pintarInicioPopup(); renderRight(); };
+  });
   el.querySelector('#ini_startg').onchange=e=>{ cambio(()=>{ camp.start.gold=Math.max(0,Math.round(+e.target.value||0)); }); pintarInicioPopup(); renderRight(); };
   el.querySelectorAll('[data-inidel]').forEach(b=>b.onclick=()=>{ cambio(()=>camp.start.items.splice(+b.dataset.inidel,1)); pintarInicioPopup(); renderRight(); });
   el.querySelectorAll('[data-iniqty]').forEach(c=>c.onchange=()=>cambio(()=>{ camp.start.items[+c.dataset.iniqty].qty=Math.max(1,Math.round(+c.value||1)); }));
