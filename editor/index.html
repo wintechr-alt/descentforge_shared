@@ -11618,7 +11618,7 @@ function renderWeaponRows(familyList, act2Allowed, kind){
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
         <div style="display:flex;gap:6px;align-items:center">
           ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
-          <div>${esc(fam.baseItem?nombreDeInicio(fam.baseItem.id):(fam.upgradedItem?nombreDeInicio(fam.upgradedItem.id):fam.baseId))}
+          <div>${esc(fam.baseItemId?nombreDeInicio(fam.baseItemId):(fam.upgradedItemId?nombreDeInicio(fam.upgradedItemId):nombreDeInicio(fam.baseId)))}
           <br><small style="opacity:.7">${esc(fam.baseId)} · Act ${fam.act||1}</small></div>
         </div>
       </td>
@@ -11645,7 +11645,7 @@ function renderWeaponRows(familyList, act2Allowed, kind){
       <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
         <div style="display:flex;gap:6px;align-items:center">
           ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
-          <div>${esc(fam.baseItem ? nombreDeInicio(fam.baseItem.id) : (fam.upgradedItem ? nombreDeInicio(fam.upgradedItem.id) : fam.baseId))}
+          <div>${esc(fam.baseItemId ? nombreDeInicio(fam.baseItemId) : (fam.upgradedItemId ? nombreDeInicio(fam.upgradedItemId) : nombreDeInicio(fam.baseId) || fam.baseId))}
           <br><small style="opacity:.7">${esc(fam.baseId)} · Act ${fam.act||1}</small></div>
         </div>
       </td>
