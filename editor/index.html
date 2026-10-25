@@ -11536,8 +11536,9 @@ function renderInicioAdd(){
     const core=isRecipe?recipeToItem(raw):raw;
     const base=itemFamilyId(raw);
     if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'RECIPE_'+base, baseIdItem:base,
-      upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x)});
+      upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x), cls:x.class||''});
     const f=families.get(base);
+    if(!f.cls && x.class) f.cls=x.class;
     if(isRecipe){
       if(/_PLUS$|_UPGRADED$/i.test(core)) f.plusRecipeId=raw;
       else f.recipeBaseId=raw;
@@ -11579,21 +11580,7 @@ function renderInicioAdd(){
         <th style="width:80px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Plus recipe</th>
         <th style="width:72px;border:1px solid rgba(128,128,128,.35);padding:4px;text-align:center">Upgraded</th>
       </tr>
-      ${familyList.map(fam=>`<tr style="${(!act2Allowed && (fam.act||1)>=2)?'opacity:.45':''}">
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
-          <div style="display:flex;gap:6px;align-items:center">
-            ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
-            <div>
-              ${esc(fam.baseId)}
-              <br><small style="opacity:.7">Act ${fam.act||1}</small>
-            </div>
-          </div>
-        </td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${hasToggle(fam.recipeBaseId)?'checked':''}>`:''}</td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-act="${fam.act||1}" ${hasToggle(fam.baseItemId)?'checked':''}>`:''}</td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-act="${fam.act||1}" ${hasToggle(fam.plusRecipeId)?'checked':''}>`:''}</td>
-        <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-act="${fam.act||1}" ${hasToggle(fam.upgradedItemId)?'checked':''}>`:''}</td>
-      </tr>`).join('')}
+      ${renderWeaponRows(familyList, act2Allowed, k)}
     </table>`;
   }
   return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body;
@@ -11612,6 +11599,53 @@ function itemFamilyId(id){
   id=String(id||'').trim();
   if(id.indexOf('RECIPE_')===0) id=recipeToItem(id);
   return id.replace(/_PLUS$|_UPGRADED$/i,'');
+}
+const HERO_FOR_CLASS = {"Sword":"HERO_BRYNN","Warhammer":"HERO_BRYNN","Staff":"HERO_SYRUS","Wand":"HERO_SYRUS","DualBlades":"HERO_GALADEN","Bow":"HERO_GALADEN","Warbell":"HERO_VAERIX","Spear":"HERO_VAERIX","Hammer":"HERO_KEHLI","Crossbow":"HERO_KEHLI","Gauntlet":"HERO_CHANCE","ThrowingKnives":"HERO_CHANCE"};
+const HERO_ORDER = ["HERO_BRYNN","HERO_SYRUS","HERO_GALADEN","HERO_VAERIX","HERO_KEHLI","HERO_CHANCE"];
+function heroNameById(id){ const h=(DATA.heroes||[]).find(x=>x.id===id); return h?h.name||id:id; }
+function renderWeaponRows(familyList, act2Allowed, kind){
+  if(kind!=='weaponParts'){
+    return (familyList||[]).map(fam=>`<tr style="${(!act2Allowed && (fam.act||1)>=2)?'opacity:.45':''}">
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
+          <div>${esc(fam.baseItem?nombreDeInicio(fam.baseItem.id):(fam.upgradedItem?nombreDeInicio(fam.upgradedItem.id):fam.baseId))}
+          <br><small style="opacity:.7">${esc(fam.baseId)} · Act ${fam.act||1}</small></div>
+        </div>
+      </td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+    </tr>`).join('');
+  }
+  const sorted=[...familyList].sort((a,b)=>{
+    const ha=HERO_ORDER.indexOf(HERO_FOR_CLASS[a.cls]||''); const hb=HERO_ORDER.indexOf(HERO_FOR_CLASS[b.cls]||'');
+    if(ha!==hb) return ha-hb;
+    if((a.cls||'')!==(b.cls||'')) return String(a.cls||'').localeCompare(String(b.cls||''));
+    return String(a.baseId).localeCompare(String(b.baseId));
+  });
+  const out=[];
+  let lastHero=null,lastClass=null;
+  sorted.forEach(fam=>{
+    const hero=HERO_FOR_CLASS[fam.cls]||'';
+    const cls=fam.cls||'';
+    if(hero!==lastHero){ lastHero=hero; lastClass=null; out.push(`<tr><td colspan="5" style="background:rgba(128,128,128,.18);font-weight:700;padding:4px">${esc(heroNameById(hero))}</td></tr>`); }
+    if(cls!==lastClass){ lastClass=cls; out.push(`<tr><td colspan="5" style="background:rgba(128,128,128,.10);font-style:italic;padding:3px 8px">${esc(cls)}</td></tr>`); }
+    out.push(`<tr style="${(!act2Allowed && (fam.act||1)>=2)?'opacity:.45':''}">
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          ${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)?`<img src="${imagenInicio(fam.baseItemId||fam.upgradedItemId||fam.baseId)}" alt="" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none'">`:''}
+          <div>${esc(fam.baseId)}<br><small style="opacity:.7">Act ${fam.act||1}</small></div>
+        </div>
+      </td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.recipeBaseId?`<input type="checkbox" data-starttoggle="${esc(fam.recipeBaseId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.recipeBaseId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.baseItemId?`<input type="checkbox" data-starttoggle="${esc(fam.baseItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.baseItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.plusRecipeId?`<input type="checkbox" data-starttoggle="${esc(fam.plusRecipeId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.plusRecipeId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+      <td style="border:1px solid rgba(128,128,128,.25);padding:4px;text-align:center">${fam.upgradedItemId?`<input type="checkbox" data-starttoggle="${esc(fam.upgradedItemId)}" data-act="${fam.act||1}" ${(camp.start.items||[]).some(i=>i.id===fam.upgradedItemId)?'checked':''} ${(!act2Allowed && (fam.act||1)>=2)?'disabled':''}>`:''}</td>
+    </tr>`);
+  });
+  return out.join('');
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
