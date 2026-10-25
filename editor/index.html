@@ -7539,7 +7539,7 @@ function renderCampMeta(el){
     <div class="field"><label>${T('startAdd')}</label>
       <select id="cm_starti"><option value="">${T('nAddItem')}</option>
         ${GRUPOS_INICIO().map(([k,l])=>l.length?
-          `<optgroup label="${esc(T('startGroup_'+k))}">${l.map(x=>
+          `<optgroup label="${esc(_glabel(k))}">${l.map(x=>
             `<option value="${esc(x.id)}">${esc(L(x,'name'))}${x.act>1?' · '+T('propsAct',x.act):''}</option>`).join('')}</optgroup>`:'').join('')}
       </select></div>
     ${camp.start.items.length?camp.start.items.map((it,i)=>{
@@ -7617,17 +7617,31 @@ function articuloDeTienda(id){
 function GRUPOS_INICIO(){
   const gear=DATA.gear||[];
   const recipes=DATA.recipes||[];
-  return [
-    ['armor', gear.filter(g=>g.kind==='armor')
-      .concat(recipes.filter(r=>/^RECIPE_ARMOR_/.test(r.id||'')))],
-    ['trinket', gear.filter(g=>g.kind==='trinket')
-      .concat(recipes.filter(r=>/^RECIPE_TRINKET/.test(r.id||'')))],
-    ['consumables', (DATA.consumables||[])
-      .concat(recipes.filter(r=>/^RECIPE_CSM_/.test(r.id||'')))],
-    ['weaponParts', (DATA.weaponParts||[])
-      .concat(recipes.filter(r=>/^RECIPE_WEAPON_PART_/.test(r.id||'')))],
-    ['loot', DATA.loot||[]]
-  ].filter(g=> (g[1]||[]).length);
+  const grupos=[];
+  grupos.push(['armor', gear.filter(g=>g.kind==='armor')
+    .concat(recipes.filter(r=>/^RECIPE_ARMOR_/.test(r.id||'')))]);
+  grupos.push(['trinket', gear.filter(g=>g.kind==='trinket')
+    .concat(recipes.filter(r=>/^RECIPE_TRINKET/.test(r.id||'')))]);
+  grupos.push(['consumables', (DATA.consumables||[])
+    .concat(recipes.filter(r=>/^RECIPE_CSM_/.test(r.id||'')))]);
+  const porHeroe={};
+  HERO_ORDER.forEach(h=>porHeroe[h]=[]);
+  const comunes=[];
+  (DATA.weaponParts||[]).forEach(w=>{
+    const hero=HERO_FOR_CLASS[w.class]||null;
+    if(hero) porHeroe[hero].push(w); else comunes.push(w);
+  });
+  (recipes||[]).forEach(r=>{
+    if(!/^RECIPE_WEAPON_PART_/.test(r.id||'')) return;
+    const item=recipeToItem(r.id);
+    const base=(DATA.weaponParts||[]).find(x=>x.id===item);
+    const hero=base? (HERO_FOR_CLASS[base.class]||null) : null;
+    if(hero) porHeroe[hero].push(r); else comunes.push(r);
+  });
+  if(comunes.length) grupos.push(['weaponParts_common', comunes]);
+  HERO_ORDER.forEach(h=>{ if((porHeroe[h]||[]).length) grupos.push(['weaponParts_'+h, porHeroe[h]]); });
+  grupos.push(['loot', (DATA.loot||[])]);
+  return grupos.filter(g=> (g[1]||[]).length);
 }
 function grupoDeInicio(id){
   const g=GRUPOS_INICIO().find(([,l])=>l.some(x=>x.id===id));
@@ -11524,7 +11538,7 @@ function candidatosGrupo(){ const g=GRUPOS_INICIO()[ini_grupo]||GRUPOS_INICIO()[
 function candidatosInicio(){ return candidatosGrupo(); }
 function renderInicioAdd(){
   const act2Allowed = (camp.meta.act!=='I') || !!camp.meta.requiresAct2;
-  const grupos=GRUPOS_INICIO();
+  const grupos=GRUPOS_INICIO().filter(g=>g && g[0]!=='loot');
   if(ini_grupo>=grupos.length) ini_grupo=0;
   const g=grupos[ini_grupo]||grupos[0]||['',[]];
   const k=g[0]||'';
@@ -11536,7 +11550,7 @@ function renderInicioAdd(){
     const isRecipe=raw.indexOf('RECIPE_')===0;
     const core=isRecipe?recipeToItem(raw):raw;
     const base=itemFamilyId(raw);
-    if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'RECIPE_'+base, baseIdItem:base,
+    if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'', baseIdItem:base,
       upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x), cls:x.class||''});
     const f=families.get(base);
     if(!f.cls && x.class) f.cls=x.class;
@@ -11558,7 +11572,7 @@ function renderInicioAdd(){
       return hero===wpHeroFilter;
     });
   }
-  const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; pintarInicioPopup();">${esc(T('startGroup_'+gk))} (${(gl||[]).length})</button>`).join('');
+  const tabs=grupos.map(([gk,gl],i)=>`<button class="sm" style="margin:2px;${i===ini_grupo?'font-weight:700;':''}" onclick="ini_grupo=${i}; pintarInicioPopup();">${esc(_glabel(gk))} (${(gl||[]).length})</button>`).join('');
   let body='';
   if(isMaterial){
     body = (l||[]).map(x=>{
@@ -11707,6 +11721,7 @@ function pintarGoldMateriales(){
   const gmInitial=el.querySelector('#gm_initial');
   if(gmInitial) gmInitial.onclick=()=>{ cambio(()=>{ setInitialMaterials(); }); pintarGoldMateriales(); renderRight(); };
 }
+function _glabel(k){ if(k==='weaponParts_common') return TS('Common weapons','Common weapons'); if(String(k).indexOf('weaponParts_')===0){ const h=(DATA.heroes||[]).find(x=>x.id===String(k).replace('weaponParts_','')); return h?h.name:k; } return T('startGroup_'+k); }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
   pintarInicioPopup();
