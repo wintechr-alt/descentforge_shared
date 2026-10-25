@@ -65,6 +65,7 @@ function fields(p){
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Class</label>'+makeSelect('wClass',classes,p.class)+
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Slot</label>'+makeSelect('wSlot',['A','B','C'],p.slot)+
   '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;"><input id="wUpgraded" type="checkbox"'+(p.upgrade?' checked':'')+' style="margin-right:6px;">Upgraded</label>'+
+  '<label style="display:block;font-size:12px;color:var(--dim);margin-top:10px;">Flavor text</label><textarea id="wText" style="width:100%;min-height:48px;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+esc(p.text||'')+'</textarea>'+
   '<div style="margin-top:12px;display:flex;gap:8px;">'+
     '<button id="wSave" style="background:var(--torch);color:var(--ink);font-weight:600;padding:6px 12px;border:0;border-radius:4px;cursor:pointer;">Save</button>'+
     '<button id="wDup" style="background:var(--edge);color:var(--text);padding:6px 12px;border:1px solid var(--edge);border-radius:4px;cursor:pointer;">Duplicate</button>'+
@@ -81,8 +82,9 @@ function bindEditor(p){
     p.class=overlay.querySelector('#wClass').value;
     p.slot=overlay.querySelector('#wSlot').value;
     p.upgrade=overlay.querySelector('#wUpgraded').checked;
+    p.text=overlay.querySelector('#wText').value;
   };
-  ['wId','wName','wNameEn','wClass','wSlot','wUpgraded'].forEach(function(id){const el=overlay.querySelector('#'+id);if(el)el.addEventListener('input',sync);});
+  ['wId','wName','wNameEn','wClass','wSlot','wUpgraded','wText'].forEach(function(id){const el=overlay.querySelector('#'+id);if(el)el.addEventListener('input',sync);});
   const dup=overlay.querySelector('#wDup'); if(dup)dup.addEventListener('click',function(){sync();const c=clone(p);c.id=p.id+'_COPY';state.weaponParts.push(c);selected=c.id;persist();renderAll();});
   const del=overlay.querySelector('#wDel'); if(del)del.addEventListener('click',function(){state.weaponParts=state.weaponParts.filter(function(x){return x!==p;});selected=null;persist();renderAll();});
   const save=overlay.querySelector('#wSave'); if(save)save.addEventListener('click',function(){sync();persist();if(msg)msg.textContent='Saved';});
@@ -123,6 +125,7 @@ function carouselHTML(cls,slot,showImage){
       '<div style="flex:1;text-align:center;font-size:13px;word-break:break-word;">'+esc(name)+'</div>'+
       '<button data-step="'+cls+'|'+slot+'|1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&gt;</button>'+
     '</div>'+
+    (flavor ? '<div style="color:var(--dim);font-size:11px;text-align:center;margin-bottom:6px;line-height:1.3;">'+esc(flavor)+'</div>' : '')+
     '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
   '</div>';
 }
