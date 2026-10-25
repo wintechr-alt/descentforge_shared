@@ -19,6 +19,7 @@ overlay.innerHTML=
     '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>'+
     '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Weapons</button>'+
     '<button data-forgecat="shared" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Shared</button>'+
+    '<button data-forgecat="itempool" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Item Pool</button>'+
     '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>'+
   '</div>'+
   '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">'+
@@ -320,17 +321,9 @@ function sharedCol(rune){
       '<div style="margin-top:6px;text-align:center;"><button data-editpart="'+p.id+'" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;">Edit</button></div>'+
     '</div>';
   };
-  const bName = bPart ? (prettyName(bPart.name_en||bPart.name||bPart.id)) : 'B (fixed)';
-  const bImg = bPart ? '<img src="../img/weapon/'+String(bPart.id).replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'')+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
   return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:8px;">'+
     '<div style="font-weight:600;margin-bottom:6px;">'+rune.replace(/_/g,' ')+'</div>'+
     car('Rune','A',aArr,aIdx,aKey,true)+
-    '<div style="height:6px"></div>'+
-    '<div style="font-size:11px;color:var(--dim);">B part (fixed)</div>'+
-    bImg+
-    '<div style="font-size:13px;text-align:center;">'+esc(bName)+'</div>'+
-    '<div style="height:6px"></div>'+
-    car('Rune','C',cArr,cIdx,cKey,false)+
   '</div>';
 }
 function renderSharedCategory(){
@@ -368,7 +361,23 @@ function renderSharedCategory(){
   if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 }
 
-function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
+function renderItemPoolCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  const allItems = (typeof DATA!=='undefined' && Array.isArray(DATA.loot)) ? DATA.loot : [];
+  const invIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items)) ? camp.start.items.map(function(i){return i.id;}) : [];
+  const avail = allItems.filter(function(x){ return invIds.indexOf(x.id) === -1; });
+  const rows = avail.map(function(x){
+    const name = prettyName(x.name_en||x.name||x.id);
+    return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
+      '<span>'+esc(name)+'</span></div>';
+  }).join('');
+  main.innerHTML=
+    (avail.length ? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No available items.</p>') +
+    '<div>'+ (rows||'') +'</div>';
+}
+
+function renderActiveCategory(){ if(activeCat==='weapons') renderHeroWeapons(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
   activeCat=cat;
@@ -389,6 +398,11 @@ function setCat(cat){
     if(searchWrap) searchWrap.style.display='none';
     if(list) list.style.display='none';
     renderSharedCategory();
+  } else if(cat==='itempool'){
+    if(searchWrap) searchWrap.style.display='none';
+    if(list) list.style.display='none';
+    if(editor) editor.innerHTML='';
+    renderItemPoolCategory();
   } else {
     if(searchWrap) searchWrap.style.display='none';
     if(list) list.innerHTML='';
