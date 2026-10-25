@@ -11532,20 +11532,17 @@ function renderInicioAdd(){
   (l||[]).forEach(x=>{
     const raw=String(x.id||'');
     const isRecipe=raw.indexOf('RECIPE_')===0;
-    const core=isRecipe?raw.slice(7):raw;
-    const base=core.replace(/_PLUS$|_UPGRADED$/i,'');
+    const core=isRecipe?recipeToItem(raw):raw;
+    const base=itemFamilyId(raw);
     if(!families.has(base)) families.set(base,{baseId:base, recipeBaseId:'RECIPE_'+base, baseIdItem:base,
       upgradedBaseId:base, upgradedItemId:'', plusRecipeId:'', act:itemActOf(x)});
     const f=families.get(base);
     if(isRecipe){
-      if(raw==='RECIPE_'+base || raw==='RECIPE_'+base+'_PLUS' || raw==='RECIPE_'+base+'_UPGRADED'){
-        // match exact recipe/plus recipe ids by suffix
-        if(raw==='RECIPE_'+base) f.recipeBaseId=raw;
-        else f.plusRecipeId=raw;
-      }
+      if(/_PLUS$|_UPGRADED$/i.test(core)) f.plusRecipeId=raw;
+      else f.recipeBaseId=raw;
     } else {
-      if(raw===base) f.baseItemId=raw;
-      else f.upgradedItemId=raw;
+      const upg = /_PLUS$|_UPGRADED$/i.test(raw);
+      if(upg) f.upgradedItemId=raw; else f.baseItemId=raw;
     }
     f.act = f.act || itemActOf(x);
   });
@@ -11599,6 +11596,21 @@ function renderInicioAdd(){
     </table>`;
   }
   return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${tabs}</div>` + body;
+}
+
+const RECIPE_ID_EXCEPTIONS = {
+  "WEAPON_PART_C_GAUNTLET_4_UPGRADED": "RECIPE_WEAPON_PART_C_GAUNTLET_UPGRADED",
+  "TRINKET20_ID_PLUS": "RECIPE_TRINKET_20_ID_PLUS"
+};
+function recipeToItem(recipeId){
+  const clean=String(recipeId||'').trim();
+  const exception=Object.keys(RECIPE_ID_EXCEPTIONS).find(item => RECIPE_ID_EXCEPTIONS[item]===clean);
+  return exception || clean.replace(/^RECIPE_/,'');
+}
+function itemFamilyId(id){
+  id=String(id||'').trim();
+  if(id.indexOf('RECIPE_')===0) id=recipeToItem(id);
+  return id.replace(/_PLUS$|_UPGRADED$/i,'');
 }
 function abrirInicioPopup(){
   openDlg(TS('Inventario inicial','Starting inventory'), `<div id="iniBody"></div>`, `<button id="iniDone">${TS('Hecho','Done')}</button>`);
