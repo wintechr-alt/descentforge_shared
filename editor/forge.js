@@ -7,6 +7,7 @@ if(!Array.isArray(state.weaponParts)||!state.weaponParts.length)state.weaponPart
 if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({weaponParts:state.weaponParts}));}catch(e){};if(typeof DATA!=="undefined")DATA.weaponParts=state.weaponParts;}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function prettyName(s){return String(s==null?'':s).replace(//g,' Plus').replace(/^\s+|\s+$/g,'');}
 const overlay=document.createElement('div');
 overlay.id='forgeOverlay';
 overlay.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:10005;display:none;background:var(--board);color:var(--text);font-family:inherit;overflow:hidden;';
@@ -111,7 +112,7 @@ function carouselHTML(cls,slot){
   let idx=carIdx[carKey(cls,slot)];
   if(idx==null || idx<0 || idx>=arr.length) idx=0;
   const p=arr[idx];
-  const name=p.name_en||p.name||p.id;
+  const name=prettyName(p.name_en||p.name||p.id);
   return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
     '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
     '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
@@ -226,7 +227,7 @@ function renderSimpleCategory(title, items){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
   const rows=items.map(function(x){
-    const name = (typeof L==='function') ? L(x,'name') : (x.name_en||x.name||x.id);
+    const name = prettyName((typeof L==='function') ? L(x,'name') : (x.name_en||x.name||x.id));
     const isIn=inStartInv(x.id);
     return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
       '<span>'+esc(name)+'</span>'+
