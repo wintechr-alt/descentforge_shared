@@ -11853,15 +11853,19 @@ function abrirInicioPopup(){
 function pintarInicioPopup(){
   const el=document.getElementById('iniBody'); if(!el) return;
   const campRef=camp;
-  el.innerHTML=`<div class="field" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  el.innerHTML=`<div class="field" style="display:flex;gap:16px;align-items:center;justify-content:space-between;width:100%">
+    <div style="display:flex;gap:8px;align-items:center">
     <label>${TS('Act','Act')}</label>
     <select id="ini_act" style="padding:4px 6px;border:1px solid #4a423a;border-radius:4px;background:#1e1b18;color:#eee">
       <option value="I" ${campRef.meta.act==='I'?'selected':''}>Act I</option>
       <option value="II" ${campRef.meta.act==='II'?'selected':''}>Act II</option>
       <option value="III" ${campRef.meta.act==='III'?'selected':''}>Act III</option>
     </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
     <label>${T('startGold')}</label>
-    <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}" style="max-width:90px"></div>
+    <input id="ini_startg" type="number" min="0" value="${numero(campRef.start.gold)}" style="max-width:90px">
+    </div></div>
     <div class="field"><label>${T('startAdd')}</label>
       <div style="margin-bottom:8px"><button class="sm" type="button" onclick="cambio(()=>{ addAllUpgradedGlobal(); }); pintarInicioPopup(); renderRight();">I want it all</button></div>
       ${renderInicioAdd()}</div>
