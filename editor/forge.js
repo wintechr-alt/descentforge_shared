@@ -495,7 +495,7 @@ function renderEnemiesCategory(){
   const s1=section(act1,'Act I');
   const s2=section(act2,'Act II');
   main.innerHTML=
-    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">'+
+    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:0 auto;">'+
       (s1||'')+
       (allowedAct2 ? (s2||'') : '')+
     '</div>';
@@ -613,7 +613,7 @@ function renderItemPoolCategory(){
   const avail = allItems.filter(function(x, idx){
     const fam = (typeof itemFamilyId==='function') ? itemFamilyId(x.id) : String(x.id||'').replace(/^RECIPE_/i,'').replace(/_PLUS$|_UPGRADED$/i,'');
     const reservedIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.reservedItems)) ? camp.start.reservedItems : [];
-    return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')) && !invFamilies.has(fam) && reservedIds.indexOf(String(x.id))===-1;
+    return allItems.indexOf(x)===idx && /^RECIPE_/i.test(String(x.id||'')) && reservedIds.indexOf(String(x.id))===-1;
   });
   function imageFor(id){
     id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
@@ -634,7 +634,7 @@ function renderItemPoolCategory(){
     if(/MAT_/.test(id)) return 'Materials';
     return 'Other';
   }
-  const groupOrder=['Armor','Weapons','Trinkets','Consumables','Materials','Other'];
+  const groupOrder=['Armor','Trinkets','Weapons','Consumables','Materials','Other'];
   const grouped={};
   avail.forEach(function(x){ const g=groupOf(x); if(!grouped[g]) grouped[g]=[]; grouped[g].push(x); });
   const sections=groupOrder.map(function(gn){
@@ -673,6 +673,7 @@ function renderItemPoolCategory(){
   main.innerHTML=
     '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Available recipes and items not in Starting Inventory.</div>' +
     (avail.length ? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No available items.</p>') +
+    sections;
   main.querySelectorAll('[data-reserve]').forEach(function(b){
     b.addEventListener('click', function(){
       const id=b.getAttribute('data-reserve');
@@ -682,7 +683,6 @@ function renderItemPoolCategory(){
       renderItemPoolCategory();
     });
   });
-    sections;
 }
 function renderWeaponInventoryCategory(){
   const main=overlay.querySelector('#forgeMain');
@@ -791,7 +791,7 @@ function renderReservedItemsCategory(){
     if(/MAT_/.test(id)) return 'Materials';
     return 'Other';
   }
-  const groupOrder=['Armor','Weapons','Trinkets','Consumables','Materials','Other'];
+  const groupOrder=['Armor','Trinkets','Weapons','Consumables','Materials','Other'];
   const grouped={};
   allItems.forEach(function(x){ const g=groupOf(x); if(!grouped[g]) grouped[g]=[]; grouped[g].push(x); });
   const sections=groupOrder.map(function(gn){
