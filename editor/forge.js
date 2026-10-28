@@ -431,7 +431,7 @@ function renderEnemiesCategory(){
   if(!main) return;
   const items=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
-  const filtered=items.filter(function(x){ const act=(typeof itemActOf==='function')? itemActOf(x): (x.act||1); return !(act>=2 && !allowedAct2); });
+  const filtered=items.filter(function(x){ const act=familyAct(x); return !(act>=2 && !allowedAct2); });
   const enemyById={};
   items.forEach(function(e){ enemyById[e.id]=e; });
   function familyOf(id){
@@ -451,7 +451,8 @@ function renderEnemiesCategory(){
     if(!fam || !fam.weak_to) return [];
     return fam.weak_to[id] || [];
   }
-  function actOf(x){ return (typeof itemActOf==='function')? itemActOf(x) : (x.act||1); }
+  function familyAct(x){ const fam=familyOf(x.id); return (fam && (fam.act===1 || fam.act===2))? fam.act : ((typeof itemActOf==='function')? itemActOf(x) : (x.act||1)); }
+  function actOf(x){ return familyAct(x); }
   function portrait(x){
     const famKey=(typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? (ASSETS.enemyFamily[x.id]||'') : '';
     return (typeof arte==='function')? arte('portraits', famKey) : '';
@@ -466,7 +467,7 @@ function renderEnemiesCategory(){
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+'</div>'+
         '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>'+
-        '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+' | Act '+(act>=2?'II':'I')+'</div>'+
+        '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+' | Act '+((x.act||1)>=2?'II':'I')+'</div>'+
         '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
       '</div>'+
       '<button class="sm" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:default;font-size:11px;">Edit</button>'+
@@ -482,7 +483,9 @@ function renderEnemiesCategory(){
   });
   order.sort();
   const blocks=order.map(function(famName){
-    const list=byFam[famName];
+    const list=byFam[famName].slice().sort(function(a,b){
+      return ((a.act||1)-(b.act||1)) || String(a.name_en||a.name||a.id).localeCompare(String(b.name_en||b.name||b.id));
+    });
     const rows=list.map(row).join('');
     return '<div style="margin-bottom:10px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);">'+
       '<h3 style="margin:0 0 6px 0;font-size:14px;">'+esc(famName)+'</h3>'+
