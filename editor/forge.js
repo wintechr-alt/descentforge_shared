@@ -444,14 +444,14 @@ function renderEnemiesCategory(){
     }
     return null;
   }
+  const FAMILY_PARENT={};
+  function familyName(fam){ if(!fam) return 'Other'; return FAMILY_PARENT[fam.family_name] || fam.family_name; }
   function weaknessOf(id){
     const fam=familyOf(id);
     if(!fam || !fam.weak_to) return [];
     return fam.weak_to[id] || [];
   }
   function actOf(x){ return (typeof itemActOf==='function')? itemActOf(x) : (x.act||1); }
-  const act1=filtered.filter(function(x){return actOf(x)<2;});
-  const act2=filtered.filter(function(x){return actOf(x)>=2;});
   function portrait(x){
     const famKey=(typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? (ASSETS.enemyFamily[x.id]||'') : '';
     return (typeof arte==='function')? arte('portraits', famKey) : '';
@@ -464,42 +464,33 @@ function renderEnemiesCategory(){
     return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
       img+
       '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+(act>=2?' (Act II)':'')+'</div>'+
+        '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+'</div>'+
         '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>'+
-        '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+'</div>'+
+        '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+' | Act '+(act>=2?'II':'I')+'</div>'+
         '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
       '</div>'+
       '<button class="sm" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:default;font-size:11px;">Edit</button>'+
     '</div>';
   }
-  function section(actItems, title){
-    if(!actItems.length) return '';
-    const byFam={};
-    const order=[];
-    actItems.forEach(function(x){
-      const fam=familyOf(x.id);
-      const famName= fam ? fam.family_name : 'Other';
-      if(!byFam[famName]){ byFam[famName]=[]; order.push(famName); }
-      byFam[famName].push(x);
-    });
-    order.sort();
-    const famBlocks=order.map(function(famName){
-      const list=byFam[famName];
-      const rows=list.map(row).join('');
-      return '<div style="margin-bottom:10px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);">'+
-        '<h4 style="margin:0 0 6px 0;font-size:13px;">'+esc(famName)+'</h4>'+
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+rows+'</div>'+
-      '</div>';
-    }).join('');
-    return '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Enemies - '+title+'</h2>'+famBlocks+'</div>';
-  }
-  const s1=section(act1,'Act I');
-  const s2=section(act2,'Act II');
-  main.innerHTML=
-    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:0 auto;">'+
-      (s1||'')+
-      (allowedAct2 ? (s2||'') : '')+
+  const byFam={};
+  const order=[];
+  filtered.forEach(function(x){
+    const fam=familyOf(x.id);
+    const name=familyName(fam);
+    if(!byFam[name]){ byFam[name]=[]; order.push(name); }
+    byFam[name].push(x);
+  });
+  order.sort();
+  const blocks=order.map(function(famName){
+    const list=byFam[famName];
+    const rows=list.map(row).join('');
+    return '<div style="margin-bottom:10px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);">'+
+      '<h3 style="margin:0 0 6px 0;font-size:14px;">'+esc(famName)+'</h3>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+rows+'</div>'+
     '</div>';
+  }).join('');
+  main.innerHTML=
+    '<div style="max-width:980px;margin:0 auto;">'+blocks+'</div>';
 }
 function sharedVariants(slot,rune){
   const keyHint=rune.toUpperCase();
@@ -772,7 +763,9 @@ function renderReservedItemsCategory(){
   camp.start=camp.start||{items:[],reservedItems:[]};
   if(!Array.isArray(camp.start.reservedItems)) camp.start.reservedItems=[];
   const ids=camp.start.reservedItems.slice();
-  const allItems=ids.map(function(id){ return {id:id}; });
+  let allPool=[]; if(typeof GRUPOS_INICIO==='function'){ GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){ (g[1]||[]).forEach(function(x){ allPool.push(x); }); }); }
+  const poolById={}; allPool.forEach(function(x){ if(x && x.id) poolById[x.id]=x; });
+  const allItems=ids.map(function(id){ var x=poolById[id] || (typeof DATA!=='undefined' && DATA.recipes? DATA.recipes.find(function(r){return r.id===id;}) : null) || {id:id}; return x; });
   function imageFor(id){
     id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
     let folder=null;
@@ -799,12 +792,17 @@ function renderReservedItemsCategory(){
     const items=grouped[gn]; if(!items||!items.length) return '';
     const cells=items.map(function(x){
       const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
+      const flavor=(typeof partFlavor==='function')? partFlavor(x) : '';
+      const title= flavor || name || x.id;
       const img=imageFor(x.id);
-      return '<div style="padding:8px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
+      return '<div style="padding:8px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(title)+(title!==x.id? '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>':'')+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
     }).join('');
     return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
   }).join('');
   main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
+      '<button id="forgeReservedClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
+    '</div>'+
     '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Reserved items (story/feat rewards).</div>'+
     (ids.length? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No reserved items.</p>')+
     sections;
@@ -815,6 +813,9 @@ function renderReservedItemsCategory(){
       renderReservedItemsCategory();
     });
   });
+
+  const clearBtn=main.querySelector('#forgeReservedClear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){ camp.start.reservedItems=[]; renderReservedItemsCategory(); });
 }
 function renderActiveCategory(){ if(activeCat==='weapons') renderLoadoutCategory(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='reserved') renderReservedItemsCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='weaponinv') renderWeaponInventoryCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
