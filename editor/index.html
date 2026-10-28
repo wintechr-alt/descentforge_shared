@@ -2120,6 +2120,39 @@ function abrirPantallaLoadout(){
   const done=document.getElementById('hlPantallaDone');
   if(done) done.onclick=()=>dlg.close();
 }
+function partARowHtml(hero, slotIndex, value){
+  const img = imagenParte(value);
+  const toggleLabel = isSharedPartA(value) ? (TS('Default','Default')) : (TS('Shared','Shared'));
+  return `<div style="display:flex;align-items:center;gap:6px">
+    <button class="sm" type="button" onclick="hlArrow('${hero}','A',${slotIndex},-1)">◀</button>
+    <div style="flex:1;text-align:center">
+      ${img?`<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:96px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${esMejora(value)?'<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>':''}</div>`:''}
+      <div style="font-size:12px">${esc(nombreParte(value))}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="sm" type="button" onclick="toggleSharedWeapon('${hero}',${slotIndex})">${esc(toggleLabel)}</button>
+      <button class="sm" type="button" onclick="hlArrow('${hero}','A',${slotIndex},1)">▶</button>
+    </div>
+  </div>`;
+}
+function toggleSharedWeapon(hero, slotIndex){
+  const L=ensureCampLoadout(hero);
+  const slot=L.slots[slotIndex];
+  if(isSharedPartA(slot.a)){
+    const cls=(HERO_DEFAULT_LOADOUT_CLASSES[hero]||[])[slotIndex];
+    const defA=(DATA.weaponParts||[]).find(w=>w.class===cls && w.slot==='A' && /_1$/.test(w.id||''));
+    const defB=(DATA.weaponParts||[]).find(w=>w.class===cls && w.slot==='B' && /_0$/.test(w.id||''));
+    const defC=(DATA.weaponParts||[]).find(w=>w.class===cls && w.slot==='C' && /_0$/.test(w.id||''));
+    cambio(()=>{ slot.a=defA?defA.id:''; slot.b=defB?defB.id:''; slot.c=defC?defC.id:''; });
+  } else {
+    const opts=sharedWeaponOptions(hero, slotIndex);
+    if(!opts.length) return;
+    const chosen=opts[0];
+    cambio(()=>{ slot.a=chosen.a; slot.b=chosen.b; slot.c=chosen.c; });
+  }
+  syncLoadoutToStartItems();
+  pintarPantallaLoadout();
+}
 function pintarPantallaLoadout(){
   const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
   const hero=hlPantallaHero || (heroes[0]&&heroes[0].id);
@@ -2139,21 +2172,41 @@ function pintarPantallaLoadout(){
       <button class="sm" type="button" onclick="hlArrow('${hero}','${field}',${slotIndex},1)">▶</button>
     </div>`;
   el.innerHTML=`
-    <div style="margin-bottom:8px">${tabs}</div>
-    <div class="field"><label>Trinket</label>${arr('trinket',-1,L.trinket)}</div>
-    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
-      ${L.slots.map((slot,i)=>`
-        <div style="flex:1;min-width:220px;border:1px solid #ccc;border-radius:6px;padding:8px">
-          <b>Slot ${i+1}</b>
-          <div class="field"><label>Part A</label>${arr('A',i,slot.a)}</div>
-          <div class="field"><label>Part B</label>${arr('B',i,slot.b)}</div>
-          <div class="field"><label>Part C</label>${arr('C',i,slot.c)}</div>
-        </div>`).join('')}
-    </div>
-    <p class="help" style="margin-top:8px">Use arrows to move through candidates (wraps). Changing Part A resets B/C to that weapon’s “no part”.</p>`;
+    <div style="display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:8px;">${tabs}</div>
+      <div>
+        <div class="field"><label>Trinket</label>${arr('trinket',-1,L.trinket)}</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+          ${L.slots.map((slot,i)=>`
+            <div style="flex:1;min-width:220px;border:1px solid #ccc;border-radius:6px;padding:8px">
+              <b>Slot ${i+1}</b>
+              <div class="field"><label>Part A</label>${partARowHtml(hero,i,slot.a)}</div>
+              <div class="field"><label>Part B</label>${isSharedPartA(slot.a)?staticPartHtml(slot.b):arr('B',i,slot.b)}</div>
+              <div class="field"><label>Part C</label>${isSharedPartA(slot.a)?staticPartHtml(slot.c):arr('C',i,slot.c)}</div>
+            </div>`).join('')}
+        </div>
+        <p class="help" style="margin-top:8px">Use arrows to move through candidates (wraps). Changing Part A resets B/C to that weapon’s “no part”.</p>
+      </div>
+    </div>`;
 }
 function hlArrow(hero, field, slotIndex, delta){
   const L=ensureCampLoadout(hero);
+  if(field==='A' && isSharedPartA(L.slots[slotIndex].a)){
+    const opts=sharedWeaponOptions(hero, slotIndex);
+    // include current
+    const cur=sharedRuneOf(L.slots[slotIndex].a);
+    if(!opts.find(o=>o.rune===cur)){ /* keep current selectable by preserving */ }
+    // Build cycle list including current even if used? opts already includes current because used excludes current slot.
+    if(!opts.length) return;
+    let idx=opts.findIndex(o=>o.rune===cur);
+    if(idx<0) idx=0;
+    idx=(idx+delta+opts.length)%opts.length;
+    const chosen=opts[idx];
+    cambio(()=>{ L.slots[slotIndex].a=chosen.a; L.slots[slotIndex].b=chosen.b; L.slots[slotIndex].c=chosen.c; });
+    syncLoadoutToStartItems();
+    pintarPantallaLoadout();
+    return;
+  }
   const opts=opcionesLoadout(hero, field, slotIndex);
   let cur = field==='trinket' ? L.trinket : L.slots[slotIndex][field.toLowerCase()];
   let idx=opts.findIndex(o=>o.id===cur);
@@ -2198,22 +2251,39 @@ function nombreParte(id){
   return id;
 }
 function opcionesLoadout(heroId, field, slotIndex){
+  const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
+  const actOk=(x)=> allowedAct2 || (itemActOf(x) < 2);
   if(field==='trinket'){
     const L=ensureCampLoadout(heroId);
     const used=new Set(Object.keys(camp.start.loadout||{}).filter(h=>h!==heroId).map(h=> (camp.start.loadout[h]||{}).trinket).filter(Boolean));
-    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && (!used.has(g.id) || g.id===L.trinket))
+    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && actOk(g) && (!used.has(g.id) || g.id===L.trinket))
       .map(g=>({id:g.id,name:g.name_en||g.name})));
   }
   if(field==='A'){
-    return [{id:'',name:'(none)'}].concat((DATA.weaponParts||[]).filter(w=>w.slot==='A')
+    return [{id:'',name:'(none)' }].concat((DATA.weaponParts||[]).filter(w=>w.slot==='A' && actOk(w))
       .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
   }
   const L=ensureCampLoadout(heroId);
   const cls = L.slots[slotIndex] && L.slots[slotIndex].a ? classOfPartA(L.slots[slotIndex].a) : '';
   const slot = field;
-  return [{id:'',name:'(none)'}].concat(matchingParts(slot, cls)
+  return [{id:'',name:'(none)'}].concat(matchingParts(slot, cls).filter(actOk)
     .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
 }
+const SHARED_RUNES=['DRAGONSBANE','FEAR','ICE_STORM','LIGHTNING_STRIKE','RUNE_OF_BLADES','SUNBURST'];
+function sharedAIds(rune){ return (DATA.weaponParts||[]).filter(w=>w.slot==='A' && w.class==='Rune' && String(w.id||'').toUpperCase().indexOf(rune)>=0).map(w=>w.id); }
+function sharedBIds(rune){ return (DATA.weaponParts||[]).filter(w=>w.slot==='B' && w.class==='Rune' && String(w.id||'').toUpperCase().indexOf(rune)>=0).map(w=>w.id); }
+function sharedCIds(rune){ return (DATA.weaponParts||[]).filter(w=>w.slot==='C' && w.class==='Rune' && String(w.id||'').toUpperCase().indexOf(rune)>=0).map(w=>w.id); }
+function startHas(id){ try{ return !!(camp && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(i=>i && i.id===id)); }catch(e){ return false; } }
+function isSharedPartA(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return !!(w && w.slot==='A' && w.class==='Rune'); }
+function sharedRuneOf(id){ return SHARED_RUNES.find(r=>String(id||'').toUpperCase().indexOf(r)>=0) || null; }
+function pickSharedA(rune){ const ids=sharedAIds(rune); const owned=ids.filter(startHas); const u=owned.find(x=>/_UPGRADED$/i.test(x)); if(u) return u; if(owned.length) return owned[0]; return ids[0] || ('WEAPON_PART_A_'+rune); }
+function pickSharedB(rune){ const ids=sharedBIds(rune); const owned=ids.filter(startHas); return owned[0] || ids[0] || ('WEAPON_PART_B_'+rune); }
+function pickSharedC(rune){ const ids=sharedCIds(rune); const owned=ids.filter(startHas); return owned[0] || ids[0] || ('WEAPON_PART_C_'+rune); }
+function usedSharedRunes(excludeHero, excludeSlot){ const used=new Set(); try{ Object.keys(camp.start.loadout||{}).forEach(h=>{ const L=camp.start.loadout[h]||{}; (L.slots||[]).forEach((sl,i)=>{ if(h===excludeHero && i===excludeSlot) return; const r=sharedRuneOf(sl && sl.a); if(r) used.add(r); }); }); }catch(e){} return used; }
+function sharedWeaponOptions(heroId, slotIndex){ const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false; const used=usedSharedRunes(heroId, slotIndex); return SHARED_RUNES .filter(rune=>allowedAct2 || (itemActOf? (itemActOf({id:'WEAPON_PART_A_'+rune})<2) : true)) .filter(rune=>sharedAIds(rune).some(startHas)) .filter(rune=>!used.has(rune)) .map(rune=>({rune,a:pickSharedA(rune),b:pickSharedB(rune),c:pickSharedC(rune)})); }
+function sharedBtnHtml(heroId, slotIndex){ const opts=sharedWeaponOptions(heroId, slotIndex); if(!opts.length) return ''; return `<button class="sm" type="button" style="margin-left:4px" onclick="hlSharedWeapon('${heroId}',${slotIndex})">shared ▶</button>`; }
+function staticPartHtml(id){ const img=imagenParte(id); return `<div style="display:flex;align-items:center;gap:6px">${img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%" onerror="this.style.display='none'">`:''}<div style="font-size:12px">${esc(nombreParte(id))}</div></div>`; }
+function hlSharedWeapon(heroId, slotIndex){ const opts=sharedWeaponOptions(heroId, slotIndex); if(!opts.length) return; const L=ensureCampLoadout(heroId); const curRune=isSharedPartA(L.slots[slotIndex].a)?sharedRuneOf(L.slots[slotIndex].a):null; let idx=opts.findIndex(o=>o.rune===curRune); if(idx<0) idx=-1; idx=(idx+1)%opts.length; const chosen=opts[idx]; cambio(()=>{ L.slots[slotIndex].a=chosen.a; L.slots[slotIndex].b=chosen.b; L.slots[slotIndex].c=chosen.c; }); syncLoadoutToStartItems(); pintarPantallaLoadout(); }
 function aplicarLoadout(heroId, field, slotIndex, value){
   cambio(()=>{
     const L=ensureCampLoadout(heroId);
@@ -11529,9 +11599,11 @@ function itemActOf(x){
   if(!x) return 1;
   if(Number.isFinite(x.act)) return x.act;
   const id=String(x.id||'');
+  const gearItem=(typeof DATA!=='undefined' && Array.isArray(DATA.gear)) ? (DATA.gear.find(gx=>gx.id===id)) : null;
+  if(gearItem && Number.isFinite(gearItem.act)) return gearItem.act;
   const m=/_([0-9]+)(?:_UPGRADED)?$/.exec(id);
   if(m && id.indexOf('WEAPON_PART_')===0){ return (parseInt(m[1])>=4)?2:1; }
-  if(id==='WEAPON_DRAGONSBANE'||id==='WEAPON_GRASP_OF_FEAR'||id==='WEAPON_SUNBURST') return 2;
+  if(/DRAGONSBANE|FEAR|SUNBURST/i.test(id)) return 2;
   const sk=(DATA.skills||[]).find(sx=>sx.id===id);
   if(sk && (sk.act==='II'||sk.act===2)) return 2;
   return 1;
