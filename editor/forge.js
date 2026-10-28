@@ -469,6 +469,7 @@ function renderEnemiesCategory(){
         '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+'</div>'+
         '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
       '</div>'+
+      '<button class="sm" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:default;font-size:11px;">Edit</button>'+
     '</div>';
   }
   function section(actItems, title){
@@ -780,7 +781,7 @@ function renderReservedItemsCategory(){
     else if(/WEAPON_PART/.test(id)) folder='weapon';
     else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
     if(!folder) return '';
-    return '<img src="../img/'+folder+'/'+base+'.png" style="width:32px;height:32px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+    return '<img src="../img/'+folder+'/'+base+'.png" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
   }
   function groupOf(x){
     const id=String(x.id||'').toUpperCase();
@@ -799,9 +800,9 @@ function renderReservedItemsCategory(){
     const cells=items.map(function(x){
       const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
       const img=imageFor(x.id);
-      return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:11px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
+      return '<div style="padding:8px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
     }).join('');
-    return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 4px 0;font-size:13px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
+    return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
   }).join('');
   main.innerHTML=
     '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Reserved items (story/feat rewards).</div>'+
