@@ -27,6 +27,7 @@ overlay.innerHTML=
     '<button data-forgecat="weaponinv" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Weapons</button>'+
     '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Loadout</button>'+
     '<button data-forgecat="itempool" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Item Pool</button>'+
+    '<button data-forgecat="reserved" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Reserved</button>'+
     '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>'+
   '</div>'+
   '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">'+
@@ -424,32 +425,79 @@ function renderTrinketsCategory(){
   if(clearBtn) clearBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderTrinketsCategory(); });
 }
 
+const ENEMY_TYPE_CAPS={"0": {"family_name": "Uthuk Berserker", "cap": 4, "act": 1, "member_ids": ["ENEMY_BERSERKER_1", "ENEMY_BERSERKER_0", "ENEMY_Q4_VAGABOND", "ENEMY_EVIL_GALADEN", "ENEMY_BERSERKER_FLAYED"], "faction": "Uthuk Y'llan", "notes": "No heavy armor.", "weak_to": {"ENEMY_BERSERKER_1": ["Pierce", "Aquos"], "ENEMY_BERSERKER_0": ["Pierce"], "ENEMY_Q4_VAGABOND": ["Slash", "Lumos"], "ENEMY_EVIL_GALADEN": ["Pierce", "Aquos"], "ENEMY_BERSERKER_FLAYED": ["Pierce", "Aquos", "Terros"]}}, "1": {"family_name": "Bandit", "cap": 4, "act": 1, "member_ids": ["ENEMY_WARY_BANDIT_1", "ENEMY_BANDIT_CRAZED_1", "ENEMY_BANDIT_RUNEBLADE_1", "ENEMY_BANDIT_SHADOWALK_1", "ENEMY_Q11_OUTLAW_PRINCE", "ENEMY_Q7_BANDIT_SNIPER", "ENEMY_EVIL_CHANCE", "ENEMY_GILLIAM_1", "ENEMY_BANDIT_BARONIAL_1", "ENEMY_BANDIT_BARONIAL_ARBALESTER_1", "ENEMY_BANDIT_SNIPER_1", "ENEMY_BOSS_ORBAN"], "faction": "Wilds", "notes": "Cheap leather/cloth armor. Tamalir markets.", "weak_to": {"ENEMY_WARY_BANDIT_1": ["Pierce", "Anemos"], "ENEMY_BANDIT_CRAZED_1": ["Pierce", "Anemos", "Aquos"], "ENEMY_BANDIT_RUNEBLADE_1": ["Pierce", "Anemos", "Umbros"], "ENEMY_BANDIT_SHADOWALK_1": ["Pierce", "Anemos", "Lumos"], "ENEMY_Q11_OUTLAW_PRINCE": ["Pierce", "Anemos"], "ENEMY_Q7_BANDIT_SNIPER": ["Pierce", "Anemos", "Umbros"], "ENEMY_EVIL_CHANCE": ["Pierce", "Anemos"], "ENEMY_GILLIAM_1": ["Slash", "Mortos", "Fortunos"], "ENEMY_BANDIT_BARONIAL_1": ["Pierce", "Anemos", "Mortos"], "ENEMY_BANDIT_BARONIAL_ARBALESTER_1": ["Pierce", "Fortunos", "Mortos"], "ENEMY_BANDIT_SNIPER_1": ["Pierce", "Fortunos", "Anemos"], "ENEMY_BOSS_ORBAN": ["Pierce", "Aquos", "Fortunos"]}}, "2": {"family_name": "Zealot", "cap": 4, "act": 1, "member_ids": ["ENEMY_ZEALOT_1", "ENEMY_ZEALOT_A2_NAMED", "ENEMY_ZEALOT_BARONIAL_1", "ENEMY_ZEALOT_CRIMSON_1", "ENEMY_ZEALOT_DREAD_1", "ENEMY_ZEALOT_PALE_1", "ENEMY_ZEALOT_RUNE_OF_BLADES", "ENEMY_ZEALOT_SQ2", "ENEMY_EVIL_SYRUS", "Q13_ENEMY_FLAME_ZEALOT", "ENEMY_BOSS_GREYSDON", "ENEMY_Q4_HERMIT", "ENEMY_Q4_IGOR", "ENEMY_S2_NECROMANCER", "Q13_ENEMY_GREYSDON"], "faction": "Uthuk Y'llan", "notes": "Guards Uthuk villages/strongholds. (reclassified from an inconsistent \"Wilds (Uthuk-aligned)\" label to match the exact faction string quest files use.)", "weak_to": {"ENEMY_ZEALOT_1": ["Slash", "Ignos"], "ENEMY_ZEALOT_A2_NAMED": ["Slash", "Ignos", "Vigos"], "ENEMY_ZEALOT_BARONIAL_1": ["Slash", "Anemos", "Aquos"], "ENEMY_ZEALOT_CRIMSON_1": ["Slash", "Ignos", "Aquos"], "ENEMY_ZEALOT_DREAD_1": ["Slash", "Ignos", "Umbros"], "ENEMY_ZEALOT_PALE_1": ["Slash", "Ignos", "Lumos"], "ENEMY_ZEALOT_RUNE_OF_BLADES": ["Ignos", "Terros"], "ENEMY_ZEALOT_SQ2": ["Slash", "Ignos", "Lumos"], "ENEMY_EVIL_SYRUS": ["Slash", "Ignos"], "Q13_ENEMY_FLAME_ZEALOT": ["Pierce", "Aquos"], "ENEMY_BOSS_GREYSDON": ["Slash", "Ignos", "Umbros"], "ENEMY_Q4_HERMIT": ["Slash"], "ENEMY_Q4_IGOR": ["Slash"], "ENEMY_S2_NECROMANCER": ["Slash"], "Q13_ENEMY_GREYSDON": ["Aquos", "Umbros"]}}, "3": {"family_name": "Golem", "cap": 2, "act": 1, "member_ids": ["ENEMY_GOLEM_1", "ENEMY_GOLEM_A2_NAMED", "ENEMY_GOLEM_BARONIAL_1", "ENEMY_GOLEM_MISTWALKER_1", "ENEMY_GOLEM_Q2", "ENEMY_GOLEM_RAGESTONE_1", "ENEMY_GOLEM_RUNEBOUND_1", "ENEMY_S2_GOLEM", "ENEMY_EVIL_KEHLI", "ENEMY_DELPHYNDRAS_MISTAKE", "ENEMY_BACKBREAKER_1"], "faction": "Wilds", "notes": "Highmont Fortress. (label normalized from \"Wilds/Citadel\" to the exact faction string quest files use.)", "weak_to": {"ENEMY_GOLEM_1": ["Crush", "Aquos"], "ENEMY_GOLEM_A2_NAMED": ["Crush", "Aquos", "Terros"], "ENEMY_GOLEM_BARONIAL_1": ["Crush", "Aquos", "Mortos"], "ENEMY_GOLEM_MISTWALKER_1": ["Crush", "Aquos", "Lumos"], "ENEMY_GOLEM_Q2": ["Crush", "Aquos"], "ENEMY_GOLEM_RAGESTONE_1": ["Crush", "Aquos", "Ignos"], "ENEMY_GOLEM_RUNEBOUND_1": ["Crush", "Aquos", "Umbros"], "ENEMY_S2_GOLEM": ["Crush"], "ENEMY_EVIL_KEHLI": ["Crush", "Aquos"], "ENEMY_DELPHYNDRAS_MISTAKE": ["Crush", "Aquos", "Ignos"], "ENEMY_BACKBREAKER_1": ["Aquos", "Umbros"]}}, "4": {"family_name": "Fae", "cap": 2, "act": 1, "member_ids": ["ENEMY_FAE_1", "ENEMY_FAE_A2_NAMED", "ENEMY_FAE_HEATH_SPAWN", "ENEMY_FAE_MIST_SPAWN", "ENEMY_FAE_RU_SPAWN"], "faction": "Wilds", "notes": "Frostgate/Forthyn highlands, illusion stealth.", "weak_to": {"ENEMY_FAE_1": ["Crush", "Terros"], "ENEMY_FAE_A2_NAMED": ["Crush", "Terros"], "ENEMY_FAE_HEATH_SPAWN": ["Crush", "Terros", "Umbros"], "ENEMY_FAE_MIST_SPAWN": ["Crush", "Terros", "Lumos"], "ENEMY_FAE_RU_SPAWN": ["Crush", "Terros", "Aquos"]}}, "5": {"family_name": "Wolf", "cap": 3, "act": 1, "member_ids": ["ENEMY_SUMMONED_WOLF", "ENEMY_WOLF_1", "ENEMY_WOLF_BARONIAL_1", "ENEMY_WOLF_ELDERBONE", "ENEMY_WOLF_PUTRID", "ENEMY_WOLF_RED_EYED", "ENEMY_BOSS_ONE_FANG", "ENEMY_WOLF_S2"], "faction": "Wilds", "notes": "Woodland regions near Kell baronies.", "weak_to": {"ENEMY_SUMMONED_WOLF": ["Slash", "Anemos"], "ENEMY_WOLF_1": ["Slash", "Anemos"], "ENEMY_WOLF_BARONIAL_1": ["Slash", "Anemos", "Mortos"], "ENEMY_WOLF_ELDERBONE": ["Slash", "Anemos", "Umbros"], "ENEMY_WOLF_PUTRID": ["Slash", "Anemos", "Lumos"], "ENEMY_WOLF_RED_EYED": ["Slash", "Anemos", "Aquos"], "ENEMY_BOSS_ONE_FANG": ["Slash", "Anemos"], "ENEMY_WOLF_S2": ["Slash", "Ignos"]}}, "6": {"family_name": "Specter", "cap": 2, "act": 1, "member_ids": ["ENEMY_Q12_SPECTER", "ENEMY_SPECTER_1", "ENEMY_SPECTER_A2_NAMED", "ENEMY_SPECTER_DEATHBORN", "ENEMY_SPECTER_RUNEMARKED", "ENEMY_SUMMONED_SPECTER", "ENEMY_WRATHFUL_SPECTER", "Q8_GYLDREN"], "faction": "Waiqar's Undead Host", "notes": "Physical weapons pass through spectral forms.", "weak_to": {"ENEMY_Q12_SPECTER": [], "ENEMY_SPECTER_1": ["Anemos", "Lumos"], "ENEMY_SPECTER_A2_NAMED": ["Anemos", "Lumos", "Vigos"], "ENEMY_SPECTER_DEATHBORN": ["Anemos", "Lumos", "Umbros"], "ENEMY_SPECTER_RUNEMARKED": ["Anemos", "Lumos", "Umbros"], "ENEMY_SUMMONED_SPECTER": ["Anemos", "Lumos"], "ENEMY_WRATHFUL_SPECTER": ["Aquos", "Terros"], "Q8_GYLDREN": ["Anemos", "Lumos", "Umbros"]}}, "7": {"family_name": "Wight", "cap": 4, "act": 1, "member_ids": ["ENEMY_WIGHT_1", "ENEMY_WIGHT_BLOODGUARD", "ENEMY_EVIL_BRYNN"], "faction": "Waiqar's Undead Host", "notes": "Undead reinforcements, corrupted battlefields.", "weak_to": {"ENEMY_WIGHT_1": ["Crush", "Lumos"], "ENEMY_WIGHT_BLOODGUARD": ["Crush", "Lumos", "Toxos"], "ENEMY_EVIL_BRYNN": ["Crush", "Lumos"]}}, "8": {"family_name": "Hybrid Harbinger", "cap": 4, "act": 1, "member_ids": ["ENEMY_HARBINGER_1", "ENEMY_HARBINGER_BARONIAL_1", "ENEMY_HARBINGER_SELLSWORD", "ENEMY_HARBINGER_VANGUARD_1", "ENEMY_FIREBREATHER", "ENEMY_LT_DRYS", "ENEMY_LT_EIZ", "ENEMY_LT_ZERAI", "ENEMY_BOSS_XAIN", "ENEMY_EVIL_VAERIX"], "faction": "Dragon-Kin", "notes": "Leathery wings are the vulnerability point.", "weak_to": {"ENEMY_HARBINGER_1": ["Pierce", "Umbros"], "ENEMY_HARBINGER_BARONIAL_1": ["Pierce", "Mortos"], "ENEMY_HARBINGER_SELLSWORD": ["Pierce", "Toxos"], "ENEMY_HARBINGER_VANGUARD_1": ["Slash", "Pierce", "Umbros"], "ENEMY_FIREBREATHER": ["Pierce", "Umbros"], "ENEMY_LT_DRYS": ["Pierce", "Umbros"], "ENEMY_LT_EIZ": ["Pierce", "Umbros"], "ENEMY_LT_ZERAI": ["Pierce", "Umbros"], "ENEMY_BOSS_XAIN": ["Slash", "Umbros"], "ENEMY_EVIL_VAERIX": ["Pierce", "Umbros"]}}, "9": {"family_name": "Hybrid Centurion", "cap": 1, "act": 1, "member_ids": ["ENEMY_CENTURIAN_3", "ENEMY_CENTURIAN_VANGUARD_1", "ENEMY_Q13_XENITH", "UNUSED_ENEMY_Q14_XENITH", "ENEMY_Q14_XENITH", "ENEMY_Q7_XENITH", "ENEMY_DRAGON_SCULPT", "ENEMY_BOSS_NAZGESH", "ENEMY_Q8_XENITH"], "faction": "Dragon-Kin", "notes": "Thick plate-like scales.", "weak_to": {"ENEMY_CENTURIAN_3": ["Aquos", "Umbros"], "ENEMY_CENTURIAN_VANGUARD_1": ["Aquos", "Umbros"], "ENEMY_Q13_XENITH": ["Aquos", "Umbros"], "UNUSED_ENEMY_Q14_XENITH": ["Aquos", "Umbros"], "ENEMY_Q14_XENITH": ["Aquos", "Umbros"], "ENEMY_Q7_XENITH": ["Aquos", "Umbros"], "ENEMY_DRAGON_SCULPT": ["Pierce"], "ENEMY_BOSS_NAZGESH": ["Vigos", "Umbros"], "ENEMY_Q8_XENITH": ["Aquos", "Umbros"]}}, "10": {"family_name": "Uthuk Blood Witch", "cap": 4, "act": 1, "member_ids": ["ENEMY_BLOOD_SISTER_1", "ENEMY_BLOOD_SISTER_NIGHT", "ENEMY_BLOOD_SISTER_UNDEAD", "ENEMY_INTRO_BOSS", "ENEMY_BOSS_EURTH", "ENEMY_MISTWITCH", "ENEMY_Q12_NE_KRUL_1", "ENEMY_Q12_NE_KRUL_2", "ENEMY_Q8_BOSS_NE'KRUL", "ENEMY_Q8_E2_BOSS_UTHUK", "ENEMY_Q9_NEKRUL"], "faction": "Uthuk Y'llan", "notes": "Blood/void corruption rituals at ruined strongholds.", "weak_to": {"ENEMY_BLOOD_SISTER_1": ["Slash", "Aquos"], "ENEMY_BLOOD_SISTER_NIGHT": ["Slash", "Aquos", "Terros"], "ENEMY_BLOOD_SISTER_UNDEAD": ["Slash", "Aquos", "Lumos"], "ENEMY_INTRO_BOSS": ["Slash"], "ENEMY_BOSS_EURTH": ["Slash", "Aquos", "Vigos"], "ENEMY_MISTWITCH": ["Slash", "Aquos"], "ENEMY_Q12_NE_KRUL_1": ["Slash", "Aquos"], "ENEMY_Q12_NE_KRUL_2": ["Slash", "Aquos"], "ENEMY_Q8_BOSS_NE'KRUL": ["Slash", "Aquos"], "ENEMY_Q8_E2_BOSS_UTHUK": ["Slash", "Aquos"], "ENEMY_Q9_NEKRUL": ["Slash", "Aquos"]}}, "11": {"family_name": "Doomcaller", "cap": 2, "act": 2, "member_ids": ["ENEMY_DOOMCALLER_1", "ENEMY_NAVOTH_1", "ENEMY_THE_BAILIFF", "ENEMY_BOSS_KHAMPANAX"], "faction": "Waiqar's Undead Host", "notes": "Dark ritualists and death-cult servants channeling necromantic power; light robes, no armor.", "weak_to": {"ENEMY_DOOMCALLER_1": ["Slash", "Umbros", "Mortos"], "ENEMY_NAVOTH_1": ["Umbros", "Mortos"], "ENEMY_THE_BAILIFF": ["Slash", "Fortunos", "Umbros"], "ENEMY_BOSS_KHAMPANAX": ["Slash", "Umbros", "Toxos"]}}, "12": {"family_name": "Dragon", "cap": 1, "act": 2, "member_ids": ["ENEMY_DRAGON_1", "ENEMY_DRAGON_ELDER", "ENEMY_A2Q11_LEVIRAX_A", "ENEMY_A2Q11_LEVIRAX_B", "ENEMY_A2Q11_LEVIRAX_C"], "faction": "Dragon-Kin", "notes": "True dragons and dragonlord-aligned creatures (including the LeViraX line); heavy natural armor.", "weak_to": {"ENEMY_DRAGON_1": ["Pierce", "Vigos"], "ENEMY_DRAGON_ELDER": ["Pierce", "Vigos", "Umbros"], "ENEMY_A2Q11_LEVIRAX_A": ["Vigos"], "ENEMY_A2Q11_LEVIRAX_B": ["Vigos"], "ENEMY_A2Q11_LEVIRAX_C": ["Vigos"]}}, "13": {"family_name": "Salamander", "cap": 2, "act": 2, "member_ids": ["ENEMY_SALAMANDER_1", "ENEMY_SALAMANDER_MOLTEN", "ENEMY_BOSS_ZADIE"], "faction": "Dragon-Kin", "notes": "Fire-elemental reptiles; natural resistance to fire-aligned attacks.", "weak_to": {"ENEMY_SALAMANDER_1": ["Crush", "Mortos"], "ENEMY_SALAMANDER_MOLTEN": ["Crush", "Mortos", "Umbros"], "ENEMY_BOSS_ZADIE": ["Crush", "Umbros"]}}, "14": {"family_name": "Vampire", "cap": 2, "act": 2, "member_ids": ["ENEMY_VAMPIRE_1", "ENEMY_GILLIAM_2", "ENEMY_VAMPIRE_NAMED", "ENEMY_RENEYR_1"], "faction": "Waiqar's Undead Host", "notes": "Undead bloodline creatures; no armor, high mobility.", "weak_to": {"ENEMY_VAMPIRE_1": ["Pierce", "Ignos", "Lumos", "Vigos"], "ENEMY_GILLIAM_2": ["Pierce", "Ignos", "Lumos", "Vigos"], "ENEMY_VAMPIRE_NAMED": ["Pierce", "Lumos", "Vigos"], "ENEMY_RENEYR_1": ["Pierce", "Ignos", "Lumos"]}}, "15": {"family_name": "Reanimate", "cap": 4, "act": 2, "member_ids": ["ENEMY_REANIMATE_1", "ENEMY_REANIMATE_FAMILIAR"], "faction": "Waiqar's Undead Host", "notes": "Reanimated corpses raised as soldiers; brittle, no armor.", "weak_to": {"ENEMY_REANIMATE_1": ["Crush", "Vigos"], "ENEMY_REANIMATE_FAMILIAR": ["Crush", "Ignos", "Vigos"]}}, "16": {"family_name": "Viper Legionnaire", "cap": 4, "act": 2, "member_ids": ["ENEMY_VIPER_1", "ENEMY_BOSS_VRASKHAR", "A2Q01_VRASKHAR", "ENEMY_BOSS_ATHROK"], "faction": "Dragon-Kin", "notes": "Serpentine legionnaires fighting in disciplined formation; moderate natural armor.", "weak_to": {"ENEMY_VIPER_1": ["Slash", "Aquos", "Fortunos"], "ENEMY_BOSS_VRASKHAR": ["Slash", "Aquos", "Fortunos"], "A2Q01_VRASKHAR": ["Slash", "Aquos", "Mortos"], "ENEMY_BOSS_ATHROK": ["Anemos", "Aquos", "Fortunos"]}}, "17": {"family_name": "Mercenary", "cap": 4, "act": 2, "member_ids": ["ENEMY_MERCENARY_1", "ENEMY_MERCENARY_BARONIAL_1", "ENEMY_MERCENARY_BLOODTHIRSTY", "ENEMY_MERCENARY_FALLEN", "ENEMY_MERCENARY_TARNISHED", "ENEMY_MERCENARY_WYRMBOUND", "A2Q02_ENEMY_MORANT", "ENEMY_BOSS_HOARY_FOX", "ENEMY_ZACHARETH_1"], "faction": "Wilds", "notes": "Hired blades and opportunists, same broad grouping as the Act 1 Bandit family; light-to-moderate armor.", "weak_to": {"ENEMY_MERCENARY_1": ["Pierce", "Toxos", "Ignos"], "ENEMY_MERCENARY_BARONIAL_1": ["Pierce", "Ignos", "Mortos"], "ENEMY_MERCENARY_BLOODTHIRSTY": ["Pierce", "Mortos", "Ignos"], "ENEMY_MERCENARY_FALLEN": ["Pierce", "Vigos", "Ignos"], "ENEMY_MERCENARY_TARNISHED": ["Vigos", "Mortos"], "ENEMY_MERCENARY_WYRMBOUND": ["Pierce", "Toxos", "Anemos"], "A2Q02_ENEMY_MORANT": ["Pierce", "Lumos", "Terros"], "ENEMY_BOSS_HOARY_FOX": ["Crush", "Toxos", "Ignos"], "ENEMY_ZACHARETH_1": ["Aquos", "Toxos", "Fortunos"]}}};
 function renderEnemiesCategory(){
   const main=overlay.querySelector('#forgeMain');
   if(!main) return;
   const items=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
   const filtered=items.filter(function(x){ const act=(typeof itemActOf==='function')? itemActOf(x): (x.act||1); return !(act>=2 && !allowedAct2); });
-  const act1=filtered.filter(function(x){ return ((typeof itemActOf==='function')? itemActOf(x) : (x.act||1)) < 2; });
-  const act2=filtered.filter(function(x){ return ((typeof itemActOf==='function')? itemActOf(x) : (x.act||1)) >= 2; });
+  const enemyById={};
+  items.forEach(function(e){ enemyById[e.id]=e; });
+  function familyOf(id){
+    if(typeof ENEMY_TYPE_CAPS!=='undefined'){
+      const keys=Object.keys(ENEMY_TYPE_CAPS);
+      for(let i=0;i<keys.length;i++){
+        const fam=ENEMY_TYPE_CAPS[keys[i]];
+        if((fam.member_ids||[]).indexOf(id)>=0) return fam;
+      }
+    }
+    return null;
+  }
+  function weaknessOf(id){
+    const fam=familyOf(id);
+    if(!fam || !fam.weak_to) return [];
+    return fam.weak_to[id] || [];
+  }
+  function actOf(x){ return (typeof itemActOf==='function')? itemActOf(x) : (x.act||1); }
+  const act1=filtered.filter(function(x){return actOf(x)<2;});
+  const act2=filtered.filter(function(x){return actOf(x)>=2;});
+  function portrait(x){
+    const famKey=(typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? (ASSETS.enemyFamily[x.id]||'') : '';
+    return (typeof arte==='function')? arte('portraits', famKey) : '';
+  }
   function row(x){
-    const act=(typeof itemActOf==='function')? itemActOf(x) : (x.act||1);
-    const img='<img src="../img/enemy/'+x.id+'.png" style="width:48px;height:48px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+    const act=actOf(x);
+    const weak=weaknessOf(x.id);
+    const src=portrait(x);
+    const img=src? '<img src="'+src+'" style="width:48px;height:48px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;">' : '';
     return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
       img+
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+(act>=2?' (Act II)':'')+'</div>'+
         '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>'+
         '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+'</div>'+
+        '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
       '</div>'+
     '</div>';
   }
-  const r1=act1.map(row).join('');
-  const r2=act2.map(row).join('');
+  function section(actItems, title){
+    if(!actItems.length) return '';
+    const byFam={};
+    const order=[];
+    actItems.forEach(function(x){
+      const fam=familyOf(x.id);
+      const famName= fam ? fam.family_name : 'Other';
+      if(!byFam[famName]){ byFam[famName]=[]; order.push(famName); }
+      byFam[famName].push(x);
+    });
+    order.sort();
+    const famBlocks=order.map(function(famName){
+      const list=byFam[famName];
+      const rows=list.map(row).join('');
+      return '<div style="margin-bottom:10px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);">'+
+        '<h4 style="margin:0 0 6px 0;font-size:13px;">'+esc(famName)+'</h4>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+rows+'</div>'+
+      '</div>';
+    }).join('');
+    return '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Enemies - '+title+'</h2>'+famBlocks+'</div>';
+  }
+  const s1=section(act1,'Act I');
+  const s2=section(act2,'Act II');
   main.innerHTML=
     '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">'+
-      '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Enemies - Act I</h2><div>'+(r1||'<p style="color:var(--dim);">No items found.</p>')+'</div></div>'+
-      (allowedAct2 ? '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Enemies - Act II</h2><div>'+(r2||'<p style="color:var(--dim);">No items found.</p>')+'</div></div>' : '')+
+      (s1||'')+
+      (allowedAct2 ? (s2||'') : '')+
     '</div>';
 }
 function sharedVariants(slot,rune){
@@ -564,7 +612,8 @@ function renderItemPoolCategory(){
   allItems = allItems.filter(function(x){ return !camp || allowedAct2 || ( (typeof itemActOf==='function')? itemActOf(x) : 1 ) < 2; });
   const avail = allItems.filter(function(x, idx){
     const fam = (typeof itemFamilyId==='function') ? itemFamilyId(x.id) : String(x.id||'').replace(/^RECIPE_/i,'').replace(/_PLUS$|_UPGRADED$/i,'');
-    return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')) && !invFamilies.has(fam);
+    const reservedIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.reservedItems)) ? camp.start.reservedItems : [];
+    return allItems.indexOf(x)===idx && invIds.indexOf(x.id)===-1 && /^RECIPE_/i.test(String(x.id||'')) && !invFamilies.has(fam) && reservedIds.indexOf(String(x.id))===-1;
   });
   function imageFor(id){
     id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
@@ -594,7 +643,7 @@ function renderItemPoolCategory(){
       const cells=items.map(function(x){
         const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
         const img=imageFor(x.id);
-        return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;">'+esc(name)+'</span></div>';
+        return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-reserve="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">RSV</button></div>';
       }).join('');
       return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;">'+cells+'</div></div>';
     }
@@ -615,7 +664,7 @@ function renderItemPoolCategory(){
       const cells=its.map(function(x){
         const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
         const img=imageFor(x.id);
-        return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;">'+esc(name)+'</span></div>';
+        return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-reserve="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">RSV</button></div>';
       }).join('');
       return '<div style="margin-bottom:6px;"><h4 style="margin:0 0 4px 0;font-size:13px;color:var(--text);font-weight:700;">'+esc(label)+' ('+its.length+')</h4><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;">'+cells+'</div></div>';
     }).join('');
@@ -624,6 +673,15 @@ function renderItemPoolCategory(){
   main.innerHTML=
     '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Available recipes and items not in Starting Inventory.</div>' +
     (avail.length ? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No available items.</p>') +
+  main.querySelectorAll('[data-reserve]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const id=b.getAttribute('data-reserve');
+      camp.start=camp.start||{items:[],reservedItems:[]};
+      if(!Array.isArray(camp.start.reservedItems)) camp.start.reservedItems=[];
+      if(camp.start.reservedItems.indexOf(id)===-1) camp.start.reservedItems.push(id);
+      renderItemPoolCategory();
+    });
+  });
     sections;
 }
 function renderWeaponInventoryCategory(){
@@ -707,7 +765,57 @@ function renderLoadoutCategory(){
   if(typeof syncLoadoutToStartItems==='function') syncLoadoutToStartItems();
   if(typeof pintarPantallaLoadout==='function') pintarPantallaLoadout();
 }
-function renderActiveCategory(){ if(activeCat==='weapons') renderLoadoutCategory(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='weaponinv') renderWeaponInventoryCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
+function renderReservedItemsCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  camp.start=camp.start||{items:[],reservedItems:[]};
+  if(!Array.isArray(camp.start.reservedItems)) camp.start.reservedItems=[];
+  const ids=camp.start.reservedItems.slice();
+  const allItems=ids.map(function(id){ return {id:id}; });
+  function imageFor(id){
+    id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
+    let folder=null;
+    if(/ARMOR/.test(id)) folder='armor';
+    else if(/TRINKET/.test(id)) folder='trinket';
+    else if(/WEAPON_PART/.test(id)) folder='weapon';
+    else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
+    if(!folder) return '';
+    return '<img src="../img/'+folder+'/'+base+'.png" style="width:32px;height:32px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+  }
+  function groupOf(x){
+    const id=String(x.id||'').toUpperCase();
+    if(/ARMOR/.test(id)) return 'Armor';
+    if(/TRINKET/.test(id)) return 'Trinkets';
+    if(/WEAPON_PART/.test(id)) return 'Weapons';
+    if(/CSM/.test(id)) return 'Consumables';
+    if(/MAT_/.test(id)) return 'Materials';
+    return 'Other';
+  }
+  const groupOrder=['Armor','Weapons','Trinkets','Consumables','Materials','Other'];
+  const grouped={};
+  allItems.forEach(function(x){ const g=groupOf(x); if(!grouped[g]) grouped[g]=[]; grouped[g].push(x); });
+  const sections=groupOrder.map(function(gn){
+    const items=grouped[gn]; if(!items||!items.length) return '';
+    const cells=items.map(function(x){
+      const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
+      const img=imageFor(x.id);
+      return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:11px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(name)+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
+    }).join('');
+    return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 4px 0;font-size:13px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
+  }).join('');
+  main.innerHTML=
+    '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Reserved items (story/feat rewards).</div>'+
+    (ids.length? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No reserved items.</p>')+
+    sections;
+  main.querySelectorAll('[data-release]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const id=b.getAttribute('data-release');
+      camp.start.reservedItems=camp.start.reservedItems.filter(function(x){return x!==id;});
+      renderReservedItemsCategory();
+    });
+  });
+}
+function renderActiveCategory(){ if(activeCat==='weapons') renderLoadoutCategory(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='reserved') renderReservedItemsCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='weaponinv') renderWeaponInventoryCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
   activeCat=cat;
