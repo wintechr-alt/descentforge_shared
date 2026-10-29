@@ -452,13 +452,21 @@ function _baseWeaknesses(baseId){
   }
   return [];
 }
-function openForgeCustomEnemy(id, baseHint){
+function _baseTiers(baseId){
+  const e=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(z){return z.id===baseId;}) : null);
+  const tiers=(e && Array.isArray(e.tiers) && e.tiers.length)? e.tiers : [1];
+  return tiers.map(function(t){ const st=(e && e.tierStats && e.tierStats[t]) ? e.tierStats[t] : {hp:(e&&e.hp)||40, def:(e&&e.def)||2, atk:(e&&e.atk)||2}; return {tier:+t, health:st.hp, defense:st.def, attack:st.atk}; });
+}
+
+function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseHint=",baseHint,"tiers=", (id && ensureCustomEnemies().find(c=>c.id===id)&&ensureCustomEnemies().find(c=>c.id===id).tiers) ? "yes":"no");
   const list=ensureCustomEnemies();
   const existing=id? list.find(function(c){return c.id===id;}) : null;
   let baseId = baseHint || (existing? existing.base : null);
   if(!baseId && id && (typeof DATA!=='undefined' && Array.isArray(DATA.enemies) && DATA.enemies.some(function(e){return e.id===id;}))) baseId=id;
   const baseEnemy = (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===baseId;}) : null;
   const c=existing || {id: (baseId? ('CUSTOM_'+baseId) : ('CUSTOM_ENEMY_'+(list.length+1))), name:(baseEnemy && (baseEnemy.name_en||baseEnemy.name)) || ('Custom monster '+(list.length+1)), base: (baseId||''), hp:(baseEnemy? baseEnemy.hp : 40), def:(baseEnemy? baseEnemy.def : 2), atk:(baseEnemy? baseEnemy.atk : 2), mech:(baseEnemy && Array.isArray(baseEnemy.mech))? baseEnemy.mech.filter(function(t){return t!=='Huge' && t!=='Small';}).slice() : [], theme:(baseEnemy && Array.isArray(baseEnemy.theme))? baseEnemy.theme.slice() : [], weaknesses: (existing? (existing.weaknesses||[]) : _baseWeaknesses(baseId)) };
+  if (!Array.isArray(c.tiers) || !c.tiers.length) c.tiers = _baseTiers(c.base || baseId);
+  if (c.tiers && c.tiers.length) { c.hp=c.tiers[0].health; c.def=c.tiers[0].defense; c.atk=c.tiers[0].attack; }
 
   const bases=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
   const baseOpts=bases.map(function(e){ return '<option value="'+esc(e.id)+'" '+(e.id===c.base?'selected':'')+'>'+esc(e.name_en||e.name||e.id)+'</option>'; }).join('');
@@ -492,6 +500,9 @@ function openForgeCustomEnemy(id, baseHint){
     '<div class="field"><label>Weaknesses / Resistances</label>'+
       '<div id="fce_weak_rows" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>'+
       '<button id="fce_wadd" class="sm" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;">'+esc('Add')+'</button>'+
+    '</div>'+
+    '<div class="field"><label>Tiers (stats per hero count)</label>'+
+      '<div id="fce_tiers" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;"></div>'+
     '</div>'+
     '<div class="field"><label>Mechanical traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+mechOpts+'</div><p class="help" style="font-size:11px;margin-top:4px;">Huge/Small are inherited from the base and shown in Advanced.</p></div>'+
     '<div class="field"><label>Theme traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+themeOpts+'</div><p class="help" style="font-size:11px;margin-top:4px;">Locked traits (inherited from base): '+((_lockedThemeTraits(c.base)).length? _lockedThemeTraits(c.base).join(', ') : 'none')+'</p></div>'+
@@ -528,8 +539,21 @@ function openForgeCustomEnemy(id, baseHint){
     });
   }
   renderWeakRows();
+  const tierBox=document.getElementById('fce_tiers');
+  const renderTierRows=function(){
+    if(!tierBox) return;
+    tierBox.innerHTML=(c.tiers||[]).map(function(t,idx){
+      return '<div style="display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:6px;align-items:center;">'+
+        '<span style="font-size:12px;color:var(--dim);">Tier '+esc(t.tier)+'</span>'+
+        '<input data-fcetier="'+idx+'|health" type="number" value="'+esc(t.health)+'" placeholder="HP" style="padding:4px 6px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:12px;">'+
+        '<input data-fcetier="'+idx+'|defense" type="number" value="'+esc(t.defense)+'" placeholder="DEF" style="padding:4px 6px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:12px;">'+
+        '<input data-fcetier="'+idx+'|attack" type="number" value="'+esc(t.attack)+'" placeholder="ATK" style="padding:4px 6px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:12px;">'+
+      '</div>';
+    }).join('');
+  };
+  renderTierRows();
   const baseSel=document.getElementById('fce_base');
-  if(baseSel) baseSel.addEventListener('change', function(){ c.base=baseSel.value; c.weaknesses=_baseWeaknesses(baseSel.value).slice(); renderWeakRows(); });
+  if(baseSel) baseSel.addEventListener('change', function(){ c.base=baseSel.value; c.weaknesses=_baseWeaknesses(baseSel.value).slice(); c.tiers=_baseTiers(baseSel.value); renderWeakRows(); renderTierRows(); });
   const wadd=document.getElementById('fce_wadd');
   if(wadd) wadd.addEventListener('click', function(){ (c.weaknesses=c.weaknesses||[]).push({damage:TRAIT_LIST[0],kind:'weakness',when:'always'}); renderWeakRows(); });
   // parse mech/theme on save unchanged; also ensure weaknesses remains c.weaknesses
@@ -537,10 +561,17 @@ function openForgeCustomEnemy(id, baseHint){
   if(save) save.onclick=function(){
     const mechVals=[].slice.call(document.querySelectorAll('[data-cm="mech"]:checked')).map(function(x){return x.value;});
     const themeVals=[].slice.call(document.querySelectorAll('[data-cm="theme"]:checked')).map(function(x){return x.value;});
-    const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:Math.max(1,parseInt(document.getElementById('fce_hp').value,10)||c.hp), def:Math.max(0,parseInt(document.getElementById('fce_def').value,10)||0), atk:Math.max(0,parseInt(document.getElementById('fce_atk').value,10)||0), mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
+    const parsedTiers=(c.tiers||[]).map(function(t,idx){
+      const h=document.querySelector('[data-fcetier="'+idx+'|health"]');
+      const d=document.querySelector('[data-fcetier="'+idx+'|defense"]');
+      const a=document.querySelector('[data-fcetier="'+idx+'|attack"]');
+      return {tier:+t.tier, health:Math.max(1,parseInt(h&&h.value,10)||t.health), defense:Math.max(0,parseInt(d&&d.value,10)||t.defense), attack:Math.max(0,parseInt(a&&a.value,10)||t.attack)};
+    });
+    const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:(parsedTiers[0]&&parsedTiers[0].health)||c.hp, def:(parsedTiers[0]&&parsedTiers[0].defense)||c.def, atk:(parsedTiers[0]&&parsedTiers[0].attack)||c.atk, tiers:parsedTiers, mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
     const list2=ensureCustomEnemies();
     const idx=list2.findIndex(function(z){return z.id===id;});
     if(idx>=0) list2[idx]=nc; else list2.push(nc);
+    // Forge custom monster is now exported via the editor's custom.enemies merge at .dmap export.
     if(typeof dlg!=='undefined' && dlg && dlg.close) dlg.close();
     renderEnemiesCategory();
   };
@@ -591,6 +622,13 @@ function renderEnemiesCategory(){
     if(!fam || !fam.weak_to) return [];
     return fam.weak_to[id] || [];
   }
+  function weaknessDisplayOf(id){
+    const cu=(camp.customEnemies||[]).find(function(c){return c.id===id;});
+    if(cu && Array.isArray(cu.weaknesses) && cu.weaknesses.length){
+      return cu.weaknesses.map(function(w){ return (w.kind==='resist'?'Resist: ':'')+w.damage; }).filter(Boolean);
+    }
+    return weaknessOf(id);
+  }
   function familyAct(x){ const fam=familyOf(x.id); return (fam && (fam.act===1 || fam.act===2))? fam.act : ((typeof itemActOf==='function')? itemActOf(x) : (x.act||1)); }
   function actOf(x){ return familyAct(x); }
   function portrait(x){
@@ -603,7 +641,7 @@ function renderEnemiesCategory(){
   function isInActivePool(id){ if(enemyPoolsSelected<0 || !camp.enemyPools.length) return false; var p=camp.enemyPools[enemyPoolsSelected]; return !!(p && (p.enemies||[]).indexOf(id)>=0); }
   function row(x){
     const act=actOf(x);
-    const weak=weaknessOf(x.id);
+    const weak=weaknessDisplayOf(x.id);
     const src=portrait(x);
     const img=src? '<img src="'+src+'" style="width:48px;height:48px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;">' : '';
     return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
@@ -657,6 +695,7 @@ function renderEnemiesCategory(){
       '</div>'+
       '<button class="sm" data-forcustedit="'+c.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Edit</button>'+
       '<button class="sm" data-forcustdel="'+c.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Del</button>'+
+      (Array.isArray(c.weaknesses) && c.weaknesses.length ? '<div style="width:100%;color:var(--verd);font-size:11px;margin-top:2px;">Weak: '+esc(c.weaknesses.map(function(w){return (w.kind==='resist'?'Resist: ':'')+w.damage;}).join(', '))+'</div>' : '')+
     '</div>';
   }).join('');
   const customSection='<div style="margin-top:12px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);max-width:980px;margin-left:auto;margin-right:auto;">'+
@@ -682,7 +721,12 @@ function renderEnemiesCategory(){
   const ne=main.querySelector('#forgeNewCustomEnemy'); if(ne) ne.addEventListener('click', function(){ openForgeCustomEnemy(); });
   main.querySelectorAll('[data-forcustedit]').forEach(function(b){ b.addEventListener('click', function(){ openForgeCustomEnemy(b.getAttribute('data-forcustedit')); }); });
   main.querySelectorAll('[data-forcustdel]').forEach(function(b){ b.addEventListener('click', function(){ var id=b.getAttribute('data-forcustdel'); camp.customEnemies=(camp.customEnemies||[]).filter(function(c){return c.id!==id;}); renderEnemiesCategory(); }); });
-  main.querySelectorAll('[data-forcustbase]').forEach(function(b){ b.addEventListener('click', function(){ openForgeCustomEnemy(null, b.getAttribute('data-forcustbase')); }); });
+  main.querySelectorAll('[data-forcustbase]').forEach(function(b){ b.addEventListener('click', function(){
+    const baseId=b.getAttribute('data-forcustbase');
+    const existing=(camp && Array.isArray(camp.customEnemies))? camp.customEnemies.find(function(c){return c.base===baseId;}) : null;
+    if(existing) openForgeCustomEnemy(existing.id, baseId);
+    else openForgeCustomEnemy(null, baseId);
+  }); });
 }
 function sharedVariants(slot,rune){
   const keyHint=rune.toUpperCase();

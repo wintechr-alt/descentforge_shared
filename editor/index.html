@@ -8290,6 +8290,24 @@ document.getElementById('btnExport').onclick=()=>{
      como se vio en el editor y nadie sabrá por qué. Escrito, el mod solo tiene
      que leerlo, y su deducción queda para los mapas de antes de esto. */
   state.spawns.interactables.forEach(o=>{ o.behavior=behOf(o); });
+  (function ensureForgeCustomInExport(){ try {
+      if (camp && Array.isArray(camp.customEnemies) && camp.customEnemies.length) {
+        if (!state.custom) state.custom={enemies:[]};
+        if (!Array.isArray(state.custom.enemies)) state.custom.enemies=[];
+        const seen=new Set(state.custom.enemies.map(function(c){return c.id;}));
+        camp.customEnemies.forEach(function(c){
+          if (seen.has(c.id)) return;
+          seen.add(c.id);
+          const b = (delJuego().find(function(e){return e.id===c.base;}) || DATA.enemies.find(function(e){return e.id===c.base;}));
+          const tierNums = (b && Array.isArray(b.tiers) && b.tiers.length) ? b.tiers : [1];
+          state.custom.enemies.push({id:c.id,name:(c.name||c.id),base:c.base,named:!!c.named,
+            tiers: tierNums.map(function(t){ return {tier:+t, health:c.hp, defense:c.def, attack:c.atk}; }),
+            mechanical:(c.mech||[]).slice(), theme:(c.theme||[]).slice(),
+            weaknesses:(c.weaknesses||[]).map(function(w){ return {damage:w.damage, kind:w.kind, when:w.when||'always'}; })});
+        });
+      }
+    } catch(e){ console.warn('Forge custom export sync failed', e && (e.stack||e)); }
+  })();
   bajar({format:'dmap',version:2,
     meta:{...state.meta,heroCount:heroCountReal(),created:new Date().toISOString().slice(0,10)},
     board:state.board,spawns:state.spawns,objectives:state.objectives,triggers:state.triggers,
