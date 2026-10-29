@@ -465,7 +465,12 @@ function _baseExtra(baseId){
 
 function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseHint=",baseHint,"tiers=", (id && ensureCustomEnemies().find(c=>c.id===id)&&ensureCustomEnemies().find(c=>c.id===id).tiers) ? "yes":"no");
   const list=ensureCustomEnemies();
-  const existing=id? list.find(function(c){return c.id===id;}) : null;
+    let existing=id? list.find(function(c){return c.id===id;}) : null;
+  if (!existing && baseHint) {
+    existing = list.find(function(c){return c.id===baseHint || c.base===baseHint;}) ||
+      ((typeof state!=='undefined' && state && Array.isArray(state.custom&&state.custom.enemies))? state.custom.enemies.find(function(c){return c.id===baseHint || c.base===baseHint;}): null) ||
+      ((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===baseHint && e.custom;}) : null);
+  }
   let baseId = baseHint || (existing? existing.base : null);
   if(!baseId && id && (typeof DATA!=='undefined' && Array.isArray(DATA.enemies) && DATA.enemies.some(function(e){return e.id===id;}))) baseId=id;
   const baseEnemy = (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===baseId;}) : null;
@@ -581,8 +586,28 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
       return {tier:+t.tier, health:Math.max(1,parseInt(h&&h.value,10)||t.health), defense:Math.max(0,parseInt(d&&d.value,10)||t.defense), attack:Math.max(0,parseInt(a&&a.value,10)||t.attack)};
     });
     const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:(parsedTiers[0]&&parsedTiers[0].health)||c.hp, def:(parsedTiers[0]&&parsedTiers[0].defense)||c.def, atk:(parsedTiers[0]&&parsedTiers[0].attack)||c.atk, tiers:parsedTiers, mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, activation:(document.getElementById('fce_activation').value.trim()), tactics:(document.getElementById('fce_tactics').value.trim()), defense:(document.getElementById('fce_defense').value.trim()), weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
+    const originalId=id;
     const list2=ensureCustomEnemies();
-    // Keep a Forge-bank copy alongside the registered DATA enemy; export handles the .dmap.
+    // Update or append in the Forge bank by the ORIGINAL selection id.
+    const _idx2=list2.findIndex(function(z){return z.id===originalId;});
+    if(_idx2>=0) list2[_idx2]=nc; else list2.push(nc);
+    camp.customEnemies=list2;
+    // mirror to Workshop state bank (so it is a real .dmap custom enemy / DATA).
+    try {
+      if (typeof state !== 'undefined' && state) {
+        if (!state.custom || typeof state.custom!=='object') state.custom={enemies:[]};
+        if (!Array.isArray(state.custom.enemies)) state.custom.enemies=[];
+        const baseEnemy=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===nc.base;}): null;
+        const tierNums=(baseEnemy && Array.isArray(baseEnemy.tiers) && baseEnemy.tiers.length)? baseEnemy.tiers : [1];
+        const tall={id:nc.id,name:nc.name,base:nc.base,named:!!nc.named,
+          tiers:tierNums.map(function(t){ return {tier:+t, health:nc.hp, defense:nc.def, attack:nc.atk}; }),
+          mechanical:(nc.mech||[]).slice(),theme:(nc.theme||[]).slice(),
+          weaknesses:(nc.weaknesses||[]).map(function(w){return {damage:w.damage, kind:w.kind, when:w.when||'always'};})};
+        const si=state.custom.enemies.findIndex(function(c){return c.id===originalId;});
+        if (si>=0) state.custom.enemies[si]=tall; else state.custom.enemies.push(tall);
+        if (typeof sincronizarTaller === 'function') sincronizarTaller();
+      }
+    } catch(e){ console.warn('Forge->Scenario custom sync failed', e && (e.stack||e)); }
     // Instantly register the Forge custom monster in DATA so it can be placed in the map editor.
     try {
       const baseEnemy = (typeof delJuego==='function'?delJuego():DATA.enemies).find(function(e){return e.id===nc.base;}) ||
@@ -640,7 +665,10 @@ function renderEnemiesCategory(){
   const enemyById={};
   items.forEach(function(e){ enemyById[e.id]=e; });
   function familyOf(id){
-    if((camp.customEnemies||[]).some(function(c){return c.id===id;})) return {family_name:'Custom monsters', act:1};
+    if((camp.customEnemies||[]).some(function(c){return c.id===id;})) return {family_name:'Custom', act:1};
+    if ((typeof state!=='undefined' && state && Array.isArray(state.custom&&state.custom.enemies) && (state.custom.enemies||[]).some(function(c){return c.id===id;}))) return {family_name:'Custom', act:1};
+    const _de=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===id;}): null;
+    if (_de && _de.custom) return {family_name:'Custom', act:_de.act||1};
     if(typeof ENEMY_TYPE_CAPS!=='undefined'){
       const keys=Object.keys(ENEMY_TYPE_CAPS);
       for(let i=0;i<keys.length;i++){
@@ -744,7 +772,7 @@ function renderEnemiesCategory(){
   }).join('');
   const customSection='<div style="margin-top:12px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);max-width:980px;margin-left:auto;margin-right:auto;">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
-      '<h3 style="margin:0;font-size:14px;">Custom monsters</h3>'+
+      '<h3 style="margin:0;font-size:14px;">Custom</h3>'+
       '<button id="forgeNewCustomEnemy" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;">New monster</button>'+
     '</div>'+
     (customRows||'<p style="color:var(--dim);font-size:12px;">No custom monsters.</p>')+
@@ -767,9 +795,14 @@ function renderEnemiesCategory(){
   main.querySelectorAll('[data-forcustdel]').forEach(function(b){ b.addEventListener('click', function(){ var id=b.getAttribute('data-forcustdel'); camp.customEnemies=(camp.customEnemies||[]).filter(function(c){return c.id!==id;}); renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-forcustbase]').forEach(function(b){ b.addEventListener('click', function(){
     const baseId=b.getAttribute('data-forcustbase');
-    const existing=(camp && Array.isArray(camp.customEnemies))? camp.customEnemies.find(function(c){return c.base===baseId;}) : null;
-    if(existing) openForgeCustomEnemy(existing.id, baseId);
-    else openForgeCustomEnemy(null, baseId);
+    function _findExisting(){ var f=null;
+      if (camp && Array.isArray(camp.customEnemies)){ f = camp.customEnemies.find(function(c){return c.id===baseId || c.base===baseId;}); if (f) return f; }
+      if (typeof state!=='undefined' && state && Array.isArray(state.custom && state.custom.enemies)){ f = state.custom.enemies.find(function(c){return c.id===baseId || c.base===baseId;}); if (f) return f; }
+      if (typeof DATA!=='undefined' && Array.isArray(DATA.enemies)){ f = DATA.enemies.find(function(e){return e.id===baseId && e.custom;}); if (f) return f; }
+      return null;
+    }
+    const existing = _findExisting();
+    openForgeCustomEnemy(existing ? existing.id : null, baseId);
   }); });
 }
 function sharedVariants(slot,rune){
