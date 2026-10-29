@@ -582,9 +582,29 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
     });
     const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:(parsedTiers[0]&&parsedTiers[0].health)||c.hp, def:(parsedTiers[0]&&parsedTiers[0].defense)||c.def, atk:(parsedTiers[0]&&parsedTiers[0].attack)||c.atk, tiers:parsedTiers, mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, activation:(document.getElementById('fce_activation').value.trim()), tactics:(document.getElementById('fce_tactics').value.trim()), defense:(document.getElementById('fce_defense').value.trim()), weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
     const list2=ensureCustomEnemies();
-    const idx=list2.findIndex(function(z){return z.id===id;});
-    if(idx>=0) list2[idx]=nc; else list2.push(nc);
-    // Forge custom monster is now exported via the editor's custom.enemies merge at .dmap export.
+    // Keep a Forge-bank copy alongside the registered DATA enemy; export handles the .dmap.
+    // Instantly register the Forge custom monster in DATA so it can be placed in the map editor.
+    try {
+      const baseEnemy = (typeof delJuego==='function'?delJuego():DATA.enemies).find(function(e){return e.id===nc.base;}) ||
+        (DATA.enemies||[]).find(function(e){return e.id===nc.base;});
+      if (baseEnemy) {
+        for (let i=DATA.enemies.length-1;i>=0;i--) {
+          if (DATA.enemies[i].custom && DATA.enemies[i].id===nc.id) {
+            delete enemyById[DATA.enemies[i].id]; delete ASSETS.enemyFamily[DATA.enemies[i].id];
+            DATA.enemies.splice(i,1);
+          }
+        }
+        const e = { id:nc.id, name:nc.name, name_en:nc.name, custom:true, base:nc.base,
+          hp:nc.hp, def:nc.def, atk:nc.atk,
+          tiers:nc.tiers.map(function(t){return t.tier;}),
+          tierStats:Object.fromEntries(nc.tiers.map(function(t){return [t.tier,{hp:t.health,def:t.defense,atk:t.attack}];})),
+          wr:(nc.weaknesses||[]).map(function(w){return w.damage+':'+(w.kind==='resist'?'R':'W');}),
+          type:baseEnemy.type, act:baseEnemy.act, size:baseEnemy.size, perQuest:baseEnemy.perQuest,
+          mech: (nc.mech||[]).slice(), theme:(nc.theme||[]).slice(), named:!!nc.named };
+        DATA.enemies.push(e); enemyById[e.id]=e;
+        if (ASSETS.enemyFamily[nc.base]) ASSETS.enemyFamily[nc.id]=ASSETS.enemyFamily[nc.base];
+      }
+    } catch(e){ console.warn('Forge custom registration failed', e && (e.stack||e)); }
     if(typeof dlg!=='undefined' && dlg && dlg.close) dlg.close();
     renderEnemiesCategory();
   };
@@ -601,7 +621,9 @@ function renderEnemiesCategory(){
   if(!Array.isArray(camp.customEnemies)) camp.customEnemies=[];
   if(!Array.isArray(camp.enemyPools)) camp.enemyPools=[];
   if(camp.enemyPools.length===0) enemyPoolsSelected=-1; else if(enemyPoolsSelected<0 || enemyPoolsSelected>=camp.enemyPools.length) enemyPoolsSelected=Math.max(0,camp.enemyPools.length-1);
-  const baseItems=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
+  const baseItems=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []).filter(function(e){
+    return !(camp && Array.isArray(camp.customEnemies) && camp.customEnemies.some(function(c){return c.id===e.id;}));
+  });
   const customEnemies=(typeof camp!=='undefined' && Array.isArray(camp.customEnemies))? camp.customEnemies : [];
   const customAsEnemies=customEnemies.map(function(c){
     const be=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===c.base;}) : null;
@@ -639,6 +661,15 @@ function renderEnemiesCategory(){
     const cu=(camp.customEnemies||[]).find(function(c){return c.id===id;});
     if(cu && Array.isArray(cu.weaknesses) && cu.weaknesses.length){
       return cu.weaknesses.map(function(w){ return (w.kind==='resist'?'Resist: ':'')+w.damage; }).filter(Boolean);
+    }
+    const wu=(typeof state!=='undefined' && state && Array.isArray(state.custom&&state.custom.enemies))? state.custom.enemies.find(function(c){return c.id===id;}): null;
+    if(wu && Array.isArray(wu.weaknesses) && wu.weaknesses.length){
+      return wu.weaknesses.map(function(w){ return (w.kind==='resist'?'Resist: ':'')+w.damage; }).filter(Boolean);
+    }
+    // Taller/Ficha enemies store weaknesses as wr: ["Damage:W", "Damage:R"]
+    const de=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===id;}): null;
+    if(de && Array.isArray(de.wr) && de.wr.length){
+      return de.wr.map(function(w){ const parts=w.split(':'); const d=parts[0]; const k=parts[1]; return (k==='R'?'Resist: ':'')+d; }).filter(Boolean);
     }
     return weaknessOf(id);
   }
@@ -1135,6 +1166,7 @@ try {
 
 btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
 function showForgeContent(){ setCat(activeCat); }
+window.__openForge=openForge; window.__setCat=setCat;
 
 window.addEventListener('resize',function(){ if(overlay.style.display==='block') placeForge(); });
 if(modesel){
