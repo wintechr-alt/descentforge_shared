@@ -430,10 +430,27 @@ let enemyMechFilter=[];
 let enemyThemeFilter=[];
 let enemyPoolsSelected=0;
 function ensureCustomEnemies(){ if(!camp || typeof camp!=='object') camp={}; if(!Array.isArray(camp.customEnemies)) camp.customEnemies=[]; return camp.customEnemies; }
+const LOCKED_THEME_TRAITS=['Construct','Cold','Creature','Dragonkind','Fire','Humanoid','Incorporeal','Intelligent','Otherworldly','Water','Subterranean'];
+function _lockedThemeTraits(baseId){
+  const e=( (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(z){return z.id===baseId;}) : null );
+  const th=(e && Array.isArray(e.theme))? e.theme : [];
+  return th.filter(function(t){ return LOCKED_THEME_TRAITS.indexOf(t)>=0; });
+}
 function _sizeTraits(baseId){
   const e=( (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(z){return z.id===baseId;}) : null );
   const mech=(e && Array.isArray(e.mech))? e.mech : [];
   return mech.filter(function(t){ return t==='Huge' || t==='Small'; });
+}
+function _baseWeaknesses(baseId){
+  if(!baseId || typeof ENEMY_TYPE_CAPS==='undefined') return [];
+  const keys=Object.keys(ENEMY_TYPE_CAPS);
+  for(let i=0;i<keys.length;i++){
+    const fam=ENEMY_TYPE_CAPS[keys[i]];
+    if((fam.member_ids||[]).indexOf(baseId)>=0 && fam.weak_to && fam.weak_to[baseId]){
+      return (fam.weak_to[baseId]||[]).map(function(t){return {damage:t,kind:'weakness',when:'always'};});
+    }
+  }
+  return [];
 }
 function openForgeCustomEnemy(id, baseHint){
   const list=ensureCustomEnemies();
@@ -441,36 +458,81 @@ function openForgeCustomEnemy(id, baseHint){
   let baseId = baseHint || (existing? existing.base : null);
   if(!baseId && id && (typeof DATA!=='undefined' && Array.isArray(DATA.enemies) && DATA.enemies.some(function(e){return e.id===id;}))) baseId=id;
   const baseEnemy = (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===baseId;}) : null;
-  const c=existing || {id: (baseId? ('CUSTOM_'+baseId) : ('CUSTOM_ENEMY_'+(list.length+1))), name:(baseEnemy && (baseEnemy.name_en||baseEnemy.name)) || ('Custom monster '+(list.length+1)), base: (baseId||''), hp:(baseEnemy? baseEnemy.hp : 40), def:(baseEnemy? baseEnemy.def : 2), atk:(baseEnemy? baseEnemy.atk : 2), mech:(baseEnemy && Array.isArray(baseEnemy.mech))? baseEnemy.mech.filter(function(t){return t!=='Huge' && t!=='Small';}).slice() : [], theme:(baseEnemy && Array.isArray(baseEnemy.theme))? baseEnemy.theme.slice() : [], weaknesses:[] };
+  const c=existing || {id: (baseId? ('CUSTOM_'+baseId) : ('CUSTOM_ENEMY_'+(list.length+1))), name:(baseEnemy && (baseEnemy.name_en||baseEnemy.name)) || ('Custom monster '+(list.length+1)), base: (baseId||''), hp:(baseEnemy? baseEnemy.hp : 40), def:(baseEnemy? baseEnemy.def : 2), atk:(baseEnemy? baseEnemy.atk : 2), mech:(baseEnemy && Array.isArray(baseEnemy.mech))? baseEnemy.mech.filter(function(t){return t!=='Huge' && t!=='Small';}).slice() : [], theme:(baseEnemy && Array.isArray(baseEnemy.theme))? baseEnemy.theme.slice() : [], weaknesses: (existing? (existing.weaknesses||[]) : _baseWeaknesses(baseId)) };
+
   const bases=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
   const baseOpts=bases.map(function(e){ return '<option value="'+esc(e.id)+'" '+(e.id===c.base?'selected':'')+'>'+esc(e.name_en||e.name||e.id)+'</option>'; }).join('');
   const sizeTraits=_sizeTraits(c.base);
+  const lockedSizeOpts=['Huge','Small'].map(function(t){ return '<label style="font-size:11px;margin-right:8px;opacity:.7;"><input type="checkbox" value="'+esc(t)+'" '+(sizeTraits.indexOf(t)>=0?'checked':'')+' disabled> '+esc(t)+' (locked)</label>'; }).join('');
   const _MEC=(typeof MECANICOS!=='undefined')?MECANICOS:['Melee','Ranged','Striker','Tank','Support','Debuffer','Fast','Slow','Flying','Huge','Small'];
   const mechAll=_MEC.filter(function(t){return t!=='Huge' && t!=='Small';});
   const mechOpts=mechAll.map(function(t){ return '<label style="font-size:11px;margin-right:8px;"><input type="checkbox" value="'+esc(t)+'" data-cm="mech" '+( (c.mech||[]).indexOf(t)>=0 ? 'checked' : '')+'> '+esc(t)+'</label>'; }).join('');
   const _TEM=(typeof TEMATICOS!=='undefined')?TEMATICOS:['Intelligent','Creature','Undead','Dragonkind','Uthuk','Otherworldly','Construct','Wild'];
-  const themeTypeTraits=_TEM.filter(function(t){return ['Intelligent','Creature','Undead','Dragonkind','Construct','Otherworldly'].indexOf(t)>=0;});
-  const themeFactionTraits=_TEM.filter(function(t){return ['UndeadFaction','UthukFaction','DragonFaction','BaronialFaction'].indexOf(t)>=0;});
-  const themeOtherTraits=_TEM.filter(function(t){return themeTypeTraits.indexOf(t)<0 && themeFactionTraits.indexOf(t)<0;});
+  const lockedThemeTraits=LOCKED_THEME_TRAITS.slice();
+  const themeTypeList=['Undead','Dragonkind','Uthuk','Wild','Raider','Mercenary'];
+  const themeFactionList=['UndeadFaction','UthukFaction','DragonFaction','BaronialFaction'];
+  const themeTypeTraits=_TEM.filter(function(t){return themeTypeList.indexOf(t)>=0 && lockedThemeTraits.indexOf(t)<0;});
+  const themeFactionTraits=_TEM.filter(function(t){return themeFactionList.indexOf(t)>=0 && lockedThemeTraits.indexOf(t)<0;});
+  const themeFeatureTraits=_TEM.filter(function(t){return themeTypeList.indexOf(t)<0 && themeFactionList.indexOf(t)<0 && lockedThemeTraits.indexOf(t)<0;});
   const mkTheme=function(arr){ return arr.map(function(t){ return '<label style="font-size:11px;margin-right:8px;"><input type="checkbox" value="'+esc(t)+'" data-cm="theme" '+( (c.theme||[]).indexOf(t)>=0 ? 'checked' : '')+'> '+esc(t)+'</label>'; }).join(''); };
-  const themeOpts=(themeTypeTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Creature/Type</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+mkTheme(themeTypeTraits)+'</div>' : '')+
-    (themeFactionTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Faction</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+mkTheme(themeFactionTraits)+'</div>' : '')+
-    (themeOtherTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Other Traits</div><div style="display:flex;flex-wrap:wrap;gap:6px;">'+mkTheme(themeOtherTraits)+'</div>' : '');
+  const themeOpts=(themeTypeTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Type</div><br><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+mkTheme(themeTypeTraits)+'</div>' : '')+
+    (themeFactionTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Faction</div><br><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+mkTheme(themeFactionTraits)+'</div>' : '')+
+    (themeFeatureTraits.length? '<div style="font-size:10px;color:var(--dim);margin-bottom:2px;">Feature</div><br><div style="display:flex;flex-wrap:wrap;gap:6px;">'+mkTheme(themeFeatureTraits)+'</div>' : '');
+  const lockedThemeOpts=lockedThemeTraits.map(function(t){ return '<label style="font-size:11px;margin-right:8px;"><input type="checkbox" value="'+esc(t)+'" data-cm="theme" '+((c.theme||[]).indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>'; }).join('');
   const portraitSrc=(typeof arte==='function' && typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? arte('portraits', (ASSETS.enemyFamily[c.base]||'')) : '';
   const body=
     (portraitSrc? '<div style="text-align:center;margin-bottom:8px;"><img src="'+portraitSrc+'" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;"></div>' : '')+
     '<div class="field"><label>ID</label><input id="fce_id" value="'+esc(c.id)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
     '<div class="field"><label>Name</label><input id="fce_name" value="'+esc(c.name||'')+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
-    '<div class="field"><label>Base enemy</label><select id="fce_base" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+baseOpts+'</select><p class="help" style="font-size:11px;">Size trait (fixed from base): '+(sizeTraits.length? sizeTraits.join(', ') : 'none')+'</p></div>'+
+    '<div class="field"><label>Base enemy</label><select id="fce_base" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+baseOpts+'</select></div>'+
     '<label class="chk" style="margin-bottom:8px;display:block;"><input type="checkbox" id="fce_named" '+(c.named?'checked':'')+'> Named</label>'+
     '<div class="field"><label>HP</label><input id="fce_hp" type="number" value="'+esc(c.hp)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
     '<div class="field"><label>DEF</label><input id="fce_def" type="number" value="'+esc(c.def)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
     '<div class="field"><label>ATK</label><input id="fce_atk" type="number" value="'+esc(c.atk)+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
-    '<div class="field"><label>Mechanical traits (size inherited/locked)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+mechOpts+'</div></div>'+
-    '<div class="field"><label>Weaknesses/Resistances (comma traits; prefix resist: for resistance)</label><textarea id="fce_weak" style="width:100%;min-height:40px;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;">'+esc((c.weaknesses||[]).map(function(w){return (w.kind==='resist'?'resist:':'')+w.damage;}).join(', '))+'</textarea></div>'+
-    '<div class="field"><label>Theme traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+themeOpts+'</div></div>';
+    '<div class="field"><label>Weaknesses / Resistances</label>'+
+      '<div id="fce_weak_rows" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>'+
+      '<button id="fce_wadd" class="sm" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;">'+esc('Add')+'</button>'+
+    '</div>'+
+    '<div class="field"><label>Mechanical traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+mechOpts+'</div><p class="help" style="font-size:11px;margin-top:4px;">Huge/Small are inherited from the base and shown in Advanced.</p></div>'+
+    '<div class="field"><label>Theme traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+themeOpts+'</div><p class="help" style="font-size:11px;margin-top:4px;">Locked traits (inherited from base): '+((_lockedThemeTraits(c.base)).length? _lockedThemeTraits(c.base).join(', ') : 'none')+'</p></div>'+
+    '<button id="fce_advanced" class="sm" style="margin-top:4px;background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Advanced (edit locked)</button>'+
+    '<div id="fce_adv" style="display:none;margin-top:6px;padding:6px;border:1px dashed var(--edge);border-radius:4px;">'+
+      '<div style="font-size:10px;color:var(--dim);margin-bottom:4px;margin-top:2px;">Size traits (locked)</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+lockedSizeOpts+'</div>'+
+      '<div style="font-size:10px;color:var(--dim);margin-bottom:4px;margin-top:6px;">Locked theme traits</div><div style="display:flex;flex-wrap:wrap;gap:6px;">'+lockedThemeOpts+'</div>'+
+    '</div>';
   if(typeof openDlg==='function'){ openDlg('Custom monster', body, '<button id="fce_save" class="primary">Save</button><button id="fce_cancel">Cancel</button>'); }
   else { alert('Dialog not available'); return; }
+
+  const TRAIT_LIST=['Crush','Slash','Pierce','Ignos','Anemos','Aquos','Terros','Lumos','Umbros','Vigos','Mortos','Toxos','Fortunos'];
+  function renderWeakRows(){
+    const box=document.getElementById('fce_weak_rows'); if(!box) return;
+    box.innerHTML=(c.weaknesses||[]).map(function(w,i){
+      return '<div class="twfila" style="display:grid;grid-template-columns:minmax(120px,1fr) 110px 28px;gap:6px;align-items:center;margin-bottom:4px;">'+
+        '<select data-fcew="'+i+'|damage" style="width:100%;padding:5px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:12px;">'+TRAIT_LIST.map(function(d){return '<option '+(d===w.damage?'selected':'')+'>'+esc(d)+'</option>';}).join('')+'</select>'+
+        '<select data-fcew="'+i+'|kind" style="width:100%;padding:5px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:12px;"><option value="weakness" '+(w.kind!=='resist'?'selected':'')+'>Weakness</option><option value="resist" '+(w.kind==='resist'?'selected':'')+'>Resist</option></select>'+
+        '<button class="sm" data-fcewdel="'+i+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 4px;cursor:pointer;font-size:11px;">X</button>'+
+      '</div>';
+    }).join('') || '<p class="empty" style="color:var(--dim);font-size:11px;margin:4px 0;">No weakness/resistance entries.</p>';
+    box.querySelectorAll('[data-fcew]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        const parts=sel.getAttribute('data-fcew').split('|');
+        if(!c.weaknesses[+parts[0]]) return;
+        c.weaknesses[+parts[0]][parts[1]]=sel.value;
+      });
+    });
+    box.querySelectorAll('[data-fcewdel]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        c.weaknesses.splice(+btn.getAttribute('data-fcewdel'),1);
+        renderWeakRows();
+      });
+    });
+  }
+  renderWeakRows();
+  const baseSel=document.getElementById('fce_base');
+  if(baseSel) baseSel.addEventListener('change', function(){ c.base=baseSel.value; c.weaknesses=_baseWeaknesses(baseSel.value).slice(); renderWeakRows(); });
+  const wadd=document.getElementById('fce_wadd');
+  if(wadd) wadd.addEventListener('click', function(){ (c.weaknesses=c.weaknesses||[]).push({damage:TRAIT_LIST[0],kind:'weakness',when:'always'}); renderWeakRows(); });
+  // parse mech/theme on save unchanged; also ensure weaknesses remains c.weaknesses
   const save=document.getElementById('fce_save');
   if(save) save.onclick=function(){
     const mechVals=[].slice.call(document.querySelectorAll('[data-cm="mech"]:checked')).map(function(x){return x.value;});
@@ -483,6 +545,8 @@ function openForgeCustomEnemy(id, baseHint){
     if(typeof dlg!=='undefined' && dlg && dlg.close) dlg.close();
     renderEnemiesCategory();
   };
+  const adv=document.getElementById('fce_advanced');
+  if(adv) adv.addEventListener('click', function(){ const box=document.getElementById('fce_adv'); if(box) box.style.display=(box.style.display==='none'?'block':'none'); });
   const cancel=document.getElementById('fce_cancel');
   if(cancel) cancel.onclick=function(){ if(typeof dlg!=='undefined' && dlg && dlg.close) dlg.close(); };
 }
@@ -494,7 +558,13 @@ function renderEnemiesCategory(){
   if(!Array.isArray(camp.customEnemies)) camp.customEnemies=[];
   if(!Array.isArray(camp.enemyPools)) camp.enemyPools=[];
   if(camp.enemyPools.length===0) enemyPoolsSelected=-1; else if(enemyPoolsSelected<0 || enemyPoolsSelected>=camp.enemyPools.length) enemyPoolsSelected=Math.max(0,camp.enemyPools.length-1);
-  const items=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
+  const baseItems=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
+  const customEnemies=(typeof camp!=='undefined' && Array.isArray(camp.customEnemies))? camp.customEnemies : [];
+  const customAsEnemies=customEnemies.map(function(c){
+    const be=(typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===c.base;}) : null;
+    return {id:c.id,name:c.name,name_en:c.name,hp:c.hp,def:c.def,atk:c.atk,act:(be && be.act)||1,mech:c.mech||[],theme:c.theme||[], named:!!c.named, weaknesses:c.weaknesses||[]};
+  });
+  const items=baseItems.concat(customAsEnemies);
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
   const filteredBase=items.filter(function(x){ const act=familyAct(x); return !(act>=2 && !allowedAct2); });
   const filtered=filteredBase.filter(function(x){
@@ -505,6 +575,7 @@ function renderEnemiesCategory(){
   const enemyById={};
   items.forEach(function(e){ enemyById[e.id]=e; });
   function familyOf(id){
+    if((camp.customEnemies||[]).some(function(c){return c.id===id;})) return {family_name:'Custom monsters', act:1};
     if(typeof ENEMY_TYPE_CAPS!=='undefined'){
       const keys=Object.keys(ENEMY_TYPE_CAPS);
       for(let i=0;i<keys.length;i++){
@@ -524,7 +595,10 @@ function renderEnemiesCategory(){
   function familyAct(x){ const fam=familyOf(x.id); return (fam && (fam.act===1 || fam.act===2))? fam.act : ((typeof itemActOf==='function')? itemActOf(x) : (x.act||1)); }
   function actOf(x){ return familyAct(x); }
   function portrait(x){
-    const famKey=(typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? (ASSETS.enemyFamily[x.id]||'') : '';
+    let id=x.id;
+    const cu=(camp.customEnemies||[]).find(function(c){return c.id===id;});
+    if(cu && cu.base) id=cu.base;
+    const famKey=(typeof ASSETS!=='undefined' && ASSETS.enemyFamily)? (ASSETS.enemyFamily[id]||'') : '';
     return (typeof arte==='function')? arte('portraits', famKey) : '';
   }
   function isInActivePool(id){ if(enemyPoolsSelected<0 || !camp.enemyPools.length) return false; var p=camp.enemyPools[enemyPoolsSelected]; return !!(p && (p.enemies||[]).indexOf(id)>=0); }
@@ -542,7 +616,9 @@ function renderEnemiesCategory(){
         '<div style="color:var(--dim);font-size:10px;">Mech: '+esc((x.mech||[]).join(', ')||'—')+' | Theme: '+esc((x.theme||[]).join(', ')||'—')+'</div>'+
         '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
       '</div>'+
-      '<button class="sm" data-forcustbase="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Edit</button>'+(camp.enemyPools.length && enemyPoolsSelected>=0 ? ' <label style="font-size:10px;"><input type="checkbox" data-enemypool="'+x.id+'" '+(isInActivePool(x.id)?'checked':'')+'> pool'+(enemyPoolsSelected+1)+'</label>' : '')+
+      '<button class="sm" data-forcustbase="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Edit</button>'+
+      ((camp.customEnemies||[]).some(function(c){return c.id===x.id;}) ? '<button class="sm" data-forcustdel="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Del</button>' : '')+
+      (camp.enemyPools.length && enemyPoolsSelected>=0 ? ' <label style="font-size:10px;"><input type="checkbox" data-enemypool="'+x.id+'" '+(isInActivePool(x.id)?'checked':'')+'> pool'+(enemyPoolsSelected+1)+'</label>' : '')+
     '</div>';
   }
   const byFam={};
@@ -591,10 +667,11 @@ function renderEnemiesCategory(){
     '</div>'+
     (customRows||'<p style="color:var(--dim);font-size:12px;">No custom monsters.</p>')+
   '</div>';
+  const newMonBtn='<button id="forgeNewCustomEnemy" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;">New monster</button>';
   main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+createBtn+poolSel+'</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+createBtn+poolSel+newMonBtn+'</div>'+
     '<div style="max-width:980px;margin:0 auto;">'+blocks+'</div>'+
-    customSection;
+    (customSection||'');
 
 
   main.querySelectorAll('[data-mech]').forEach(function(cb){ cb.addEventListener('change', function(){ var t=cb.getAttribute('data-mech'); if(cb.checked){ if(enemyMechFilter.indexOf(t)<0) enemyMechFilter.push(t); } else { enemyMechFilter=enemyMechFilter.filter(function(v){return v!==t;}); } renderEnemiesCategory(); }); });
@@ -1002,6 +1079,7 @@ try {
 
 btn.addEventListener('click',function(){ if(overlay.style.display==='block') closeForge(); else openForge(); });
 function showForgeContent(){ setCat(activeCat); }
+
 window.addEventListener('resize',function(){ if(overlay.style.display==='block') placeForge(); });
 if(modesel){
   modesel.addEventListener('click',function(e){ const real=e.target.closest('[data-mode]'); if(real) closeForge(); });
