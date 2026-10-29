@@ -537,7 +537,6 @@ function openForgeCustomEnemy(id, baseHint){
   if(save) save.onclick=function(){
     const mechVals=[].slice.call(document.querySelectorAll('[data-cm="mech"]:checked')).map(function(x){return x.value;});
     const themeVals=[].slice.call(document.querySelectorAll('[data-cm="theme"]:checked')).map(function(x){return x.value;});
-    const weakParsed=document.getElementById('fce_weak').value.split(',').map(function(s){s=s.trim(); if(!s) return null; var kind='weakness'; if(/^resist:/i.test(s)){kind='resist'; s=s.replace(/^resist:/i,'').trim();} return {damage:s,kind:kind,when:'always'};}).filter(Boolean);
     const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:Math.max(1,parseInt(document.getElementById('fce_hp').value,10)||c.hp), def:Math.max(0,parseInt(document.getElementById('fce_def').value,10)||0), atk:Math.max(0,parseInt(document.getElementById('fce_atk').value,10)||0), mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
     const list2=ensureCustomEnemies();
     const idx=list2.findIndex(function(z){return z.id===id;});
