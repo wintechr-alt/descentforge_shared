@@ -463,6 +463,16 @@ function _baseExtra(baseId){
   return {activation:'', tactics:'', defense:''};
 }
 
+
+function _forgeWeaknessesFromExisting(existing, baseHint){
+  if (existing && Array.isArray(existing.weaknesses) && existing.weaknesses.length) return existing.weaknesses.slice();
+  if (existing && Array.isArray(existing.wr) && existing.wr.length) {
+    return existing.wr.map(function(w){ const parts=w.split(':'); return {damage:parts[0], kind:parts[1]==='R'?'resist':'weakness', when:'always'}; });
+  }
+  const bid = (existing && existing.base) || baseHint || (existing && existing.id);
+  return _baseWeaknesses(bid);
+}
+
 function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseHint=",baseHint,"tiers=", (id && ensureCustomEnemies().find(c=>c.id===id)&&ensureCustomEnemies().find(c=>c.id===id).tiers) ? "yes":"no");
   const list=ensureCustomEnemies();
     let existing=id? list.find(function(c){return c.id===id;}) : null;
@@ -474,7 +484,7 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
   let baseId = baseHint || (existing? existing.base : null);
   if(!baseId && id && (typeof DATA!=='undefined' && Array.isArray(DATA.enemies) && DATA.enemies.some(function(e){return e.id===id;}))) baseId=id;
   const baseEnemy = (typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies.find(function(e){return e.id===baseId;}) : null;
-  const c=existing || {id: (baseId? ('CUSTOM_'+baseId) : ('CUSTOM_ENEMY_'+(list.length+1))), name:(baseEnemy && (baseEnemy.name_en||baseEnemy.name)) || ('Custom monster '+(list.length+1)), base: (baseId||''), hp:(baseEnemy? baseEnemy.hp : 40), def:(baseEnemy? baseEnemy.def : 2), atk:(baseEnemy? baseEnemy.atk : 2), mech:(baseEnemy && Array.isArray(baseEnemy.mech))? baseEnemy.mech.filter(function(t){return t!=='Huge' && t!=='Small';}).slice() : [], theme:(baseEnemy && Array.isArray(baseEnemy.theme))? baseEnemy.theme.slice() : [], weaknesses: (existing? (existing.weaknesses||[]) : _baseWeaknesses(baseId)) };
+  const c=existing || {id: (baseId? ('CUSTOM_'+baseId) : ('CUSTOM_ENEMY_'+(list.length+1))), name:(baseEnemy && (baseEnemy.name_en||baseEnemy.name)) || ('Custom monster '+(list.length+1)), base: (baseId||''), hp:(baseEnemy? baseEnemy.hp : 40), def:(baseEnemy? baseEnemy.def : 2), atk:(baseEnemy? baseEnemy.atk : 2), mech:(baseEnemy && Array.isArray(baseEnemy.mech))? baseEnemy.mech.filter(function(t){return t!=='Huge' && t!=='Small';}).slice() : [], theme:(baseEnemy && Array.isArray(baseEnemy.theme))? baseEnemy.theme.slice() : [], weaknesses: _forgeWeaknessesFromExisting(existing, baseId) };
   if (!Array.isArray(c.tiers) || !c.tiers.length) c.tiers = _baseTiers(c.base || baseId);
   if (!c.activation) c.activation = _baseExtra(c.base || baseId).activation || (baseEnemy && baseEnemy.activation) || '';
   if (!c.tactics) c.tactics = _baseExtra(c.base || baseId).tactics || (baseEnemy && baseEnemy.tactics) || '';
