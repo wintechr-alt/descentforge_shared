@@ -459,8 +459,8 @@ function _baseTiers(baseId){
 }
 
 function _baseExtra(baseId){
-  if (baseId==='ENEMY_WARY_BANDIT_1') return {activation:'Serrated Bolt: During the defense, the first time the hero places a fatigue on a card, they also scar it.', tactics:'Tactic 1:\nThe Bandit sprints forward then backflips into the air, launching knives and bolts in all directions!\n\nMove to within 3 spaces of as many heroes as possible. Then, this attack targets all heroes within range.\n\nTactic 2:\nThe Bandit leaps from the defensive posture, daggers twirling through nimble fingers.\n\nTactic 3:\nBloodlust: After the Attack, the target is pushed 2 spaces.', defence:'Smokebomb: After the attack, this enemy shifts 2 away from the hero.'};
-  return {activation:'', tactics:'', defence:''};
+  if (baseId==='ENEMY_WARY_BANDIT_1') return {activation:'Serrated Bolt: During the defense, the first time the hero places a fatigue on a card, they also scar it.', tactics:'Tactic 1:\nThe Bandit sprints forward then backflips into the air, launching knives and bolts in all directions!\n\nMove to within 3 spaces of as many heroes as possible. Then, this attack targets all heroes within range.\n\nTactic 2:\nThe Bandit leaps from the defensive posture, daggers twirling through nimble fingers.\n\nTactic 3:\nBloodlust: After the Attack, the target is pushed 2 spaces.', defense:'Smokebomb: After the attack, this enemy shifts 2 away from the hero.'};
+  return {activation:'', tactics:'', defense:''};
 }
 
 function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseHint=",baseHint,"tiers=", (id && ensureCustomEnemies().find(c=>c.id===id)&&ensureCustomEnemies().find(c=>c.id===id).tiers) ? "yes":"no");
@@ -473,7 +473,8 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
   if (!Array.isArray(c.tiers) || !c.tiers.length) c.tiers = _baseTiers(c.base || baseId);
   if (!c.activation) c.activation = _baseExtra(c.base || baseId).activation || (baseEnemy && baseEnemy.activation) || '';
   if (!c.tactics) c.tactics = _baseExtra(c.base || baseId).tactics || (baseEnemy && baseEnemy.tactics) || '';
-  if (!c.defence) c.defence = _baseExtra(c.base || baseId).defence || (baseEnemy && baseEnemy.defence) || '';
+  if (c.defense==null && c.defence!=null) c.defense = c.defence;
+  if (!c.defense) c.defense = _baseExtra(c.base || baseId).defense || (baseEnemy && baseEnemy.defense) || '';
   if (c.tiers && c.tiers.length) { c.hp=c.tiers[0].health; c.def=c.tiers[0].defense; c.atk=c.tiers[0].attack; }
 
   const bases=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []);
@@ -516,7 +517,7 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
     '<div class="field"><label>Theme traits</label><div style="display:flex;flex-wrap:wrap;gap:6px;">'+themeOpts+'</div><p class="help" style="font-size:11px;margin-top:4px;">Locked traits (inherited from base): '+((_lockedThemeTraits(c.base)).length? _lockedThemeTraits(c.base).join(', ') : 'none')+'</p></div>'+
     '<div class="field"><label>Activation</label><input id="fce_activation" value="'+esc(c.activation||'')+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
     '<div class="field"><label>Tactics</label><input id="fce_tactics" value="'+esc(c.tactics||'')+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
-    '<div class="field"><label>Defence</label><input id="fce_defence" value="'+esc(c.defence||'')+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
+    '<div class="field"><label>Defense</label><input id="fce_defense" value="'+esc(c.defense||'')+'" style="width:100%;padding:6px 8px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;box-sizing:border-box;"></div>'+
     '<button id="fce_advanced" class="sm" style="margin-top:4px;background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Advanced (edit locked)</button>'+
     '<div id="fce_adv" style="display:none;margin-top:6px;padding:6px;border:1px dashed var(--edge);border-radius:4px;">'+
       '<div style="font-size:10px;color:var(--dim);margin-bottom:4px;margin-top:2px;">Size traits (locked)</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+lockedSizeOpts+'</div>'+
@@ -579,7 +580,7 @@ function openForgeCustomEnemy(id, baseHint){ console.log("OPEN", "id=",id,"baseH
       const a=document.querySelector('[data-fcetier="'+idx+'|attack"]');
       return {tier:+t.tier, health:Math.max(1,parseInt(h&&h.value,10)||t.health), defense:Math.max(0,parseInt(d&&d.value,10)||t.defense), attack:Math.max(0,parseInt(a&&a.value,10)||t.attack)};
     });
-    const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:(parsedTiers[0]&&parsedTiers[0].health)||c.hp, def:(parsedTiers[0]&&parsedTiers[0].defense)||c.def, atk:(parsedTiers[0]&&parsedTiers[0].attack)||c.atk, tiers:parsedTiers, mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, activation:(document.getElementById('fce_activation').value.trim()), tactics:(document.getElementById('fce_tactics').value.trim()), defence:(document.getElementById('fce_defence').value.trim()), weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
+    const nc={id:(document.getElementById('fce_id').value.trim()||c.id), name:(document.getElementById('fce_name').value.trim()||c.id), base:document.getElementById('fce_base').value, hp:(parsedTiers[0]&&parsedTiers[0].health)||c.hp, def:(parsedTiers[0]&&parsedTiers[0].defense)||c.def, atk:(parsedTiers[0]&&parsedTiers[0].attack)||c.atk, tiers:parsedTiers, mech: mechVals.concat(_sizeTraits(document.getElementById('fce_base').value)), theme:themeVals, activation:(document.getElementById('fce_activation').value.trim()), tactics:(document.getElementById('fce_tactics').value.trim()), defense:(document.getElementById('fce_defense').value.trim()), weaknesses:(c.weaknesses||[]), named: (document.getElementById('fce_named') && document.getElementById('fce_named').checked)};
     const list2=ensureCustomEnemies();
     const idx=list2.findIndex(function(z){return z.id===id;});
     if(idx>=0) list2[idx]=nc; else list2.push(nc);
