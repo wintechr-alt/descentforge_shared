@@ -921,16 +921,32 @@ function renderEnemiesCategory(){
     '</div>'+
     (customRows||'<p style="color:var(--dim);font-size:12px;">No custom monsters.</p>')+
   '</div>';
-  const poolRows=(camp.enemyPools||[]).map(function(p,i){
+    const presetFamilies=(typeof ENEMY_TYPE_CAPS!=='undefined') ? Object.keys(ENEMY_TYPE_CAPS).map(function(k){ return ENEMY_TYPE_CAPS[k]; }).filter(function(f){ return f && Array.isArray(f.member_ids); }) : [];
+  const BASE_PRESET_FAMILY_NAMES={'Bandit':1,'Fae':1,'Golem':1,'Hybrid Harbinger':1,'Mercenary':1,'Reanimate':1,'Salamander':1,'Specter':1,'Uthuk Berserker':1,'Uthuk Blood Witch':1,'Vampire':1,'Viper Legionnaire':1,'Wight':1,'Wolf':1,'Zealot':1};
+  const presetOptions=[
+    {value:'base', label:'Preset: Base'},
+    {value:'uthuk', label:'Preset: Uthuk Faction'},
+    {value:'dragon', label:'Preset: Dragon Faction'},
+    {value:'baronial', label:'Preset: Baronial Faction'},
+    {value:'undead', label:'Preset: Undead Faction'}
+  ];
+  const presetSelectHtml='<div style="display:flex;gap:4px;margin-top:6px;">'+
+    '<select id="enemPresetChoice" style="flex:1;padding:3px 6px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;font-size:10px;">'+
+      presetOptions.map(function(o){ return '<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>'; }).join('')+
+    '</select>'+
+    '<button class="sm" type="button" data-addpreset style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;">Add preset</button>'+
+  '</div>';
+const poolRows=(camp.enemyPools||[]).map(function(p,i){
     const chips=(function(ids){ const groups={}; const order=[]; (ids||[]).forEach(function(id){ const fam=familyOf(id); const gname=(fam && fam.family_name) ? fam.family_name : (enemyById && enemyById[id] ? (enemyById[id].name_en||enemyById[id].name||id) : id); if(!groups[gname]){ groups[gname]={ids:[], sample: (enemyById && enemyById[id]) || {id:id}}; order.push(gname); } groups[gname].ids.push(id); }); return order.map(function(gname){ const g=groups[gname]; const src=g.sample; const psrc=portrait(src||{id:g.ids[0]}); const rankTag=function(id){ const manual=(camp.enemyTags && camp.enemyTags[id]) || ''; const listed=(typeof ENEMY_TAG_BY_LIST!=='undefined' && ENEMY_TAG_BY_LIST[id]) || ''; const auto=!manual && !listed ? (/boss/i.test(String(id||'')) ? 'boss' : (/named/i.test(String(id||'')) ? 'mini' : '')) : ''; const tag=manual || listed || auto; const order={'base':0, '':1, 'none':1, 'mini':2, 'boss':3}; return (typeof order[tag]!=='undefined') ? order[tag] : 1; };
 const rankedIds=g.ids.slice().sort(function(a,b){ const ea=enemyById && enemyById[a]; const eb=enemyById && enemyById[b]; const aa=(ea && ea.act) ? ea.act : 99; const ab=(eb && eb.act) ? eb.act : 99; const r=rankTag(a)-rankTag(b); if(r!==0) return r; if(aa!==ab) return aa-ab; return String(a).localeCompare(String(b)); });
 const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; return esc(e ? (e.name_en||e.name||id) : id); }).join(', '); return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;padding:3px 6px;background:var(--panel);border:1px solid var(--edge);border-radius:4px;">'+(psrc?'<img src="'+psrc+'" style="width:30px;height:30px;object-fit:contain;border-radius:4px;">':'')+'<span style="font-size:11px;">'+idList+'</span></span>'; }).join(''); })(Array.isArray(p.enemies)? p.enemies : []);    return '<div style="margin-bottom:6px;padding:6px;border:1px solid var(--edge);border-radius:4px;background:var(--panel2);">'+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
-      '<strong>Pool '+(i+1)+'</strong>'+(i===enemyPoolsSelected?' <span style="color:var(--verd);font-size:10px;">active</span>':'')+
-      ' <button class="sm" data-selectpool="'+i+'">select</button>'+(camp.enemyPools.length>1?' <button class="sm" data-delpool="'+i+'">Del</button>':'')+
+      '<strong>Pool '+(i+1)+'</strong>'+(p&&p.name?' <span style="color:var(--dim);font-size:10px;">'+esc(p.name)+'</span>':'')+(i===enemyPoolsSelected?' <span style="color:var(--verd);font-size:10px;">active</span>':'')+
+      ' <button class="sm" data-selectpool="'+i+'">select</button>'+' <button class="sm" data-delpool="'+i+'">Del pool</button>'+
       ' <span style="color:var(--dim);font-size:10px;">'+(p.enemies||[]).length+' enemies</span>'+
       '</div>'+
       '<div style="margin-top:4px;font-size:11px;color:var(--text);"'+( (Array.isArray(p.enemies)&&p.enemies.length) ? '' : ' style="opacity:.5"' )+'>'+( (Array.isArray(p.enemies)&&p.enemies.length) ? chips : 'Empty' )+'</div>'+
+      (Array.isArray(p.enemies)&&p.enemies.length ? '<div style="margin-top:4px;font-size:10px;color:var(--dim);user-select:all;word-break:break-all;">'+esc(p.enemies.join(', '))+'</div>' : '')+
     '</div>';
   }).join('');
   const poolSection='<div style="margin-top:12px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);max-width:980px;margin-left:auto;margin-right:auto;">'+
@@ -938,6 +954,7 @@ const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; ret
       '<h3 style="margin:0;font-size:14px;">Enemy Pools ('+camp.enemyPools.length+')</h3>'+
       '<button class="sm" type="button" data-createpool style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Create pool</button>'+
     '</div>'+
+    presetSelectHtml+
     (poolRows||'<p style="color:var(--dim);font-size:12px;">No enemy pools yet. Create one above.</p>')+
   '</div>';
   main.innerHTML=
@@ -946,7 +963,7 @@ const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; ret
     '</div>'+
     '<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;max-width:1320px;margin:0 auto;align-items:start;">'+
       '<div style="min-width:0;">'+blocks+(customSection||'')+'</div>'+
-      '<div style="position:sticky;top:8px;">'+poolSection+'</div>'+
+      '<div style="position:sticky;top:8px;height:calc(100vh - 220px);overflow-y:scroll;overscroll-behavior:contain;">'+poolSection+'</div>'+
     '</div>';
 
 
@@ -957,6 +974,81 @@ const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; ret
   const _s=main.querySelector('#enemPoolSel'); if(_s) _s.addEventListener('change',function(){ enemyPoolsSelected=parseInt(_s.value,10); renderEnemiesCategory(); });
   main.querySelectorAll('[data-enempool]').forEach(function(btn){ btn.addEventListener('click',function(){ var id=btn.getAttribute('data-enempool'); var pi=parseInt(btn.getAttribute('data-pool'),10); var p=camp.enemyPools && camp.enemyPools[pi]; if(!p) return; if(!Array.isArray(p.enemies)) p.enemies=[]; var i=p.enemies.indexOf(id); if(i<0) p.enemies.push(id); else p.enemies.splice(i,1); renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-createpool]').forEach(function(b){ b.addEventListener('click',function(){ if(!camp.enemyPools) camp.enemyPools=[]; camp.enemyPools.push({enemies:[]}); enemyPoolsSelected=camp.enemyPools.length-1; renderEnemiesCategory(); }); });
+  main.querySelectorAll('[data-addpreset]').forEach(function(b){ b.addEventListener('click', function(){
+    if(!camp.enemyPools) camp.enemyPools=[];
+    const sel=main.querySelector('#enemPresetChoice');
+    const val=sel ? sel.value : '';
+    if(!val) return;
+    const allowedAct2=forgeAllowedAct2();
+    let ids=[];
+    if(val==='base'){
+      ids=[
+        'ENEMY_BERSERKER_1','ENEMY_WARY_BANDIT_1','ENEMY_ZEALOT_1','ENEMY_GOLEM_1','ENEMY_FAE_1',
+        'ENEMY_WOLF_1','ENEMY_SPECTER_1','ENEMY_WIGHT_1','ENEMY_HARBINGER_1','ENEMY_BLOOD_SISTER_1',
+        'ENEMY_DOOMCALLER_1','ENEMY_SALAMANDER_1','ENEMY_VAMPIRE_1','ENEMY_REANIMATE_1','ENEMY_VIPER_1',
+        'ENEMY_MERCENARY_1'
+      ];
+    }
+    else if(val==='uthuk'){
+      ids=[
+        'ENEMY_BANDIT_CRAZED_1','ENEMY_FAE_RU_SPAWN','ENEMY_GOLEM_RAGESTONE_1','ENEMY_BERSERKER_1',
+        'ENEMY_BERSERKER_FLAYED','ENEMY_BLOOD_SISTER_1','ENEMY_BLOOD_SISTER_NIGHT','ENEMY_WOLF_RED_EYED',
+        'ENEMY_ZEALOT_CRIMSON_1'
+      ];
+    }
+    else if(val==='dragon'){
+      ids=[
+        'ENEMY_BANDIT_RUNEBLADE_1','ENEMY_Q7_BANDIT_SNIPER','ENEMY_FAE_HEATH_SPAWN','ENEMY_GOLEM_RUNEBOUND_1',
+        'ENEMY_HARBINGER_1','ENEMY_FIREBREATHER','ENEMY_HARBINGER_VANGUARD_1','ENEMY_WOLF_ELDERBONE',
+        'ENEMY_BOSS_GREYSDON','ENEMY_ZEALOT_DREAD_1'
+      ];
+    }
+    else if(val==='baronial'){
+      ids=[
+        'ENEMY_BANDIT_BARONIAL_1','ENEMY_BANDIT_BARONIAL_ARBALESTER_1','ENEMY_GOLEM_BARONIAL_1',
+        'ENEMY_HARBINGER_BARONIAL_1','ENEMY_WOLF_BARONIAL_1','ENEMY_ZEALOT_BARONIAL_1'
+      ];
+    }
+    else if(val==='undead'){
+      ids=[
+        'ENEMY_BANDIT_SHADOWALK_1','ENEMY_FAE_MIST_SPAWN','ENEMY_GOLEM_MISTWALKER_1','ENEMY_SPECTER_1',
+        'Q8_GYLDREN','ENEMY_SPECTER_DEATHBORN','ENEMY_SPECTER_RUNEMARKED','ENEMY_SUMMONED_SPECTER',
+        'ENEMY_BLOOD_SISTER_UNDEAD','ENEMY_WIGHT_1','ENEMY_WIGHT_BLOODGUARD','ENEMY_WOLF_PUTRID',
+        'ENEMY_ZEALOT_SQ2','ENEMY_ZEALOT_PALE_1'
+      ];
+    }
+    else if(val==='act1'){ ids=(DATA.enemies||[]).filter(function(e){return (itemActOf?itemActOf(e):e.act||1)<2;}).map(function(e){return e.id;}); }
+    else if(val==='act2'){ ids=(DATA.enemies||[]).filter(function(e){return !( (itemActOf?itemActOf(e):e.act||1)<2 );}).map(function(e){return e.id;}); }
+    else if(val==='mini' || val==='boss'){
+      ids=(DATA.enemies||[]).filter(function(e){return !!(ENEMY_TAG_BY_LIST[e.id]===val || (camp.enemyTags && camp.enemyTags[e.id]===val));}).map(function(e){return e.id;});
+      if(!ids.length){ ids=Object.keys(ENEMY_TAG_BY_LIST).filter(function(id){return ENEMY_TAG_BY_LIST[id]===val;}); }
+    }
+    else if(val.indexOf('family:')===0){
+      const fname=val.slice('family:'.length);
+      const fam=presetFamilies.find(function(f){return f.family_name===fname;});
+      if(fam) ids=fam.member_ids.slice();
+    }
+    ids=Array.from(new Set(ids)).filter(function(id){
+      const e=(DATA.enemies||[]).find(function(x){return x.id===id;}) || ((typeof state!=='undefined' && state && Array.isArray(state.custom&&state.custom.enemies))? state.custom.enemies.find(function(x){return x.id===id;}): undefined);
+      if(!e) return true;
+      const act=(itemActOf?itemActOf(e): (e.act||1));
+      return !(act>=2 && !allowedAct2);
+    });
+    var poolName='Custom Pool';
+    if(val==='base') poolName='Base';
+    else if(val==='uthuk') poolName='Uthuk Faction';
+    else if(val==='dragon') poolName='Dragon Faction';
+    else if(val==='baronial') poolName='Baronial Faction';
+    else if(val==='undead') poolName='Undead Faction';
+    else if(val==='act1') poolName='Act 1 Pool';
+    else if(val==='act2') poolName='Act 2 Pool';
+    else if(val==='mini') poolName='Mini-Bosses';
+    else if(val==='boss') poolName='Bosses';
+    else if(val.indexOf('family:')===0) poolName=val.slice('family:'.length)+' Pool';
+    camp.enemyPools.push({name:poolName, enemies:ids});
+    enemyPoolsSelected=camp.enemyPools.length-1;
+    renderEnemiesCategory();
+  }); });
   main.querySelectorAll('[data-selectpool]').forEach(function(b){ b.addEventListener('click', function(){ enemyPoolsSelected=parseInt(b.getAttribute('data-selectpool'),10); renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-delpool]').forEach(function(b){ b.addEventListener('click', function(){ var idx=parseInt(b.getAttribute('data-delpool'),10); if(isNaN(idx)) return; camp.enemyPools.splice(idx,1); if(camp.enemyPools.length===0) enemyPoolsSelected=-1; else if(enemyPoolsSelected>=camp.enemyPools.length) enemyPoolsSelected=camp.enemyPools.length-1; renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-rmpool]').forEach(function(b){ b.addEventListener('click', function(){ var pid=b.getAttribute('data-pool'); var eid=b.getAttribute('data-rmpool'); var p=camp.enemyPools && camp.enemyPools[parseInt(pid,10)]; if(!p || !Array.isArray(p.enemies)) return; p.enemies=p.enemies.filter(function(x){return x!==eid;}); renderEnemiesCategory(); }); });
