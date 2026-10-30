@@ -49,7 +49,29 @@ const carIdx={};
 function carKey(cls,slot){return cls+'|'+slot;}
 function partVariants(cls,slot){return state.weaponParts.filter(function(w){return w.class===cls && w.slot===slot;}).sort(function(a,b){return a.id>b.id?1:-1;});}
 function isDefaultPart(cls,slot,id){ id=String(id||''); if(slot==='A') return /_1$/i.test(id) && id.indexOf(cls)!==-1? true : /_1$/i.test(id); if(slot==='B'||slot==='C') return /_0$/i.test(id); return false; }
-function carouselItems(cls,slot){return partVariants(cls,slot).filter(function(w){return inStartInv(w.id) || isDefaultPart(cls,slot,w.id);});}
+function carouselItems(cls,slot){
+  const variants=partVariants(cls,slot);
+  const picked=[];
+  const seen={};
+  function add(w){
+    if(!w || seen[w.id]) return;
+    seen[w.id]=true;
+    picked.push(w);
+  }
+  variants.forEach(function(w){
+    const owned=inStartInv(w.id);
+    // A keeps its normal defaults (base "_1") plus owned items.
+    if(slot==='A'){
+      const isDefault=isDefaultPart(cls,slot,w.id);
+      if(!owned && !isDefault) return;
+    } else {
+      // B/C show only items actually present in Starting Inventory.
+      if(!owned) return;
+    }
+    add(w);
+  });
+  return picked;
+}
 function inStartInv(id){try{return !!(typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.items) && camp.start.items.some(function(i){return i.id===id;}));}catch(e){return false;}}
 function setStartInv(id,on){try{if(typeof camp==='undefined'||!camp) return; camp.start=camp.start||{items:[]}; if(!Array.isArray(camp.start.items)) camp.start.items=[]; if(on){if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1});}else{camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});} if(typeof renderRight==='function') renderRight();}catch(e){}}
 const classes=Array.from(new Set(state.weaponParts.map(function(x){return x.class;}))).sort();
