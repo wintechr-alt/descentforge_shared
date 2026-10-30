@@ -894,10 +894,12 @@ function renderEnemiesCategory(){
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+rows+'</div>'+
     '</div>';
   }).join('');
-  const mechOpts=Array.from(new Set(filteredBase.reduce(function(acc,x){ if(Array.isArray(x.mech)) x.mech.forEach(function(t){acc.push(t);}); return acc; },[]))).sort();
+  const mechOpts=Array.from(new Set(filteredBase.reduce(function(acc,x){ if(Array.isArray(x.mech)) x.mech.forEach(function(t){ if(['Base','Mini','Boss'].indexOf(t)<0) acc.push(t); }); return acc; },[]))).sort();
   const themeOpts=Array.from(new Set(filteredBase.reduce(function(acc,x){ if(Array.isArray(x.theme)) x.theme.forEach(function(t){acc.push(t);}); return acc; },[]))).sort();
-  const mechSel='<div style="display:flex;flex-wrap:wrap;gap:4px;max-width:420px;">'+mechOpts.map(function(t){return '<label style="font-size:10px;"><input type="checkbox" data-mech="'+esc(t)+'" '+(enemyMechFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join('')+'</div>';
-  const themeSel='<div style="display:flex;flex-wrap:wrap;gap:4px;max-width:420px;">'+themeOpts.map(function(t){return '<label style="font-size:10px;"><input type="checkbox" data-theme="'+esc(t)+'" '+(enemyThemeFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join('')+'</div>';
+  const customOpts=['Base','Mini','Boss'].filter(function(t){ return (filteredBase||[]).some(function(x){ return Array.isArray(x.mech) && x.mech.indexOf(t)>=0; }); });
+  const mechSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:4px;margin-bottom:2px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Mech:</span>'+mechOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-mech="'+esc(t)+'" '+(enemyMechFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
+  const themeSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:4px;margin-bottom:2px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Theme:</span>'+themeOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-theme="'+esc(t)+'" '+(enemyThemeFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
+  const customSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:4px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Custom:</span>'+customOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-mech="'+esc(t)+'" '+(enemyMechFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
   const createBtn='<button id="enemCreatePool" style="padding:4px 8px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-size:11px;">Create pool</button>';
   const poolSel= (camp.enemyPools.length? '<select id="enemPoolSel" style="padding:4px 6px;border:1px solid var(--edge);background:var(--panel2);color:var(--text);border-radius:4px;">'+
             camp.enemyPools.map(function(p,i){return '<option value="'+i+'" '+(i===enemyPoolsSelected?'selected':'')+'>pool'+(i+1)+' ('+(p.enemies||[]).length+')</option>';}).join('')+ '</select>' : '');
@@ -958,8 +960,8 @@ const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; ret
     (poolRows||'<p style="color:var(--dim);font-size:12px;">No enemy pools yet. Create one above.</p>')+
   '</div>';
   main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+
-      ' <button id="enemyFilterMode" class="sm" type="button" style="border:1px solid var(--edge);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px;background:var(--panel2);color:var(--text);">Filter: '+(enemyFilterMode==='and'?'AND (all selected)':'OR (any selected)')+'</button>'+
+    '<div style="width:980px;max-width:100%;margin:0 auto 8px;display:flex;flex-direction:column;gap:4px;border:1px solid var(--edge);border-radius:6px;padding:6px;background:var(--panel2);">'+mechSel+themeSel+customSel+
+      '<div style="text-align:right;"><button id="enemyFilterMode" class="sm" type="button" style="border:1px solid var(--edge);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px;background:var(--panel2);color:var(--text);">Filter: '+(enemyFilterMode==='and'?'AND (all selected)':'OR (any selected)')+'</button></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;max-width:1320px;margin:0 auto;align-items:start;">'+
       '<div style="min-width:0;">'+blocks+(customSection||'')+'</div>'+
