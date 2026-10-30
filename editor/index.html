@@ -2102,10 +2102,12 @@ function abrirPantallaLoadout(){
   if(!hlPantallaHero || !heroes.some(h=>h.id===hlPantallaHero)) hlPantallaHero=heroes[0].id;
   openDlg(TS('Hero loadout','Hero loadout'),
     `<div id="hlPantallaBody"></div>`,
-    `<button id="hlPantallaAuto">${TS('Auto populate','Auto populate')}</button> <button id="hlPantallaDone">${TS('Hecho','Done')}</button>`);
+    `<button id="hlPantallaAuto">${TS('Auto populate','Auto populate')}</button> <button id="hlPantallaReset">${TS('Reset','Reset')}</button> <button id="hlPantallaDone">${TS('Hecho','Done')}</button>`);
   pintarPantallaLoadout();
   const autoBtn=document.getElementById('hlPantallaAuto');
   if(autoBtn) autoBtn.onclick=()=>{ hlAutoPopulate(); };
+  const resetBtn=document.getElementById('hlPantallaReset');
+  if(resetBtn) resetBtn.onclick=()=>{ hlResetLoadout(); };
   const done=document.getElementById('hlPantallaDone');
   if(done) done.onclick=()=>dlg.close();
 }
@@ -2192,6 +2194,16 @@ function hlAutoPopulate(){
   if (hlPantallaHero) pintarPantallaLoadout();
 }
 
+
+function hlResetLoadout(){
+  const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
+  heroes.forEach(function(hero){ const hid=hero.id||hero;
+    const L=ensureCampLoadout(hid);
+    (L.slots||[]).forEach(function(slot){ slot.a=''; slot.b=''; slot.c=''; });
+  });
+  if (hlPantallaHero) pintarPantallaLoadout();
+}
+
 function hlArrow(hero, field, slotIndex, delta){ console.log('HLARROW',hero,field,slotIndex,delta);
   const L=ensureCampLoadout(hero);
   if(field==='A' && isSharedPartA(L.slots[slotIndex].a)){
@@ -2261,7 +2273,7 @@ function opcionesLoadout(heroId, field, slotIndex){
     const L=ensureCampLoadout(heroId);
     const used=new Set(Object.keys(camp.start.loadout||{}).filter(h=>h!==heroId).map(h=> (camp.start.loadout[h]||{}).trinket).filter(Boolean));
     const cur=L.trinket;
-    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && actOk(g) && (!used.has(g.id) || g.id===cur))
+    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && actOk(g) && (!used.has(g.id) || g.id===cur) && (startHas(g.id) || g.id===cur))
       .map(g=>({id:g.id,name:g.name_en||g.name})));
   }
   if(field==='A'){
@@ -2270,9 +2282,7 @@ function opcionesLoadout(heroId, field, slotIndex){
     const cls=(HERO_DEFAULT_LOADOUT_CLASSES[heroId]||[])[slotIndex];
     const inCls = function(w){ return !cls || w.class===cls; };
     const allowed = (DATA.weaponParts||[]).filter(w=>w.slot==='A' && actOk(w) && inCls(w));
-    console.log('OPCIONES_A', heroId, 'CLS=', cls, 'ALLOWED=', allowed.map(w=>w.id).join('|'), 'startHas2=', startHas('WEAPON_PART_A_SWORD_2'), 'items=', (camp.start.items||[]).map(i=>i.id).join('|'));
-    return [{id:'',name:'(none)' }].concat(allowed.filter(w=>startHas(w.id) || w.id===cur)
-      .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
+    return (allowed.filter(w=>startHas(w.id))).map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class}));
   }
   const L=ensureCampLoadout(heroId);
   const cls = L.slots[slotIndex] && L.slots[slotIndex].a ? classOfPartA(L.slots[slotIndex].a) : '';
