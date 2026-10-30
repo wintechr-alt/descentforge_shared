@@ -1,4 +1,75 @@
 (function(){
+const ENEMY_TAG_BY_LIST = {
+  "ENEMY_Q11_OUTLAW_PRINCE": "boss",
+  "ENEMY_GILLIAM_1": "mini",
+  "ENEMY_BOSS_ORBAN": "mini",
+  "ENEMY_FAE_A2_NAMED": "mini",
+  "ENEMY_GOLEM_A2_NAMED": "mini",
+  "ENEMY_BACKBREAKER_1": "boss",
+  "ENEMY_LT_DRYS": "mini",
+  "ENEMY_LT_EIZ": "mini",
+  "ENEMY_LT_ZERAI": "mini",
+  "ENEMY_BOSS_XAIN": "boss",
+  "ENEMY_SPECTER_A2_NAMED": "mini",
+  "ENEMY_Q4_VAGABOND": "boss",
+  "ENEMY_INTRO_BOSS": "boss",
+  "ENEMY_Q8_BOSS_NE'KRUL": "boss",
+  "ENEMY_BOSS_EURTH": "none",
+  "ENEMY_BLOOD_SISTER_UNDEAD": "mini",
+  "ENEMY_Q9_NEKRUL": "boss",
+  "ENEMY_Q12_NE_KRUL_1": "mini",
+  "ENEMY_Q12_NE_KRUL_2": "mini",
+  "ENEMY_BOSS_ONE_FANG": "mini",
+  "Q13_ENEMY_GREYSDON": "boss",
+  "ENEMY_BOSS_GREYSDON": "none",
+  "ENEMY_NAVOTH_1": "mini",
+  "ENEMY_THE_BAILIFF": "mini",
+  "ENEMY_BOSS_KHAMPANAX": "mini",
+  "ENEMY_ZACHARETH_1": "boss",
+  "A2Q02_ENEMY_MORANT": "mini",
+  "ENEMY_BOSS_HOARY_FOX": "mini",
+  "ENEMY_BOSS_ZADIE": "mini",
+  "ENEMY_RENEYR_1": "boss",
+  "ENEMY_GILLIAM_2": "boss",
+  "A2Q01_VRASKHAR": "boss",
+  "ENEMY_BOSS_ATHROK": "mini",
+  "ENEMY_A2Q11_LEVIRAX_A": "boss",
+  "ENEMY_A2Q11_LEVIRAX_B": "boss",
+  "ENEMY_A2Q11_LEVIRAX_C": "boss",
+  "ENEMY_DRAGON_1": "boss",
+  "ENEMY_DRAGON_ELDER": "boss",
+  "ENEMY_Q13_XENITH": "boss",
+  "UNUSED_ENEMY_Q14_XENITH": "boss",
+  "ENEMY_Q14_XENITH": "boss",
+  "ENEMY_Q7_XENITH": "boss",
+  "ENEMY_DRAGON_SCULPT": "boss",
+  "ENEMY_Q8_XENITH": "boss",
+  "ENEMY_BOSS_NAZGESH": "boss",
+  "ENEMY_BERSERKER_1": "base",
+  "ENEMY_WARY_BANDIT_1": "base",
+  "ENEMY_ZEALOT_1": "base",
+  "ENEMY_GOLEM_1": "base",
+  "ENEMY_FAE_1": "base",
+  "ENEMY_WOLF_1": "base",
+  "ENEMY_SPECTER_1": "base",
+  "ENEMY_WIGHT_1": "base",
+  "ENEMY_HARBINGER_1": "base",
+  "ENEMY_CENTURIAN_3": "base",
+  "ENEMY_BLOOD_SISTER_1": "base",
+  "ENEMY_DOOMCALLER_1": "base",
+  "ENEMY_DRAGON_1": "base",
+  "ENEMY_SALAMANDER_1": "base",
+  "ENEMY_VAMPIRE_1": "base",
+  "ENEMY_REANIMATE_1": "base",
+  "ENEMY_VIPER_1": "base",
+  "ENEMY_MERCENARY_1": "base",
+  "ENEMY_BOSS_VRASKHAR": "mini",
+  "Q13_ENEMY_FLAME_ZEALOT": "mini",
+  "ENEMY_ZEALOT_RUNE_OF_BLADES": "mini",
+  "ENEMY_Q4_HERMIT": "boss",
+  "ENEMY_Q4_IGOR": "boss",
+  "ENEMY_Q8_E2_BOSS_UTHUK": "mini",
+};
 const KEY='descentforge_forge_data_v1';
 function clone(v){return JSON.parse(JSON.stringify(v||[]));}
 let state={weaponParts:[]};
@@ -450,6 +521,7 @@ function renderTrinketsCategory(){
 const ENEMY_TYPE_CAPS={"0": {"family_name": "Uthuk Berserker", "cap": 4, "act": 1, "member_ids": ["ENEMY_BERSERKER_1", "ENEMY_BERSERKER_0", "ENEMY_Q4_VAGABOND", "ENEMY_EVIL_GALADEN", "ENEMY_BERSERKER_FLAYED"], "faction": "Uthuk Y'llan", "notes": "No heavy armor.", "weak_to": {"ENEMY_BERSERKER_1": ["Pierce", "Aquos"], "ENEMY_BERSERKER_0": ["Pierce"], "ENEMY_Q4_VAGABOND": ["Slash", "Lumos"], "ENEMY_EVIL_GALADEN": ["Pierce", "Aquos"], "ENEMY_BERSERKER_FLAYED": ["Pierce", "Aquos", "Terros"]}}, "1": {"family_name": "Bandit", "cap": 4, "act": 1, "member_ids": ["ENEMY_WARY_BANDIT_1", "ENEMY_BANDIT_CRAZED_1", "ENEMY_BANDIT_RUNEBLADE_1", "ENEMY_BANDIT_SHADOWALK_1", "ENEMY_Q11_OUTLAW_PRINCE", "ENEMY_Q7_BANDIT_SNIPER", "ENEMY_EVIL_CHANCE", "ENEMY_GILLIAM_1", "ENEMY_BANDIT_BARONIAL_1", "ENEMY_BANDIT_BARONIAL_ARBALESTER_1", "ENEMY_BANDIT_SNIPER_1", "ENEMY_BOSS_ORBAN"], "faction": "Wilds", "notes": "Cheap leather/cloth armor. Tamalir markets.", "weak_to": {"ENEMY_WARY_BANDIT_1": ["Pierce", "Anemos"], "ENEMY_BANDIT_CRAZED_1": ["Pierce", "Anemos", "Aquos"], "ENEMY_BANDIT_RUNEBLADE_1": ["Pierce", "Anemos", "Umbros"], "ENEMY_BANDIT_SHADOWALK_1": ["Pierce", "Anemos", "Lumos"], "ENEMY_Q11_OUTLAW_PRINCE": ["Pierce", "Anemos"], "ENEMY_Q7_BANDIT_SNIPER": ["Pierce", "Anemos", "Umbros"], "ENEMY_EVIL_CHANCE": ["Pierce", "Anemos"], "ENEMY_GILLIAM_1": ["Slash", "Mortos", "Fortunos"], "ENEMY_BANDIT_BARONIAL_1": ["Pierce", "Anemos", "Mortos"], "ENEMY_BANDIT_BARONIAL_ARBALESTER_1": ["Pierce", "Fortunos", "Mortos"], "ENEMY_BANDIT_SNIPER_1": ["Pierce", "Fortunos", "Anemos"], "ENEMY_BOSS_ORBAN": ["Pierce", "Aquos", "Fortunos"]}}, "2": {"family_name": "Zealot", "cap": 4, "act": 1, "member_ids": ["ENEMY_ZEALOT_1", "ENEMY_ZEALOT_A2_NAMED", "ENEMY_ZEALOT_BARONIAL_1", "ENEMY_ZEALOT_CRIMSON_1", "ENEMY_ZEALOT_DREAD_1", "ENEMY_ZEALOT_PALE_1", "ENEMY_ZEALOT_RUNE_OF_BLADES", "ENEMY_ZEALOT_SQ2", "ENEMY_EVIL_SYRUS", "Q13_ENEMY_FLAME_ZEALOT", "ENEMY_BOSS_GREYSDON", "ENEMY_Q4_HERMIT", "ENEMY_Q4_IGOR", "ENEMY_S2_NECROMANCER", "Q13_ENEMY_GREYSDON"], "faction": "Uthuk Y'llan", "notes": "Guards Uthuk villages/strongholds. (reclassified from an inconsistent \"Wilds (Uthuk-aligned)\" label to match the exact faction string quest files use.)", "weak_to": {"ENEMY_ZEALOT_1": ["Slash", "Ignos"], "ENEMY_ZEALOT_A2_NAMED": ["Slash", "Ignos", "Vigos"], "ENEMY_ZEALOT_BARONIAL_1": ["Slash", "Anemos", "Aquos"], "ENEMY_ZEALOT_CRIMSON_1": ["Slash", "Ignos", "Aquos"], "ENEMY_ZEALOT_DREAD_1": ["Slash", "Ignos", "Umbros"], "ENEMY_ZEALOT_PALE_1": ["Slash", "Ignos", "Lumos"], "ENEMY_ZEALOT_RUNE_OF_BLADES": ["Ignos", "Terros"], "ENEMY_ZEALOT_SQ2": ["Slash", "Ignos", "Lumos"], "ENEMY_EVIL_SYRUS": ["Slash", "Ignos"], "Q13_ENEMY_FLAME_ZEALOT": ["Pierce", "Aquos"], "ENEMY_BOSS_GREYSDON": ["Slash", "Ignos", "Umbros"], "ENEMY_Q4_HERMIT": ["Slash"], "ENEMY_Q4_IGOR": ["Slash"], "ENEMY_S2_NECROMANCER": ["Slash"], "Q13_ENEMY_GREYSDON": ["Aquos", "Umbros"]}}, "3": {"family_name": "Golem", "cap": 2, "act": 1, "member_ids": ["ENEMY_GOLEM_1", "ENEMY_GOLEM_A2_NAMED", "ENEMY_GOLEM_BARONIAL_1", "ENEMY_GOLEM_MISTWALKER_1", "ENEMY_GOLEM_Q2", "ENEMY_GOLEM_RAGESTONE_1", "ENEMY_GOLEM_RUNEBOUND_1", "ENEMY_S2_GOLEM", "ENEMY_EVIL_KEHLI", "ENEMY_DELPHYNDRAS_MISTAKE", "ENEMY_BACKBREAKER_1"], "faction": "Wilds", "notes": "Highmont Fortress. (label normalized from \"Wilds/Citadel\" to the exact faction string quest files use.)", "weak_to": {"ENEMY_GOLEM_1": ["Crush", "Aquos"], "ENEMY_GOLEM_A2_NAMED": ["Crush", "Aquos", "Terros"], "ENEMY_GOLEM_BARONIAL_1": ["Crush", "Aquos", "Mortos"], "ENEMY_GOLEM_MISTWALKER_1": ["Crush", "Aquos", "Lumos"], "ENEMY_GOLEM_Q2": ["Crush", "Aquos"], "ENEMY_GOLEM_RAGESTONE_1": ["Crush", "Aquos", "Ignos"], "ENEMY_GOLEM_RUNEBOUND_1": ["Crush", "Aquos", "Umbros"], "ENEMY_S2_GOLEM": ["Crush"], "ENEMY_EVIL_KEHLI": ["Crush", "Aquos"], "ENEMY_DELPHYNDRAS_MISTAKE": ["Crush", "Aquos", "Ignos"], "ENEMY_BACKBREAKER_1": ["Aquos", "Umbros"]}}, "4": {"family_name": "Fae", "cap": 2, "act": 1, "member_ids": ["ENEMY_FAE_1", "ENEMY_FAE_A2_NAMED", "ENEMY_FAE_HEATH_SPAWN", "ENEMY_FAE_MIST_SPAWN", "ENEMY_FAE_RU_SPAWN"], "faction": "Wilds", "notes": "Frostgate/Forthyn highlands, illusion stealth.", "weak_to": {"ENEMY_FAE_1": ["Crush", "Terros"], "ENEMY_FAE_A2_NAMED": ["Crush", "Terros"], "ENEMY_FAE_HEATH_SPAWN": ["Crush", "Terros", "Umbros"], "ENEMY_FAE_MIST_SPAWN": ["Crush", "Terros", "Lumos"], "ENEMY_FAE_RU_SPAWN": ["Crush", "Terros", "Aquos"]}}, "5": {"family_name": "Wolf", "cap": 3, "act": 1, "member_ids": ["ENEMY_SUMMONED_WOLF", "ENEMY_WOLF_1", "ENEMY_WOLF_BARONIAL_1", "ENEMY_WOLF_ELDERBONE", "ENEMY_WOLF_PUTRID", "ENEMY_WOLF_RED_EYED", "ENEMY_BOSS_ONE_FANG", "ENEMY_WOLF_S2"], "faction": "Wilds", "notes": "Woodland regions near Kell baronies.", "weak_to": {"ENEMY_SUMMONED_WOLF": ["Slash", "Anemos"], "ENEMY_WOLF_1": ["Slash", "Anemos"], "ENEMY_WOLF_BARONIAL_1": ["Slash", "Anemos", "Mortos"], "ENEMY_WOLF_ELDERBONE": ["Slash", "Anemos", "Umbros"], "ENEMY_WOLF_PUTRID": ["Slash", "Anemos", "Lumos"], "ENEMY_WOLF_RED_EYED": ["Slash", "Anemos", "Aquos"], "ENEMY_BOSS_ONE_FANG": ["Slash", "Anemos"], "ENEMY_WOLF_S2": ["Slash", "Ignos"]}}, "6": {"family_name": "Specter", "cap": 2, "act": 1, "member_ids": ["ENEMY_Q12_SPECTER", "ENEMY_SPECTER_1", "ENEMY_SPECTER_A2_NAMED", "ENEMY_SPECTER_DEATHBORN", "ENEMY_SPECTER_RUNEMARKED", "ENEMY_SUMMONED_SPECTER", "ENEMY_WRATHFUL_SPECTER", "Q8_GYLDREN"], "faction": "Waiqar's Undead Host", "notes": "Physical weapons pass through spectral forms.", "weak_to": {"ENEMY_Q12_SPECTER": [], "ENEMY_SPECTER_1": ["Anemos", "Lumos"], "ENEMY_SPECTER_A2_NAMED": ["Anemos", "Lumos", "Vigos"], "ENEMY_SPECTER_DEATHBORN": ["Anemos", "Lumos", "Umbros"], "ENEMY_SPECTER_RUNEMARKED": ["Anemos", "Lumos", "Umbros"], "ENEMY_SUMMONED_SPECTER": ["Anemos", "Lumos"], "ENEMY_WRATHFUL_SPECTER": ["Aquos", "Terros"], "Q8_GYLDREN": ["Anemos", "Lumos", "Umbros"]}}, "7": {"family_name": "Wight", "cap": 4, "act": 1, "member_ids": ["ENEMY_WIGHT_1", "ENEMY_WIGHT_BLOODGUARD", "ENEMY_EVIL_BRYNN"], "faction": "Waiqar's Undead Host", "notes": "Undead reinforcements, corrupted battlefields.", "weak_to": {"ENEMY_WIGHT_1": ["Crush", "Lumos"], "ENEMY_WIGHT_BLOODGUARD": ["Crush", "Lumos", "Toxos"], "ENEMY_EVIL_BRYNN": ["Crush", "Lumos"]}}, "8": {"family_name": "Hybrid Harbinger", "cap": 4, "act": 1, "member_ids": ["ENEMY_HARBINGER_1", "ENEMY_HARBINGER_BARONIAL_1", "ENEMY_HARBINGER_SELLSWORD", "ENEMY_HARBINGER_VANGUARD_1", "ENEMY_FIREBREATHER", "ENEMY_LT_DRYS", "ENEMY_LT_EIZ", "ENEMY_LT_ZERAI", "ENEMY_BOSS_XAIN", "ENEMY_EVIL_VAERIX"], "faction": "Dragon-Kin", "notes": "Leathery wings are the vulnerability point.", "weak_to": {"ENEMY_HARBINGER_1": ["Pierce", "Umbros"], "ENEMY_HARBINGER_BARONIAL_1": ["Pierce", "Mortos"], "ENEMY_HARBINGER_SELLSWORD": ["Pierce", "Toxos"], "ENEMY_HARBINGER_VANGUARD_1": ["Slash", "Pierce", "Umbros"], "ENEMY_FIREBREATHER": ["Pierce", "Umbros"], "ENEMY_LT_DRYS": ["Pierce", "Umbros"], "ENEMY_LT_EIZ": ["Pierce", "Umbros"], "ENEMY_LT_ZERAI": ["Pierce", "Umbros"], "ENEMY_BOSS_XAIN": ["Slash", "Umbros"], "ENEMY_EVIL_VAERIX": ["Pierce", "Umbros"]}}, "9": {"family_name": "Hybrid Centurion", "cap": 1, "act": 1, "member_ids": ["ENEMY_CENTURIAN_3", "ENEMY_CENTURIAN_VANGUARD_1", "ENEMY_Q13_XENITH", "UNUSED_ENEMY_Q14_XENITH", "ENEMY_Q14_XENITH", "ENEMY_Q7_XENITH", "ENEMY_DRAGON_SCULPT", "ENEMY_BOSS_NAZGESH", "ENEMY_Q8_XENITH"], "faction": "Dragon-Kin", "notes": "Thick plate-like scales.", "weak_to": {"ENEMY_CENTURIAN_3": ["Aquos", "Umbros"], "ENEMY_CENTURIAN_VANGUARD_1": ["Aquos", "Umbros"], "ENEMY_Q13_XENITH": ["Aquos", "Umbros"], "UNUSED_ENEMY_Q14_XENITH": ["Aquos", "Umbros"], "ENEMY_Q14_XENITH": ["Aquos", "Umbros"], "ENEMY_Q7_XENITH": ["Aquos", "Umbros"], "ENEMY_DRAGON_SCULPT": ["Pierce"], "ENEMY_BOSS_NAZGESH": ["Vigos", "Umbros"], "ENEMY_Q8_XENITH": ["Aquos", "Umbros"]}}, "10": {"family_name": "Uthuk Blood Witch", "cap": 4, "act": 1, "member_ids": ["ENEMY_BLOOD_SISTER_1", "ENEMY_BLOOD_SISTER_NIGHT", "ENEMY_BLOOD_SISTER_UNDEAD", "ENEMY_INTRO_BOSS", "ENEMY_BOSS_EURTH", "ENEMY_MISTWITCH", "ENEMY_Q12_NE_KRUL_1", "ENEMY_Q12_NE_KRUL_2", "ENEMY_Q8_BOSS_NE'KRUL", "ENEMY_Q8_E2_BOSS_UTHUK", "ENEMY_Q9_NEKRUL"], "faction": "Uthuk Y'llan", "notes": "Blood/void corruption rituals at ruined strongholds.", "weak_to": {"ENEMY_BLOOD_SISTER_1": ["Slash", "Aquos"], "ENEMY_BLOOD_SISTER_NIGHT": ["Slash", "Aquos", "Terros"], "ENEMY_BLOOD_SISTER_UNDEAD": ["Slash", "Aquos", "Lumos"], "ENEMY_INTRO_BOSS": ["Slash"], "ENEMY_BOSS_EURTH": ["Slash", "Aquos", "Vigos"], "ENEMY_MISTWITCH": ["Slash", "Aquos"], "ENEMY_Q12_NE_KRUL_1": ["Slash", "Aquos"], "ENEMY_Q12_NE_KRUL_2": ["Slash", "Aquos"], "ENEMY_Q8_BOSS_NE'KRUL": ["Slash", "Aquos"], "ENEMY_Q8_E2_BOSS_UTHUK": ["Slash", "Aquos"], "ENEMY_Q9_NEKRUL": ["Slash", "Aquos"]}}, "11": {"family_name": "Doomcaller", "cap": 2, "act": 2, "member_ids": ["ENEMY_DOOMCALLER_1", "ENEMY_NAVOTH_1", "ENEMY_THE_BAILIFF", "ENEMY_BOSS_KHAMPANAX"], "faction": "Waiqar's Undead Host", "notes": "Dark ritualists and death-cult servants channeling necromantic power; light robes, no armor.", "weak_to": {"ENEMY_DOOMCALLER_1": ["Slash", "Umbros", "Mortos"], "ENEMY_NAVOTH_1": ["Umbros", "Mortos"], "ENEMY_THE_BAILIFF": ["Slash", "Fortunos", "Umbros"], "ENEMY_BOSS_KHAMPANAX": ["Slash", "Umbros", "Toxos"]}}, "12": {"family_name": "Dragon", "cap": 1, "act": 2, "member_ids": ["ENEMY_DRAGON_1", "ENEMY_DRAGON_ELDER", "ENEMY_A2Q11_LEVIRAX_A", "ENEMY_A2Q11_LEVIRAX_B", "ENEMY_A2Q11_LEVIRAX_C"], "faction": "Dragon-Kin", "notes": "True dragons and dragonlord-aligned creatures (including the LeViraX line); heavy natural armor.", "weak_to": {"ENEMY_DRAGON_1": ["Pierce", "Vigos"], "ENEMY_DRAGON_ELDER": ["Pierce", "Vigos", "Umbros"], "ENEMY_A2Q11_LEVIRAX_A": ["Vigos"], "ENEMY_A2Q11_LEVIRAX_B": ["Vigos"], "ENEMY_A2Q11_LEVIRAX_C": ["Vigos"]}}, "13": {"family_name": "Salamander", "cap": 2, "act": 2, "member_ids": ["ENEMY_SALAMANDER_1", "ENEMY_SALAMANDER_MOLTEN", "ENEMY_BOSS_ZADIE"], "faction": "Dragon-Kin", "notes": "Fire-elemental reptiles; natural resistance to fire-aligned attacks.", "weak_to": {"ENEMY_SALAMANDER_1": ["Crush", "Mortos"], "ENEMY_SALAMANDER_MOLTEN": ["Crush", "Mortos", "Umbros"], "ENEMY_BOSS_ZADIE": ["Crush", "Umbros"]}}, "14": {"family_name": "Vampire", "cap": 2, "act": 2, "member_ids": ["ENEMY_VAMPIRE_1", "ENEMY_GILLIAM_2", "ENEMY_VAMPIRE_NAMED", "ENEMY_RENEYR_1"], "faction": "Waiqar's Undead Host", "notes": "Undead bloodline creatures; no armor, high mobility.", "weak_to": {"ENEMY_VAMPIRE_1": ["Pierce", "Ignos", "Lumos", "Vigos"], "ENEMY_GILLIAM_2": ["Pierce", "Ignos", "Lumos", "Vigos"], "ENEMY_VAMPIRE_NAMED": ["Pierce", "Lumos", "Vigos"], "ENEMY_RENEYR_1": ["Pierce", "Ignos", "Lumos"]}}, "15": {"family_name": "Reanimate", "cap": 4, "act": 2, "member_ids": ["ENEMY_REANIMATE_1", "ENEMY_REANIMATE_FAMILIAR"], "faction": "Waiqar's Undead Host", "notes": "Reanimated corpses raised as soldiers; brittle, no armor.", "weak_to": {"ENEMY_REANIMATE_1": ["Crush", "Vigos"], "ENEMY_REANIMATE_FAMILIAR": ["Crush", "Ignos", "Vigos"]}}, "16": {"family_name": "Viper Legionnaire", "cap": 4, "act": 2, "member_ids": ["ENEMY_VIPER_1", "ENEMY_BOSS_VRASKHAR", "A2Q01_VRASKHAR", "ENEMY_BOSS_ATHROK"], "faction": "Dragon-Kin", "notes": "Serpentine legionnaires fighting in disciplined formation; moderate natural armor.", "weak_to": {"ENEMY_VIPER_1": ["Slash", "Aquos", "Fortunos"], "ENEMY_BOSS_VRASKHAR": ["Slash", "Aquos", "Fortunos"], "A2Q01_VRASKHAR": ["Slash", "Aquos", "Mortos"], "ENEMY_BOSS_ATHROK": ["Anemos", "Aquos", "Fortunos"]}}, "17": {"family_name": "Mercenary", "cap": 4, "act": 2, "member_ids": ["ENEMY_MERCENARY_1", "ENEMY_MERCENARY_BARONIAL_1", "ENEMY_MERCENARY_BLOODTHIRSTY", "ENEMY_MERCENARY_FALLEN", "ENEMY_MERCENARY_TARNISHED", "ENEMY_MERCENARY_WYRMBOUND", "A2Q02_ENEMY_MORANT", "ENEMY_BOSS_HOARY_FOX", "ENEMY_ZACHARETH_1"], "faction": "Wilds", "notes": "Hired blades and opportunists, same broad grouping as the Act 1 Bandit family; light-to-moderate armor.", "weak_to": {"ENEMY_MERCENARY_1": ["Pierce", "Toxos", "Ignos"], "ENEMY_MERCENARY_BARONIAL_1": ["Pierce", "Ignos", "Mortos"], "ENEMY_MERCENARY_BLOODTHIRSTY": ["Pierce", "Mortos", "Ignos"], "ENEMY_MERCENARY_FALLEN": ["Pierce", "Vigos", "Ignos"], "ENEMY_MERCENARY_TARNISHED": ["Vigos", "Mortos"], "ENEMY_MERCENARY_WYRMBOUND": ["Pierce", "Toxos", "Anemos"], "A2Q02_ENEMY_MORANT": ["Pierce", "Lumos", "Terros"], "ENEMY_BOSS_HOARY_FOX": ["Crush", "Toxos", "Ignos"], "ENEMY_ZACHARETH_1": ["Aquos", "Toxos", "Fortunos"]}}};
 let enemyMechFilter=[];
 let enemyThemeFilter=[];
+let enemyFilterMode='and'; // 'and' = all selected, 'or' = any selected
 let enemyPoolsSelected=0;
 function ensureCustomEnemies(){ if(!camp || typeof camp!=='object') camp={}; if(!Array.isArray(camp.customEnemies)) camp.customEnemies=[]; return camp.customEnemies; }
 const LOCKED_THEME_TRAITS=['Construct','Cold','Creature','Dragonkind','Fire','Humanoid','Incorporeal','Intelligent','Otherworldly','Water','Subterranean'];
@@ -677,6 +749,7 @@ function renderEnemiesCategory(){
   if(!camp || typeof camp!=='object') camp={};
   if(!Array.isArray(camp.customEnemies)) camp.customEnemies=[];
   if(!Array.isArray(camp.enemyPools)) camp.enemyPools=[];
+  if(!camp.enemyTags || typeof camp.enemyTags!=='object' || Array.isArray(camp.enemyTags)) camp.enemyTags={};
   if(camp.enemyPools.length===0) enemyPoolsSelected=-1; else if(enemyPoolsSelected<0 || enemyPoolsSelected>=camp.enemyPools.length) enemyPoolsSelected=Math.max(0,camp.enemyPools.length-1);
   const baseItems=((typeof DATA!=='undefined' && Array.isArray(DATA.enemies))? DATA.enemies : []).filter(function(e){
     return !(camp && Array.isArray(camp.customEnemies) && camp.customEnemies.some(function(c){return c.id===e.id;}));
@@ -687,11 +760,32 @@ function renderEnemiesCategory(){
     return {id:c.id,name:c.name,name_en:c.name,hp:c.hp,def:c.def,atk:c.atk,act:(be && be.act)||1,mech:c.mech||[],theme:c.theme||[], named:!!c.named, weaknesses:c.weaknesses||[]};
   });
   const items=baseItems.concat(customAsEnemies);
+
+  // Expose boss/mini tags as a Mech trait (like Huge/Small) for display and filtering.
+  items.forEach(function(x){
+    if(!Array.isArray(x.mech)) x.mech=[];
+    const manual=(camp.enemyTags && camp.enemyTags[x.id]) || '';
+    const mapped=(typeof ENEMY_TAG_BY_LIST!=='undefined' && ENEMY_TAG_BY_LIST[x.id]) || '';
+    const auto=!mapped && !manual ? (/boss/i.test(String(x.id||'')) ? 'boss' : (/named/i.test(String(x.id||'')) ? 'mini' : '')) : '';
+    const tag=manual || mapped || auto;
+    const mechTag= tag==='boss' ? 'Boss' : (tag==='mini' ? 'Mini' : (tag==='base' ? 'Base' : ''));
+    if(mechTag && x.mech.indexOf(mechTag)<0) x.mech.push(mechTag);
+  });
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
   const filteredBase=items.filter(function(x){ const act=familyAct(x); return !(act>=2 && !allowedAct2); });
   const filtered=filteredBase.filter(function(x){
-    if(enemyMechFilter.length && !(Array.isArray(x.mech) && x.mech.some(function(t){return enemyMechFilter.indexOf(t)>=0;}))) return false;
-    if(enemyThemeFilter.length && !(Array.isArray(x.theme) && x.theme.some(function(t){return enemyThemeFilter.indexOf(t)>=0;}))) return false;
+    if(enemyMechFilter.length){
+      const ok = enemyFilterMode==='and'
+        ? (Array.isArray(x.mech) && enemyMechFilter.every(function(t){return (x.mech||[]).indexOf(t)>=0;}))
+        : (Array.isArray(x.mech) && enemyMechFilter.some(function(t){return (x.mech||[]).indexOf(t)>=0;}));
+      if(!ok) return false;
+    }
+    if(enemyThemeFilter.length){
+      const ok = enemyFilterMode==='and'
+        ? (Array.isArray(x.theme) && enemyThemeFilter.every(function(t){return (x.theme||[]).indexOf(t)>=0;}))
+        : (Array.isArray(x.theme) && enemyThemeFilter.some(function(t){return (x.theme||[]).indexOf(t)>=0;}));
+      if(!ok) return false;
+    }
     return true;
   });
   const enemyById={};
@@ -743,24 +837,33 @@ function renderEnemiesCategory(){
     return (typeof arte==='function')? arte('portraits', famKey) : '';
   }
   function isInActivePool(id){ if(enemyPoolsSelected<0 || !camp.enemyPools.length) return false; var p=camp.enemyPools[enemyPoolsSelected]; return !!(p && (p.enemies||[]).indexOf(id)>=0); }
+  function poolsOfEnemy(id){ const r=[]; (camp.enemyPools||[]).forEach(function(p,i){ if(Array.isArray(p.enemies) && p.enemies.indexOf(id)>=0) r.push(i+1); }); return r; }
   function row(x){
     const act=actOf(x);
     const weak=weaknessDisplayOf(x.id);
     const src=portrait(x);
     const img=src? '<img src="'+src+'" style="width:48px;height:48px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;">' : '';
-    return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
-      img+
-      '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+'</div>'+
-        '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>'+
-        '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+' | Act '+((x.act||1)>=2?'II':'I')+'</div>'+
-        '<div style="color:var(--dim);font-size:10px;">Mech: '+esc((x.mech||[]).join(', ')||'—')+' | Theme: '+esc((x.theme||[]).join(', ')||'—')+'</div>'+
-        '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
+    const bossTagKey=(camp.enemyTags && camp.enemyTags[x.id]) || ENEMY_TAG_BY_LIST[x.id] || (/boss/i.test(String(x.id||'')) ? 'boss' : (/named/i.test(String(x.id||'')) ? 'mini' : ''));
+    const bossTag=bossTagKey ? (bossTagKey==='boss' ? 'BOSS' : (bossTagKey==='mini' ? 'MINI' : (bossTagKey==='base' ? 'BASE' : ''))) : '';
+    const border=bossTag==='BOSS' ? 'border-color:var(--torch);box-shadow:0 0 0 1px var(--torch);' : (bossTag==='MINI' ? 'border-color:#d9a441;box-shadow:0 0 0 1px #d9a441;' : (bossTag==='BASE' ? 'border-color:var(--verd);box-shadow:0 0 0 1px var(--verd);' : ''));
+    return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);'+border+'background:var(--panel2);border-radius:6px;display:flex;flex-direction:column;gap:4px;">'+
+      '<div style="display:flex;align-items:flex-start;gap:8px;">'+
+        img+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;">'+esc(x.name_en||x.name||x.id)+'</div>'+
+          '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>'+
+          '<div style="color:var(--dim);font-size:11px;">HP '+esc(x.hp)+' | DEF '+esc(x.def)+' | ATK '+esc(x.atk)+' | Act '+((x.act||1)>=2?'II':'I')+'</div>'+
+          '<div style="color:var(--dim);font-size:10px;">Mech: '+esc((x.mech||[]).join(', ')||'---')+' | Theme: '+esc((x.theme||[]).join(', ')||'---')+'</div>'+
+          '<div style="color:var(--verd);font-size:11px;">Weak: '+(weak.length? weak.join(', ') : 'none listed')+'</div>'+
+          (bossTag? '<div style="display:inline-block;margin-top:2px;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;background:'+(bossTag==='BOSS'?'var(--torch)':(bossTag==='MINI'?'#d9a441':'var(--verd)'))+';color:#000;">'+bossTag+'</div>' : '')+
+        '</div>'+
+        '<button class="sm" data-forcustbase="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Edit</button>'+
+        ((camp.customEnemies||[]).some(function(c){return c.id===x.id;}) ? '<button class="sm" data-forcustdel="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Del</button>' : '')+
       '</div>'+
-      '<button class="sm" data-forcustbase="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Edit</button>'+
-      ((camp.customEnemies||[]).some(function(c){return c.id===x.id;}) ? '<button class="sm" data-forcustdel="'+x.id+'" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Del</button>' : '')+
-      (camp.enemyPools.length && enemyPoolsSelected>=0 ? ' <label style="font-size:10px;"><input type="checkbox" data-enemypool="'+x.id+'" '+(isInActivePool(x.id)?'checked':'')+'> pool'+(enemyPoolsSelected+1)+'</label>' : '')+
+      (camp.enemyPools.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'+camp.enemyPools.map(function(p,i){ const on=(Array.isArray(p.enemies)&&p.enemies.indexOf(x.id)>=0); return '<button class="sm" type="button" data-enempool="'+x.id+'" data-pool="'+i+'" style="background:'+(on?'var(--verd)':'var(--panel2)')+';color:'+(on?'var(--ink)':'var(--text)')+';border:1px solid var(--edge);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px;">P'+(i+1)+'</button>'; }).join('')+(function(){ const ps=poolsOfEnemy(x.id); return ps && ps.length ? ' <span style="font-size:10px;padding:2px 6px;background:var(--panel2);border:1px solid var(--edge);border-radius:4px;">Pool '+ps.join(',')+'</span>' : ''; })()+'</div>' : '')+
     '</div>';
+
+
   }
   const byFam={};
   const order=[];
@@ -772,7 +875,17 @@ function renderEnemiesCategory(){
   });
   order.sort();
   const blocks=order.map(function(famName){
+    function _rankTag(x){
+      const manual=(camp.enemyTags && camp.enemyTags[x.id]) || '';
+      const listed=(typeof ENEMY_TAG_BY_LIST!=='undefined' && ENEMY_TAG_BY_LIST[x.id]) || '';
+      const auto=!manual && !listed ? (/boss/i.test(String(x.id||'')) ? 'boss' : (/named/i.test(String(x.id||'')) ? 'mini' : '')) : '';
+      const tag=manual || listed || auto;
+      const order={'base':0, '':1, 'none':1, 'mini':2, 'boss':3};
+      return (typeof order[tag]!=='undefined') ? order[tag] : 1;
+    }
     const list=byFam[famName].slice().sort(function(a,b){
+      const r=_rankTag(a)-_rankTag(b);
+      if(r!==0) return r;
       return ((a.act||1)-(b.act||1)) || String(a.name_en||a.name||a.id).localeCompare(String(b.name_en||b.name||b.id));
     });
     const rows=list.map(row).join('');
@@ -808,17 +921,45 @@ function renderEnemiesCategory(){
     '</div>'+
     (customRows||'<p style="color:var(--dim);font-size:12px;">No custom monsters.</p>')+
   '</div>';
+  const poolRows=(camp.enemyPools||[]).map(function(p,i){
+    const chips=(function(ids){ const groups={}; const order=[]; (ids||[]).forEach(function(id){ const fam=familyOf(id); const gname=(fam && fam.family_name) ? fam.family_name : (enemyById && enemyById[id] ? (enemyById[id].name_en||enemyById[id].name||id) : id); if(!groups[gname]){ groups[gname]={ids:[], sample: (enemyById && enemyById[id]) || {id:id}}; order.push(gname); } groups[gname].ids.push(id); }); return order.map(function(gname){ const g=groups[gname]; const src=g.sample; const psrc=portrait(src||{id:g.ids[0]}); const rankTag=function(id){ const manual=(camp.enemyTags && camp.enemyTags[id]) || ''; const listed=(typeof ENEMY_TAG_BY_LIST!=='undefined' && ENEMY_TAG_BY_LIST[id]) || ''; const auto=!manual && !listed ? (/boss/i.test(String(id||'')) ? 'boss' : (/named/i.test(String(id||'')) ? 'mini' : '')) : ''; const tag=manual || listed || auto; const order={'base':0, '':1, 'none':1, 'mini':2, 'boss':3}; return (typeof order[tag]!=='undefined') ? order[tag] : 1; };
+const rankedIds=g.ids.slice().sort(function(a,b){ const ea=enemyById && enemyById[a]; const eb=enemyById && enemyById[b]; const aa=(ea && ea.act) ? ea.act : 99; const ab=(eb && eb.act) ? eb.act : 99; const r=rankTag(a)-rankTag(b); if(r!==0) return r; if(aa!==ab) return aa-ab; return String(a).localeCompare(String(b)); });
+const idList=rankedIds.map(function(id){ const e=enemyById && enemyById[id]; return esc(e ? (e.name_en||e.name||id) : id); }).join(', '); return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;padding:3px 6px;background:var(--panel);border:1px solid var(--edge);border-radius:4px;">'+(psrc?'<img src="'+psrc+'" style="width:30px;height:30px;object-fit:contain;border-radius:4px;">':'')+'<span style="font-size:11px;">'+idList+'</span></span>'; }).join(''); })(Array.isArray(p.enemies)? p.enemies : []);    return '<div style="margin-bottom:6px;padding:6px;border:1px solid var(--edge);border-radius:4px;background:var(--panel2);">'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+      '<strong>Pool '+(i+1)+'</strong>'+(i===enemyPoolsSelected?' <span style="color:var(--verd);font-size:10px;">active</span>':'')+
+      ' <button class="sm" data-selectpool="'+i+'">select</button>'+(camp.enemyPools.length>1?' <button class="sm" data-delpool="'+i+'">Del</button>':'')+
+      ' <span style="color:var(--dim);font-size:10px;">'+(p.enemies||[]).length+' enemies</span>'+
+      '</div>'+
+      '<div style="margin-top:4px;font-size:11px;color:var(--text);"'+( (Array.isArray(p.enemies)&&p.enemies.length) ? '' : ' style="opacity:.5"' )+'>'+( (Array.isArray(p.enemies)&&p.enemies.length) ? chips : 'Empty' )+'</div>'+
+    '</div>';
+  }).join('');
+  const poolSection='<div style="margin-top:12px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);max-width:980px;margin-left:auto;margin-right:auto;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+      '<h3 style="margin:0;font-size:14px;">Enemy Pools ('+camp.enemyPools.length+')</h3>'+
+      '<button class="sm" type="button" data-createpool style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">Create pool</button>'+
+    '</div>'+
+    (poolRows||'<p style="color:var(--dim);font-size:12px;">No enemy pools yet. Create one above.</p>')+
+  '</div>';
   main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+createBtn+poolSel+'</div>'+
-    '<div style="max-width:980px;margin:0 auto;">'+blocks+'</div>'+
-    (customSection||'');
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+
+      ' <button id="enemyFilterMode" class="sm" type="button" style="border:1px solid var(--edge);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px;background:var(--panel2);color:var(--text);">Filter: '+(enemyFilterMode==='and'?'AND (all selected)':'OR (any selected)')+'</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;max-width:1320px;margin:0 auto;align-items:start;">'+
+      '<div style="min-width:0;">'+blocks+(customSection||'')+'</div>'+
+      '<div style="position:sticky;top:8px;">'+poolSection+'</div>'+
+    '</div>';
 
 
   main.querySelectorAll('[data-mech]').forEach(function(cb){ cb.addEventListener('change', function(){ var t=cb.getAttribute('data-mech'); if(cb.checked){ if(enemyMechFilter.indexOf(t)<0) enemyMechFilter.push(t); } else { enemyMechFilter=enemyMechFilter.filter(function(v){return v!==t;}); } renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-theme]').forEach(function(cb){ cb.addEventListener('change', function(){ var t=cb.getAttribute('data-theme'); if(cb.checked){ if(enemyThemeFilter.indexOf(t)<0) enemyThemeFilter.push(t); } else { enemyThemeFilter=enemyThemeFilter.filter(function(v){return v!==t;}); } renderEnemiesCategory(); }); });
+  const _fm=main.querySelector('#enemyFilterMode'); if(_fm) _fm.addEventListener('click', function(){ enemyFilterMode = (enemyFilterMode==='and' ? 'or' : 'and'); renderEnemiesCategory(); });
   const _c=main.querySelector('#enemCreatePool'); if(_c) _c.addEventListener('click',function(){ if(!camp.enemyPools) camp.enemyPools=[]; camp.enemyPools.push({enemies:[]}); enemyPoolsSelected=camp.enemyPools.length-1; renderEnemiesCategory(); });
   const _s=main.querySelector('#enemPoolSel'); if(_s) _s.addEventListener('change',function(){ enemyPoolsSelected=parseInt(_s.value,10); renderEnemiesCategory(); });
-  main.querySelectorAll('[data-enemypool]').forEach(function(cb){ cb.addEventListener('change',function(){ if(enemyPoolsSelected<0) return; var p=camp.enemyPools[enemyPoolsSelected]; if(!p) return; if(!Array.isArray(p.enemies)) p.enemies=[]; var id=cb.getAttribute('data-enemypool'); var i=p.enemies.indexOf(id); if(cb.checked && i<0) p.enemies.push(id); if(!cb.checked && i>=0) p.enemies.splice(i,1); }); });
+  main.querySelectorAll('[data-enempool]').forEach(function(btn){ btn.addEventListener('click',function(){ var id=btn.getAttribute('data-enempool'); var pi=parseInt(btn.getAttribute('data-pool'),10); var p=camp.enemyPools && camp.enemyPools[pi]; if(!p) return; if(!Array.isArray(p.enemies)) p.enemies=[]; var i=p.enemies.indexOf(id); if(i<0) p.enemies.push(id); else p.enemies.splice(i,1); renderEnemiesCategory(); }); });
+  main.querySelectorAll('[data-createpool]').forEach(function(b){ b.addEventListener('click',function(){ if(!camp.enemyPools) camp.enemyPools=[]; camp.enemyPools.push({enemies:[]}); enemyPoolsSelected=camp.enemyPools.length-1; renderEnemiesCategory(); }); });
+  main.querySelectorAll('[data-selectpool]').forEach(function(b){ b.addEventListener('click', function(){ enemyPoolsSelected=parseInt(b.getAttribute('data-selectpool'),10); renderEnemiesCategory(); }); });
+  main.querySelectorAll('[data-delpool]').forEach(function(b){ b.addEventListener('click', function(){ var idx=parseInt(b.getAttribute('data-delpool'),10); if(isNaN(idx)) return; camp.enemyPools.splice(idx,1); if(camp.enemyPools.length===0) enemyPoolsSelected=-1; else if(enemyPoolsSelected>=camp.enemyPools.length) enemyPoolsSelected=camp.enemyPools.length-1; renderEnemiesCategory(); }); });
+  main.querySelectorAll('[data-rmpool]').forEach(function(b){ b.addEventListener('click', function(){ var pid=b.getAttribute('data-pool'); var eid=b.getAttribute('data-rmpool'); var p=camp.enemyPools && camp.enemyPools[parseInt(pid,10)]; if(!p || !Array.isArray(p.enemies)) return; p.enemies=p.enemies.filter(function(x){return x!==eid;}); renderEnemiesCategory(); }); });
 
   main.querySelectorAll('[data-forcustedit]').forEach(function(b){ b.addEventListener('click', function(){ openForgeCustomEnemy(b.getAttribute('data-forcustedit')); }); });
   main.querySelectorAll('[data-forcustdel]').forEach(function(b){ b.addEventListener('click', function(){ var id=b.getAttribute('data-forcustdel'); camp.customEnemies=(camp.customEnemies||[]).filter(function(c){return c.id!==id;}); renderEnemiesCategory(); }); });
