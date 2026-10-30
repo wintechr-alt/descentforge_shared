@@ -2077,19 +2077,8 @@ function ensureCampLoadout(heroId){
   const L=camp.start.loadout[heroId]=camp.start.loadout[heroId]||{trinket:'',slots:[{a:'',b:'',c:''},{a:'',b:'',c:''}]};
   if(!Array.isArray(L.slots)) L.slots=[{a:'',b:'',c:''},{a:'',b:'',c:''}];
   while(L.slots.length<2) L.slots.push({a:'',b:'',c:''});
-  // seed blanks with each hero's normal starting weapons at level 1
-  const classes=HERO_DEFAULT_LOADOUT_CLASSES[heroId]||[];
-  L.slots.forEach((slot,i)=>{
-    if(slot.a) return;
-    const cls=classes[i];
-    if(!cls) return;
-    const partA=(DATA.weaponParts||[]).find(w=>w.slot==='A' && w.class===cls && String(w.id).endsWith('_1'));
-    if(partA) slot.a=partA.id;
-    const b0=(DATA.weaponParts||[]).find(w=>w.slot==='B' && w.class===cls && /_0$/.test(w.id));
-    if(b0) slot.b=b0.id;
-    const c0=(DATA.weaponParts||[]).find(w=>w.slot==='C' && w.class===cls && /_0$/.test(w.id));
-    if(c0) slot.c=c0.id;
-  });
+  // Leave loadout slots blank by default; auto-populate may be triggered explicitly if desired.
+
   return L;
 }
 function partAName(id){ const w=(DATA.weaponParts||[]).find(x=>x.id===id); return w?(w.name_en||w.name):id; }
@@ -2111,12 +2100,12 @@ function abrirPantallaLoadout(){
   const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
   if(!heroes.length) return;
   if(!hlPantallaHero || !heroes.some(h=>h.id===hlPantallaHero)) hlPantallaHero=heroes[0].id;
-  syncLoadoutToStartItems();
   openDlg(TS('Hero loadout','Hero loadout'),
     `<div id="hlPantallaBody"></div>`,
-    `<button id="hlPantallaDone">${TS('Hecho','Done')}</button>`);
-  syncLoadoutToStartItems();
+    `<button id="hlPantallaAuto">${TS('Auto populate','Auto populate')}</button> <button id="hlPantallaDone">${TS('Hecho','Done')}</button>`);
   pintarPantallaLoadout();
+  const autoBtn=document.getElementById('hlPantallaAuto');
+  if(autoBtn) autoBtn.onclick=()=>{ hlAutoPopulate(); };
   const done=document.getElementById('hlPantallaDone');
   if(done) done.onclick=()=>dlg.close();
 }
@@ -2150,7 +2139,6 @@ function toggleSharedWeapon(hero, slotIndex){
     const chosen=opts[0];
     cambio(()=>{ slot.a=chosen.a; slot.b=chosen.b; slot.c=chosen.c; });
   }
-  syncLoadoutToStartItems();
   pintarPantallaLoadout();
 }
 function pintarPantallaLoadout(){
@@ -2158,7 +2146,6 @@ function pintarPantallaLoadout(){
   const hero=hlPantallaHero || (heroes[0]&&heroes[0].id);
   hlPantallaHero=hero;
   const L=ensureCampLoadout(hero);
-  syncLoadoutToStartItems();
   const el=document.getElementById('hlPantallaBody');
   if(!el) return;
   const tabs=heroes.map(h=>`<button class="sm" style="margin:2px" onclick="hlPantallaHero='${h.id}'; pintarPantallaLoadout();">${esc(h.name||h.id)}</button>`).join('');
@@ -2189,7 +2176,23 @@ function pintarPantallaLoadout(){
       </div>
     </div>`;
 }
-function hlArrow(hero, field, slotIndex, delta){
+
+function hlAutoPopulate(){
+  const heroes=(DATA.heroes||[]).filter(h=>String(h.id||'').startsWith('HERO_'));
+  heroes.forEach(function(hero){ const hid=hero.id||hero;
+    const L=ensureCampLoadout(hid);
+    const classes=HERO_DEFAULT_LOADOUT_CLASSES[hid]||[];
+    (L.slots||[]).forEach(function(slot,i){
+      const cls=classes[i]; if(!cls) return;
+      if(!slot.a){ const partA=(DATA.weaponParts||[]).find(w=>w.slot==='A' && w.class===cls && String(w.id).endsWith('_1')); if(partA) slot.a=partA.id; }
+      if(!slot.b){ const b0=(DATA.weaponParts||[]).find(w=>w.slot==='B' && w.class===cls && /_0$/.test(w.id)); if(b0) slot.b=b0.id; }
+      if(!slot.c){ const c0=(DATA.weaponParts||[]).find(w=>w.slot==='C' && w.class===cls && /_0$/.test(w.id)); if(c0) slot.c=c0.id; }
+    });
+  });
+  if (hlPantallaHero) pintarPantallaLoadout();
+}
+
+function hlArrow(hero, field, slotIndex, delta){ console.log('HLARROW',hero,field,slotIndex,delta);
   const L=ensureCampLoadout(hero);
   if(field==='A' && isSharedPartA(L.slots[slotIndex].a)){
     const opts=sharedWeaponOptions(hero, slotIndex);
@@ -2203,11 +2206,12 @@ function hlArrow(hero, field, slotIndex, delta){
     idx=(idx+delta+opts.length)%opts.length;
     const chosen=opts[idx];
     cambio(()=>{ L.slots[slotIndex].a=chosen.a; L.slots[slotIndex].b=chosen.b; L.slots[slotIndex].c=chosen.c; });
-    syncLoadoutToStartItems();
     pintarPantallaLoadout();
     return;
   }
   const opts=opcionesLoadout(hero, field, slotIndex);
+  console.log('HLARROW_DEBUG', hero, field, 'slotIndex=', slotIndex, 'opts=', opts.map(o=>o.id).join(','), 'cur=', (field==='trinket'? L.trinket : (L.slots[slotIndex]? L.slots[slotIndex][field.toLowerCase()] : '')), 'idx=', opts.findIndex(o=>o.id===(field==='trinket'? L.trinket : (L.slots[slotIndex]? L.slots[slotIndex][field.toLowerCase()] : ''))));
+  console.log('HLARROW_OPTS', field, opts.map(o=>o.id).join('|'));
   let cur = field==='trinket' ? L.trinket : L.slots[slotIndex][field.toLowerCase()];
   let idx=opts.findIndex(o=>o.id===cur);
   if(idx<0) idx=0;
@@ -2252,20 +2256,28 @@ function nombreParte(id){
 }
 function opcionesLoadout(heroId, field, slotIndex){
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
-  const actOk=(x)=> allowedAct2 || (itemActOf(x) < 2);
+  const actOk=(x)=> allowedAct2 || (itemActOf(x) < 2) || startHas((x&&x.id)?x.id:x);
   if(field==='trinket'){
     const L=ensureCampLoadout(heroId);
     const used=new Set(Object.keys(camp.start.loadout||{}).filter(h=>h!==heroId).map(h=> (camp.start.loadout[h]||{}).trinket).filter(Boolean));
-    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && actOk(g) && (!used.has(g.id) || g.id===L.trinket))
+    const cur=L.trinket;
+    return [{id:'',name:'(none)'}].concat((DATA.gear||[]).filter(g=>g.kind==='trinket' && actOk(g) && (!used.has(g.id) || g.id===cur))
       .map(g=>({id:g.id,name:g.name_en||g.name})));
   }
   if(field==='A'){
-    return [{id:'',name:'(none)' }].concat((DATA.weaponParts||[]).filter(w=>w.slot==='A' && actOk(w))
+    const L=ensureCampLoadout(heroId);
+    const cur=L.slots[slotIndex]?L.slots[slotIndex].a:'';
+    const cls=(HERO_DEFAULT_LOADOUT_CLASSES[heroId]||[])[slotIndex];
+    const inCls = function(w){ return !cls || w.class===cls; };
+    const allowed = (DATA.weaponParts||[]).filter(w=>w.slot==='A' && actOk(w) && inCls(w));
+    console.log('OPCIONES_A', heroId, 'CLS=', cls, 'ALLOWED=', allowed.map(w=>w.id).join('|'), 'startHas2=', startHas('WEAPON_PART_A_SWORD_2'), 'items=', (camp.start.items||[]).map(i=>i.id).join('|'));
+    return [{id:'',name:'(none)' }].concat(allowed.filter(w=>startHas(w.id) || w.id===cur)
       .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
   }
   const L=ensureCampLoadout(heroId);
   const cls = L.slots[slotIndex] && L.slots[slotIndex].a ? classOfPartA(L.slots[slotIndex].a) : '';
   const slot = field;
+  const cur = L.slots[slotIndex] ? L.slots[slotIndex][field.toLowerCase()] : '';
   return [{id:'',name:'(none)'}].concat(matchingParts(slot, cls).filter(actOk)
     .map(w=>({id:w.id,name:w.name_en||w.name,cls:w.class})));
 }
@@ -2283,7 +2295,7 @@ function usedSharedRunes(excludeHero, excludeSlot){ const used=new Set(); try{ O
 function sharedWeaponOptions(heroId, slotIndex){ const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false; const used=usedSharedRunes(heroId, slotIndex); return SHARED_RUNES .filter(rune=>allowedAct2 || (itemActOf? (itemActOf({id:'WEAPON_PART_A_'+rune})<2) : true)) .filter(rune=>sharedAIds(rune).some(startHas)) .filter(rune=>!used.has(rune)) .map(rune=>({rune,a:pickSharedA(rune),b:pickSharedB(rune),c:pickSharedC(rune)})); }
 function sharedBtnHtml(heroId, slotIndex){ const opts=sharedWeaponOptions(heroId, slotIndex); if(!opts.length) return ''; return `<button class="sm" type="button" style="margin-left:4px" onclick="hlSharedWeapon('${heroId}',${slotIndex})">shared ▶</button>`; }
 function staticPartHtml(id){ const img=imagenParte(id); return `<div style="display:flex;align-items:center;gap:6px">${img?`<img src="${img}" alt="" style="max-height:64px;max-width:100%" onerror="this.style.display='none'">`:''}<div style="font-size:12px">${esc(nombreParte(id))}</div></div>`; }
-function hlSharedWeapon(heroId, slotIndex){ const opts=sharedWeaponOptions(heroId, slotIndex); if(!opts.length) return; const L=ensureCampLoadout(heroId); const curRune=isSharedPartA(L.slots[slotIndex].a)?sharedRuneOf(L.slots[slotIndex].a):null; let idx=opts.findIndex(o=>o.rune===curRune); if(idx<0) idx=-1; idx=(idx+1)%opts.length; const chosen=opts[idx]; cambio(()=>{ L.slots[slotIndex].a=chosen.a; L.slots[slotIndex].b=chosen.b; L.slots[slotIndex].c=chosen.c; }); syncLoadoutToStartItems(); pintarPantallaLoadout(); }
+function hlSharedWeapon(heroId, slotIndex){ const opts=sharedWeaponOptions(heroId, slotIndex); if(!opts.length) return; const L=ensureCampLoadout(heroId); const curRune=isSharedPartA(L.slots[slotIndex].a)?sharedRuneOf(L.slots[slotIndex].a):null; let idx=opts.findIndex(o=>o.rune===curRune); if(idx<0) idx=-1; idx=(idx+1)%opts.length; const chosen=opts[idx]; cambio(()=>{ L.slots[slotIndex].a=chosen.a; L.slots[slotIndex].b=chosen.b; L.slots[slotIndex].c=chosen.c; }); pintarPantallaLoadout(); }
 function aplicarLoadout(heroId, field, slotIndex, value){
   cambio(()=>{
     const L=ensureCampLoadout(heroId);
@@ -2293,7 +2305,6 @@ function aplicarLoadout(heroId, field, slotIndex, value){
     } else if(field==='B') L.slots[slotIndex].b=value;
     else if(field==='C') L.slots[slotIndex].c=value;
   });
-  syncLoadoutToStartItems();
   renderRight();
 }
 function abrirPickerLoadout(heroId, field, slotIndex){
@@ -8290,6 +8301,13 @@ document.getElementById('btnExport').onclick=()=>{
      como se vio en el editor y nadie sabrá por qué. Escrito, el mod solo tiene
      que leerlo, y su deducción queda para los mapas de antes de esto. */
   state.spawns.interactables.forEach(o=>{ o.behavior=behOf(o); });
+  // Pass Forge custom loadouts through into the .dmap under `custom.loadouts`.
+  try {
+    if (camp && camp.start && camp.start.loadout && Object.keys(camp.start.loadout).length) {
+      if (!state.custom || typeof state.custom!=='object') state.custom={};
+      state.custom.loadouts = camp.start.loadout;
+    }
+  } catch(e){}
   (function ensureForgeCustomInExport(){ try {
       if (camp && Array.isArray(camp.customEnemies) && camp.customEnemies.length) {
         if (!state.custom) state.custom={enemies:[]};
@@ -11932,7 +11950,7 @@ function addAllUpgradedGlobal(){
   [...byBase.values()].forEach(x=>{
     const act=itemActOf(x);
     if(act>=2 && !allowedAct2) return;
-    if(esMejoraStart(x.id)){ addStartItem(x.id); }
+    if(esMejoraStart(x.id)){ const baseId=itemFamilyId(x.id); camp.start.items=(camp.start.items||[]).filter(i=>i.id!==baseId); addStartItem(x.id); }
   });
 }
 function abrirInicioPopup(){

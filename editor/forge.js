@@ -25,9 +25,9 @@ overlay.innerHTML=
     '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>'+
     '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>'+
     '<button data-forgecat="weaponinv" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Weapons</button>'+
-    '<button data-forgecat="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--torch);color:var(--ink);border-radius:4px;cursor:pointer;font-weight:600;">Loadout</button>'+
     '<button data-forgecat="itempool" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Item Pool</button>'+
     '<button data-forgecat="reserved" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Reserved</button>'+
+    '<button data-forgecat="startinv" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Starting Inventory</button>'+
     '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>'+
   '</div>'+
   '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">'+
@@ -43,7 +43,7 @@ const HERO_NAMES=['HERO_BRYNN','HERO_SYRUS','HERO_GALADEN','HERO_VAERIX','HERO_K
 const HERO_LABELS={'HERO_BRYNN':'Brynn','HERO_SYRUS':'Syrus','HERO_GALADEN':'Galaden','HERO_VAERIX':'Vaerix','HERO_KEHLI':'Kehli','HERO_CHANCE':'Chance'};
 const HERO_weapons={'HERO_BRYNN':['Sword','Warhammer'],'HERO_SYRUS':['Staff','Wand'],'HERO_GALADEN':['DualBlades','Bow'],'HERO_VAERIX':['Warbell','Spear'],'HERO_KEHLI':['Hammer','Crossbow'],'HERO_CHANCE':['Gauntlet','ThrowingKnives']};
 let selectedHero='HERO_BRYNN';
-let activeCat='weapons';
+let activeCat='weaponinv';
 let selected=null;
 const carIdx={};
 function carKey(cls,slot){return cls+'|'+slot;}
@@ -85,21 +85,23 @@ function fields(p){
   '</div>'+
   '<p id="wMsg" style="color:var(--verd);font-size:12px;margin-top:8px;"></p>';
 }
-function bindEditor(p){
-  const msg=overlay.querySelector('#wMsg');
+function bindEditor(p, root){
+  const scope = root || overlay;
+  const q = function(id){ return (scope==overlay)? overlay.querySelector('#'+id) : document.getElementById(id); };
+  const msg=q('wMsg');
   const sync=function(){
-    p.id=overlay.querySelector('#wId').value;
-    p.name=overlay.querySelector('#wName').value;
-    p.name_en=overlay.querySelector('#wNameEn').value;
-    p.class=overlay.querySelector('#wClass').value;
-    p.slot=overlay.querySelector('#wSlot').value;
-    p.upgrade=overlay.querySelector('#wUpgraded').checked;
-    p.text=overlay.querySelector('#wText').value;
+    p.id=q('wId').value;
+    p.name=q('wName').value;
+    p.name_en=q('wNameEn').value;
+    p.class=q('wClass').value;
+    p.slot=q('wSlot').value;
+    p.upgrade=q('wUpgraded').checked;
+    p.text=q('wText').value;
   };
-  ['wId','wName','wNameEn','wClass','wSlot','wUpgraded','wText'].forEach(function(id){const el=overlay.querySelector('#'+id);if(el)el.addEventListener('input',sync);});
-  const dup=overlay.querySelector('#wDup'); if(dup)dup.addEventListener('click',function(){sync();const c=clone(p);c.id=p.id+'_COPY';state.weaponParts.push(c);selected=c.id;persist();renderAll();});
-  const del=overlay.querySelector('#wDel'); if(del)del.addEventListener('click',function(){state.weaponParts=state.weaponParts.filter(function(x){return x!==p;});selected=null;persist();renderAll();});
-  const save=overlay.querySelector('#wSave'); if(save)save.addEventListener('click',function(){sync();persist();if(msg)msg.textContent='Saved';});
+  ['wId','wName','wNameEn','wClass','wSlot','wUpgraded','wText'].forEach(function(id){const el=q(id);if(el)el.addEventListener('input',sync);});
+  const dup=q('wDup'); if(dup)dup.addEventListener('click',function(){sync();const c=clone(p);c.id=p.id+'_COPY';state.weaponParts.push(c);selected=c.id;persist();renderAll();});
+  const del=q('wDel'); if(del)del.addEventListener('click',function(){state.weaponParts=state.weaponParts.filter(function(x){return x!==p;});selected=null;persist();renderAll(); if(typeof dlg!=='undefined'&&dlg&&dlg.close)dlg.close();});
+  const save=q('wSave'); if(save)save.addEventListener('click',function(){sync();persist();if(msg)msg.textContent='Saved';});
 }
 function renderEditor(){
   const e=overlay.querySelector('#forgeEditor');
@@ -134,6 +136,7 @@ function carouselHTML(cls,slot,showImage){
   const p=arr[idx];
   const name=prettyName(p.name_en||p.name||p.id);
   const flavor=prettyName(partFlavor(p));
+  const owned=arr.filter(function(w){return inStartInv(w.id);}).length;
   const imgBaseId = String(p.id||'').replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'');
   const imgTag = showImage ? '<img src="../img/weapon/'+imgBaseId+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
   return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
@@ -174,7 +177,6 @@ function makeHeroLoadout(cls){
     L.slots[slotIndex].a=a? a.id : '';
     L.slots[slotIndex].b=b? b.id : '';
     L.slots[slotIndex].c=c? c.id : '';
-    if(typeof syncLoadoutToStartItems==='function') syncLoadoutToStartItems();
     if(typeof renderRight==='function') renderRight();
     renderHeroWeapons();
     alert('Loadout updated for '+selectedHero+' slot '+(slotIndex+1)+'.');
@@ -229,9 +231,7 @@ function renderHeroWeapons(){
       renderHeroWeapons();
     });
   });
-  main.querySelectorAll('[data-editpart]').forEach(function(b){
-    b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); });
-  });
+  main.querySelectorAll('[data-editpart]').forEach(function(b){ b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); }); });
   main.querySelectorAll('[data-makeloadout]').forEach(function(b){
     b.addEventListener('click',function(){ makeHeroLoadout(b.getAttribute('data-makeloadout')); });
   });
@@ -364,9 +364,9 @@ function renderArmorCategory(){
     cb.addEventListener('change', function(){ var id=cb.getAttribute('data-startid'); if(cb.checked && /_PLUS$/i.test(id)){ setStartInv(id.replace(/_PLUS$/i,''), false); } setStartInv(id, cb.checked); renderArmorCategory(); });
   });
   const addBaseBtn=main.querySelector('#forgeAddAllBase');
-  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam, true); }); renderArmorCategory(); });
+  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; if((camp.start.items||[]).some(function(i){ return i.id=== (fam+'_PLUS') || i.id=== (fam+'_UPGRADED'); })) return; setStartInv(fam, true); }); renderArmorCategory(); });
   const addUpgradedBtn=main.querySelector('#forgeAddAllUpgraded');
-  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam+'_PLUS', true); }); renderArmorCategory(); });
+  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam+'_PLUS', true); setStartInv(fam, false); }); renderArmorCategory(); });
   const clearBtn=main.querySelector('#forgeClearPage');
   if(clearBtn) clearBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderArmorCategory(); });
 }
@@ -418,9 +418,9 @@ function renderTrinketsCategory(){
     cb.addEventListener('change', function(){ var id=cb.getAttribute('data-startid'); if(cb.checked && /_PLUS$/i.test(id)){ setStartInv(id.replace(/_PLUS$/i,''), false); } setStartInv(id, cb.checked); renderTrinketsCategory(); });
   });
   const addBaseBtn=main.querySelector('#forgeAddAllBase');
-  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam, true); }); renderTrinketsCategory(); });
+  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; if((camp.start.items||[]).some(function(i){ return i.id=== (fam+'_PLUS') || i.id=== (fam+'_UPGRADED'); })) return; setStartInv(fam, true); }); renderTrinketsCategory(); });
   const addUpgradedBtn=main.querySelector('#forgeAddAllUpgraded');
-  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam+'_PLUS', true); }); renderTrinketsCategory(); });
+  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ families.forEach(function(fam){ const act=(typeof itemActOf==='function')? itemActOf({id:fam}) : 1; if(act>=2 && !allowedAct2) return; setStartInv(fam+'_PLUS', true); setStartInv(fam, false); }); renderTrinketsCategory(); });
   const clearBtn=main.querySelector('#forgeClearPage');
   if(clearBtn) clearBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderTrinketsCategory(); });
 }
@@ -783,13 +783,11 @@ function renderEnemiesCategory(){
   const customSection='<div style="margin-top:12px;border:1px solid var(--edge);border-radius:6px;padding:8px;background:var(--panel);max-width:980px;margin-left:auto;margin-right:auto;">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
       '<h3 style="margin:0;font-size:14px;">Custom</h3>'+
-      '<button id="forgeNewCustomEnemy" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;">New monster</button>'+
     '</div>'+
     (customRows||'<p style="color:var(--dim);font-size:12px;">No custom monsters.</p>')+
   '</div>';
-  const newMonBtn='<button id="forgeNewCustomEnemy" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;">New monster</button>';
   main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+createBtn+poolSel+newMonBtn+'</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;align-items:center;">'+mechSel+themeSel+createBtn+poolSel+'</div>'+
     '<div style="max-width:980px;margin:0 auto;">'+blocks+'</div>'+
     (customSection||'');
 
@@ -800,7 +798,6 @@ function renderEnemiesCategory(){
   const _s=main.querySelector('#enemPoolSel'); if(_s) _s.addEventListener('change',function(){ enemyPoolsSelected=parseInt(_s.value,10); renderEnemiesCategory(); });
   main.querySelectorAll('[data-enemypool]').forEach(function(cb){ cb.addEventListener('change',function(){ if(enemyPoolsSelected<0) return; var p=camp.enemyPools[enemyPoolsSelected]; if(!p) return; if(!Array.isArray(p.enemies)) p.enemies=[]; var id=cb.getAttribute('data-enemypool'); var i=p.enemies.indexOf(id); if(cb.checked && i<0) p.enemies.push(id); if(!cb.checked && i>=0) p.enemies.splice(i,1); }); });
 
-  const ne=main.querySelector('#forgeNewCustomEnemy'); if(ne) ne.addEventListener('click', function(){ openForgeCustomEnemy(); });
   main.querySelectorAll('[data-forcustedit]').forEach(function(b){ b.addEventListener('click', function(){ openForgeCustomEnemy(b.getAttribute('data-forcustedit')); }); });
   main.querySelectorAll('[data-forcustdel]').forEach(function(b){ b.addEventListener('click', function(){ var id=b.getAttribute('data-forcustdel'); camp.customEnemies=(camp.customEnemies||[]).filter(function(c){return c.id!==id;}); renderEnemiesCategory(); }); });
   main.querySelectorAll('[data-forcustbase]').forEach(function(b){ b.addEventListener('click', function(){
@@ -838,8 +835,9 @@ function sharedCol(rune){
     const name=prettyName(p.name_en||p.name||p.id);
     const imgTag = showImg ? '<img src="../img/weapon/'+String(p.id).replace(/_UPGRADED$/i,'').replace(/_PLUS$/i,'')+'.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
     const flavor=prettyName(partFlavor(p));
+    const owned=arr.filter(function(w){return inStartInv(w.id);}).length;
     return '<div style="border:1px solid var(--edge);background:var(--panel);border-radius:6px;padding:8px;width:100%;max-width:240px;">'+
-      '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+')</div>'+
+      '<div style="font-size:11px;color:var(--dim);margin-bottom:4px;">'+slot+' part ('+(idx+1)+'/'+arr.length+' · owned '+owned+')</div>'+
       (imgTag? (imgTag+'<div style="margin-bottom:4px;"></div>') : '')+
       '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">'+
         (arr.length>1? '<button data-sharedstep="'+key+'|-1" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;cursor:pointer;padding:2px 8px;">&lt;</button>' : '')+
@@ -895,21 +893,242 @@ function renderSharedCategory(){
       const arr=sharedVariants(slot,rune).filter(function(w){ return inStartInv(w.id) || isDefaultPart('Rune',slot,w.id); });
       if(!arr.length) return;
       let idx=carIdx[key]||0;
-      idx=(idx+dir+arr.length)%arr.length;
-      carIdx[key]=idx;
-      renderSharedCategory();
+  idx=(idx+dir+arr.length)%arr.length;
+  carIdx[key]=idx;
+  renderSharedCategory();
+  });
+});
+  main.querySelectorAll('[data-editpart]').forEach(function(b){ b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); }); });
+  main.querySelectorAll('[data-makeloadout]').forEach(function(b){ b.addEventListener('click',function(){ makeHeroLoadout(b.getAttribute('data-makeloadout')); }); });
+  const clearBtn=main.querySelector('#forgeInvClear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderWeaponInventoryCategory(); });
+}
+function renderLoadoutCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if (typeof abrirPantallaLoadout==='function') { try { abrirPantallaLoadout(); } catch(e){ console.warn('Open shared loadout failed', e && (e.stack||e)); } return; }
+  if(!main) return;
+  main.innerHTML='<div id="hlPantallaBody"></div>';
+  if(typeof pintarPantallaLoadout==='function') pintarPantallaLoadout();
+}
+function renderStartingInventoryCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  camp.start=camp.start||{items:[],reservedItems:[]};
+  if(!Array.isArray(camp.start.items)) camp.start.items=[];
+  const ids=camp.start.items.map(function(i){return i.id;});
+  let allPool=[]; if(typeof GRUPOS_INICIO==='function'){ GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){ (g[1]||[]).forEach(function(x){ allPool.push(x); }); }); }
+  const poolById={}; allPool.forEach(function(x){ if(x && x.id) poolById[x.id]=x; });
+  const allItems=ids.map(function(id){ var x=poolById[id] || (typeof DATA!=='undefined' && DATA.recipes? DATA.recipes.find(function(r){return r.id===id;}) : null) || {id:id}; return x; });
+  function imageFor(id){
+    id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
+    let folder=null;
+    if(/ARMOR/.test(id)) folder='armor';
+    else if(/TRINKET/.test(id)) folder='trinket';
+    else if(/WEAPON_PART/.test(id)) folder='weapon';
+    else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
+    if(!folder) return '';
+    return '<img src="../img/'+folder+'/'+base+'.png" style="width:40px;height:40px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:6px;" onerror="this.style.display=&quot;none&quot;;">';
+  }
+  function groupOf(x){
+    const id=String(x.id||'').toUpperCase();
+    if (/ARMOR/.test(id)) return 'Armor';
+    if (/TRINKET/.test(id)) return 'Trinkets';
+    if (/WEAPON_PART/.test(id)) return 'Weapons';
+    if (/CSM/.test(id)) return 'Consumables';
+    if (/MAT_/.test(id)) return 'Materials';
+    return 'Other';
+  }
+  function titleOf(x){ const n=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id)); return n || x.id; }
+  const weaponBtns = (typeof HERO_LABELS!=='undefined') ? Object.keys(HERO_LABELS) : [];
+  function renderGroup(items){
+    const cells = items.map(function(x){
+      return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.2;">'+imageFor(x.id)+'<span style="word-break:break-all;flex:1;">'+esc(titleOf(x))+'<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div></span><button data-remove="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">RMV</button></div>';
+    }).join('');
+    return cells;
+  }
+  const groupOrder=['Armor','Trinkets','Weapons','Consumables','Materials','Other'];
+  const byGroup={};
+  allItems.forEach(function(x){ const g=groupOf(x); if(!byGroup[g]) byGroup[g]=[]; byGroup[g].push(x); });
+  let sections='';
+  groupOrder.forEach(function(gn){
+    const items = byGroup[gn];
+    if (!items || !items.length) return;
+    if (gn === 'Weapons') {
+      const heroGroups={};
+      items.forEach(function(x){
+        let hero='Common';
+        const base=String(x.id||'').replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
+        const w=(typeof DATA!=='undefined' && Array.isArray(DATA.weaponParts))? (DATA.weaponParts.find(function(p){return p.id===base;}) || DATA.weaponParts.find(function(p){return base.indexOf(p.id)===0;})) : null;
+        if(w && typeof HERO_FOR_CLASS!=='undefined'){ hero=HERO_FOR_CLASS[w.class] || hero; }
+        const label=(typeof HERO_LABELS!=='undefined' && hero!=='Common')? (HERO_LABELS[hero]||hero) : hero;
+        if(!heroGroups[label]) heroGroups[label]=[];
+        heroGroups[label].push(x);
+      });
+      const heroNames=Object.keys(heroGroups).sort();
+      const blocks=heroNames.map(function(label){
+        return '<div style="margin-bottom:6px;"><h4 style="margin:0 0 4px 0;font-size:13px;color:var(--text);font-weight:700;">'+esc(label)+' ('+heroGroups[label].length+')</h4><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+renderGroup(heroGroups[label])+'</div></div>';
+      }).join('');
+      sections += '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">Weapons ('+items.length+')</h3>'+blocks+'</div>';
+    } else {
+      sections += '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+renderGroup(items)+'</div></div>';
+    }
+  });
+  main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
+      '<button id="forgeStartClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
+    '</div>'+
+    '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Items in Starting Inventory.</div>' +
+    (ids.length? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No items.</p>')+
+    sections;
+  main.querySelectorAll('[data-remove]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const id=b.getAttribute('data-remove');
+      camp.start.items=camp.start.items.filter(function(i){return i.id!==id;});
+      renderStartingInventoryCategory();
+      if(typeof renderRight==='function') renderRight();
     });
   });
-  main.querySelectorAll('[data-editpart]').forEach(function(b){
-    b.addEventListener('click',function(){ selected=b.getAttribute('data-editpart'); renderEditorTarget(); });
+  const clearBtn=main.querySelector('#forgeStartClear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){
+    if(typeof clearAllStartInv==='function') clearAllStartInv();
+    if(typeof renderRight==='function') renderRight();
+    renderStartingInventoryCategory();
   });
-  main.querySelectorAll('[data-addshared]').forEach(function(b){
-    b.addEventListener('click',function(){ addSharedToStart(b.getAttribute('data-addshared')); });
+}
+
+function renderReservedItemsCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  camp.start=camp.start||{items:[],reservedItems:[]};
+  if(!Array.isArray(camp.start.reservedItems)) camp.start.reservedItems=[];
+  const ids=camp.start.reservedItems.slice();
+  let allPool=[]; if(typeof GRUPOS_INICIO==='function'){ GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){ (g[1]||[]).forEach(function(x){ allPool.push(x); }); }); }
+  const poolById={}; allPool.forEach(function(x){ if(x && x.id) poolById[x.id]=x; });
+  const allItems=ids.map(function(id){ var x=poolById[id] || (typeof DATA!=='undefined' && DATA.recipes? DATA.recipes.find(function(r){return r.id===id;}) : null) || {id:id}; return x; });
+  function imageFor(id){
+    id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
+    let folder=null;
+    if(/ARMOR/.test(id)) folder='armor';
+    else if(/TRINKET/.test(id)) folder='trinket';
+    else if(/WEAPON_PART/.test(id)) folder='weapon';
+    else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
+    if(!folder) return '';
+    return '<img src="../img/'+folder+'/'+base+'.png" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+  }
+  function groupOf(x){
+    const id=String(x.id||'').toUpperCase();
+    if(/ARMOR/.test(id)) return 'Armor';
+    if(/TRINKET/.test(id)) return 'Trinkets';
+    if(/WEAPON_PART/.test(id)) return 'Weapons';
+    if(/CSM/.test(id)) return 'Consumables';
+    if(/MAT_/.test(id)) return 'Materials';
+    return 'Other';
+  }
+  const groupOrder=['Armor','Trinkets','Weapons','Consumables','Materials','Other'];
+  const grouped={};
+  allItems.forEach(function(x){ const g=groupOf(x); if(!grouped[g]) grouped[g]=[]; grouped[g].push(x); });
+  const sections=groupOrder.map(function(gn){
+    const items=grouped[gn]; if(!items||!items.length) return '';
+    const cells=items.map(function(x){
+      const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
+      const flavor=(typeof partFlavor==='function')? partFlavor(x) : '';
+      const title= flavor || name || x.id;
+      const img=imageFor(x.id);
+      return '<div style="padding:8px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(title)+(title!==x.id? '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>':'')+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
+    }).join('');
+    return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
+  }).join('');
+  main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
+      '<button id="forgeReservedClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
+    '</div>'+
+    '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Reserved items (story/feat rewards).</div>'+
+    (ids.length? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No reserved items.</p>')+
+    sections;
+  main.querySelectorAll('[data-release]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const id=b.getAttribute('data-release');
+      camp.start.reservedItems=camp.start.reservedItems.filter(function(x){return x!==id;});
+      renderReservedItemsCategory();
+    });
   });
-  const addBtn=main.querySelector('#forgeAddAllAct');
-  if(addBtn) addBtn.addEventListener('click',function(){ if(typeof addAllUpgradedGlobal==='function') addAllUpgradedGlobal(); renderSharedCategory(); });
-  const manageBtn=main.querySelector('#forgeManageStart');
-  if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
+
+  const clearBtn=main.querySelector('#forgeReservedClear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){ camp.start.reservedItems=[]; renderReservedItemsCategory(); });
+}
+function renderWeaponInventoryCategory(){
+  const main=overlay.querySelector('#forgeMain');
+  if(!main) return;
+  if(typeof selectedHero==='undefined' || !selectedHero) selectedHero=(typeof HERO_LABELS!=='undefined'? (Object.keys(HERO_LABELS)[0]||'HERO_BRYNN') : 'HERO_BRYNN');
+  const heroes=(typeof HERO_ORDER!=='undefined')? HERO_ORDER : Object.keys((typeof HERO_LABELS!=='undefined')? HERO_LABELS : {'HERO_BRYNN':'Brynn'});
+  const classes=(typeof HERO_DEFAULT_LOADOUT_CLASSES!=='undefined')? (HERO_DEFAULT_LOADOUT_CLASSES[selectedHero]||[]) : [];
+  const left=heroes.map(function(h){
+    const on=h===selectedHero;
+    return '<button data-hero="'+h+'" style="padding:10px 6px;background:'+(on?'var(--torch)':'var(--panel2)')+';color:'+(on?'var(--ink)':'var(--text)')+';border:1px solid var(--edge);border-radius:6px;cursor:pointer;font-weight:'+(on?'700':'400')+';">'+esc((typeof HERO_LABELS!=='undefined')? (HERO_LABELS[h]||h) : h)+'</button>';
+  }).join('');
+  function groupRows(cls, slotLetter){
+    const allowedAct2=forgeAllowedAct2();
+    const parts=((typeof DATA!=='undefined' && Array.isArray(DATA.weaponParts))? DATA.weaponParts : []).filter(function(w){
+      if((slotLetter==='B' || slotLetter==='C') && /_0$/i.test(String(w.id||''))) return false;
+      if((typeof itemActOf==='function') && itemActOf({id:w.id})>=2 && !allowedAct2) return false;
+      return w.class===cls && w.slot===slotLetter;
+    });
+    const seen=new Set();
+    const families=[];
+    parts.forEach(function(w){ const base=String(w.id||'').replace(/_UPGRADED$/i,''); if(!seen.has(base)){ seen.add(base); families.push(base); } });
+    families.sort(function(a,b){ return String(a).localeCompare(String(b)); });
+    return families.map(function(baseId){
+      const plusId=baseId+'_UPGRADED';
+      const basePart=parts.find(function(x){return x.id===baseId;});
+      const plusPart=parts.find(function(x){return x.id===plusId;});
+      const g=basePart || plusPart;
+      const baseOwned=inStartInv(baseId);
+      const plusOwned=inStartInv(plusId);
+      const img='<img src="../img/weapon/'+String(baseId).replace(/_UPGRADED$|_PLUS$/i,'')+'.png" style="width:40px;height:40px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
+      const wname=prettyName((g && (g.name_en||g.name)) || baseId);
+      const flavor=partFlavor(g||{});
+      const partAct=(typeof itemActOf==='function')? itemActOf({id:baseId}) : 1;
+      return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
+        img+
+        '<div style="flex:1;font-size:12px;word-break:break-all;">'+esc(wname)+(partAct>=2?' (Act II)':'')+(flavor && flavor!==wname? '<div style="color:var(--dim);font-size:11px;">'+esc(flavor)+'</div>':'')+'<div style="color:var(--dim);font-size:11px;">'+esc(baseId)+'</div></div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">'+
+          (basePart? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;'+(plusOwned?'opacity:.45;':'')+'"><input type="checkbox" data-startid="'+baseId+'" '+(baseOwned?'checked':'')+(plusOwned?' disabled':'')+'> Base</label>' : '')+
+          (plusPart? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" data-startid="'+plusId+'" '+(plusOwned?'checked':'')+'> Upgraded</label>' : '')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+  const slotsHtml=classes.map(function(cls, i){
+    const aRows=groupRows(cls,'A');
+    const bRows=groupRows(cls,'B');
+    const cRows=groupRows(cls,'C');
+    return '<div style="border:1px solid var(--edge);border-radius:8px;padding:8px;margin-bottom:10px;background:var(--panel);">'+
+      '<div style="font-weight:600;margin-bottom:8px;">Slot '+(i+1)+' - '+esc(cls)+'</div>'+
+      '<div style="margin-bottom:6px;font-size:12px;color:var(--dim);">Part A</div>'+ (aRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
+      '<div style="margin:8px 0 6px 0;font-size:12px;color:var(--dim);">Part B</div>'+ (bRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
+      '<div style="margin:8px 0 6px 0;font-size:12px;color:var(--dim);">Part C</div>'+ (cRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
+    '</div>';
+  }).join('');
+  main.innerHTML=
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
+      '<button id="forgeInvAddBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>'+
+      '<button id="forgeInvAddUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>'+
+      '<button id="forgeInvClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">'+
+      '<div style="display:flex;flex-direction:column;gap:8px;">'+left+'</div>'+
+      '<div style="min-width:0;"><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">'+slotsHtml+'</div></div>'+
+    '</div>'+
+    '<div id="forgeEditor" style="margin-top:12px;"></div>';
+  main.querySelectorAll('button[data-hero]').forEach(function(b){ b.addEventListener('click', function(){ selectedHero=b.getAttribute('data-hero'); renderWeaponInventoryCategory(); }); });
+  main.querySelectorAll('input[data-startid]').forEach(function(cb){ cb.addEventListener('change', function(){ var id=cb.getAttribute('data-startid'); if(cb.checked && /_UPGRADED$/i.test(id)){ setStartInv(id.replace(/_UPGRADED$/i,''), false); } setStartInv(id, cb.checked); renderWeaponInventoryCategory(); }); });
+  const addBaseBtn=main.querySelector('#forgeInvAddBase');
+  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ const id=cb.getAttribute('data-startid'); if(!id || /_UPGRADED$/i.test(id)) return; if((camp.start.items||[]).some(function(i){ return i.id === (id+'_UPGRADED') || i.id === (id+'_PLUS'); })) return; setStartInv(id, true); }); renderWeaponInventoryCategory(); });
+  const addUpgradedBtn=main.querySelector('#forgeInvAddUpgraded');
+  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ const id=cb.getAttribute('data-startid'); if(!id || !/_UPGRADED$/i.test(id)) return; setStartInv(id, true); setStartInv(id.replace(/_UPGRADED$/i,''), false); }); renderWeaponInventoryCategory(); });
+  main.querySelectorAll('[data-makeloadout]').forEach(function(b){ b.addEventListener('click',function(){ makeHeroLoadout(b.getAttribute('data-makeloadout')); }); });
+  const clearBtn=main.querySelector('#forgeInvClear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderWeaponInventoryCategory(); });
 }
 
 function renderItemPoolCategory(){
@@ -928,7 +1147,7 @@ function renderItemPoolCategory(){
   const avail = allItems.filter(function(x, idx){
     const fam = (typeof itemFamilyId==='function') ? itemFamilyId(x.id) : String(x.id||'').replace(/^RECIPE_/i,'').replace(/_PLUS$|_UPGRADED$/i,'');
     const reservedIds = (typeof camp!=='undefined' && camp.start && Array.isArray(camp.start.reservedItems)) ? camp.start.reservedItems : [];
-    return allItems.indexOf(x)===idx && /^RECIPE_/i.test(String(x.id||'')) && reservedIds.indexOf(String(x.id))===-1;
+    return allItems.indexOf(x)===idx && /^RECIPE_/i.test(String(x.id||'')) && reservedIds.indexOf(String(x.id))===-1 && invIds.indexOf(String(x.id))===-1 && !invFamilies.has(fam);
   });
   function imageFor(id){
     id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
@@ -999,148 +1218,8 @@ function renderItemPoolCategory(){
     });
   });
 }
-function renderWeaponInventoryCategory(){
-  const main=overlay.querySelector('#forgeMain');
-  if(!main) return;
-  if(typeof selectedHero==='undefined' || !selectedHero) selectedHero=(typeof HERO_LABELS!=='undefined'? (Object.keys(HERO_LABELS)[0]||'HERO_BRYNN') : 'HERO_BRYNN');
-  const heroes=(typeof HERO_ORDER!=='undefined')? HERO_ORDER : Object.keys((typeof HERO_LABELS!=='undefined')? HERO_LABELS : {'HERO_BRYNN':'Brynn'});
-  const classes=(typeof HERO_DEFAULT_LOADOUT_CLASSES!=='undefined')? (HERO_DEFAULT_LOADOUT_CLASSES[selectedHero]||[]) : [];
-  const left=heroes.map(function(h){
-    const on=h===selectedHero;
-    return '<button data-hero="'+h+'" style="padding:10px 6px;background:'+(on?'var(--torch)':'var(--panel2)')+';color:'+(on?'var(--ink)':'var(--text)')+';border:1px solid var(--edge);border-radius:6px;cursor:pointer;font-weight:'+(on?'700':'400')+';">'+esc((typeof HERO_LABELS!=='undefined')? (HERO_LABELS[h]||h) : h)+'</button>';
-  }).join('');
-  function groupRows(cls, slotLetter){
-    const allowedAct2=forgeAllowedAct2();
-    const parts=((typeof DATA!=='undefined' && Array.isArray(DATA.weaponParts))? DATA.weaponParts : []).filter(function(w){
-      if((slotLetter==='B' || slotLetter==='C') && /_0$/i.test(String(w.id||''))) return false;
-      if((typeof itemActOf==='function') && itemActOf({id:w.id})>=2 && !allowedAct2) return false;
-      return w.class===cls && w.slot===slotLetter;
-    });
-    const seen=new Set();
-    const families=[];
-    parts.forEach(function(w){ const base=String(w.id||'').replace(/_UPGRADED$/i,''); if(!seen.has(base)){ seen.add(base); families.push(base); } });
-    families.sort(function(a,b){ return String(a).localeCompare(String(b)); });
-    return families.map(function(baseId){
-      const plusId=baseId+'_UPGRADED';
-      const basePart=parts.find(function(x){return x.id===baseId;});
-      const plusPart=parts.find(function(x){return x.id===plusId;});
-      const g=basePart || plusPart;
-      const baseOwned=inStartInv(baseId);
-      const plusOwned=inStartInv(plusId);
-      const img='<img src="../img/weapon/'+String(baseId).replace(/_UPGRADED$|_PLUS$/i,'')+'.png" style="width:40px;height:40px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
-      const wname=prettyName((g && (g.name_en||g.name)) || baseId);
-      const flavor=partFlavor(g||{});
-      const partAct=(typeof itemActOf==='function')? itemActOf({id:baseId}) : 1;
-      return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">'+
-        img+
-        '<div style="flex:1;font-size:12px;word-break:break-all;">'+esc(wname)+(partAct>=2?' (Act II)':'')+(flavor && flavor!==wname? '<div style="color:var(--dim);font-size:11px;">'+esc(flavor)+'</div>':'')+'<div style="color:var(--dim);font-size:11px;">'+esc(baseId)+'</div></div>'+
-        '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">'+
-          (basePart? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;'+(plusOwned?'opacity:.45;':'')+'"><input type="checkbox" data-startid="'+baseId+'" '+(baseOwned?'checked':'')+(plusOwned?' disabled':'')+'> Base</label>' : '')+
-          (plusPart? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" data-startid="'+plusId+'" '+(plusOwned?'checked':'')+'> Upgraded</label>' : '')+
-        '</div>'+
-      '</div>';
-    }).join('');
-  }
-  const slotsHtml=classes.map(function(cls, i){
-    const aRows=groupRows(cls,'A');
-    const bRows=groupRows(cls,'B');
-    const cRows=groupRows(cls,'C');
-    return '<div style="border:1px solid var(--edge);border-radius:8px;padding:8px;margin-bottom:10px;background:var(--panel);">'+
-      '<div style="font-weight:600;margin-bottom:8px;">Slot '+(i+1)+' - '+esc(cls)+'</div>'+
-      '<div style="margin-bottom:6px;font-size:12px;color:var(--dim);">Part A</div>'+ (aRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
-      '<div style="margin:8px 0 6px 0;font-size:12px;color:var(--dim);">Part B</div>'+ (bRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
-      '<div style="margin:8px 0 6px 0;font-size:12px;color:var(--dim);">Part C</div>'+ (cRows||'<p style="color:var(--dim);font-size:12px;">No items</p>')+
-    '</div>';
-  }).join('');
-  main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
-      '<button id="forgeInvAddBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>'+
-      '<button id="forgeInvAddUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>'+
-      '<button id="forgeInvClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">'+
-      '<div style="display:flex;flex-direction:column;gap:8px;">'+left+'</div>'+
-      '<div style="min-width:0;"><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">'+slotsHtml+'</div></div>'+
-    '</div>'+
-    '<div id="forgeEditor" style="margin-top:12px;"></div>';
-  main.querySelectorAll('button[data-hero]').forEach(function(b){ b.addEventListener('click', function(){ selectedHero=b.getAttribute('data-hero'); renderWeaponInventoryCategory(); }); });
-  main.querySelectorAll('input[data-startid]').forEach(function(cb){ cb.addEventListener('change', function(){ var id=cb.getAttribute('data-startid'); if(cb.checked && /_UPGRADED$/i.test(id)){ setStartInv(id.replace(/_UPGRADED$/i,''), false); } setStartInv(id, cb.checked); renderWeaponInventoryCategory(); }); });
-  const addBaseBtn=main.querySelector('#forgeInvAddBase');
-  if(addBaseBtn) addBaseBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ if(!/_UPGRADED$/i.test(cb.getAttribute('data-startid'))){ setStartInv(cb.getAttribute('data-startid'), true); } }); renderWeaponInventoryCategory(); });
-  const addUpgradedBtn=main.querySelector('#forgeInvAddUpgraded');
-  if(addUpgradedBtn) addUpgradedBtn.addEventListener('click',function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ if(/_UPGRADED$/i.test(cb.getAttribute('data-startid'))){ setStartInv(cb.getAttribute('data-startid'), true); } }); renderWeaponInventoryCategory(); });
-  main.querySelectorAll('[data-makeloadout]').forEach(function(b){ b.addEventListener('click',function(){ makeHeroLoadout(b.getAttribute('data-makeloadout')); }); });
-  const clearBtn=main.querySelector('#forgeInvClear');
-  if(clearBtn) clearBtn.addEventListener('click', function(){ main.querySelectorAll('input[data-startid]').forEach(function(cb){ setStartInv(cb.getAttribute('data-startid'), false); }); renderWeaponInventoryCategory(); });
-}
-function renderLoadoutCategory(){
-  const main=overlay.querySelector('#forgeMain');
-  if(!main) return;
-  main.innerHTML='<div id="hlPantallaBody"></div>';
-  if(typeof syncLoadoutToStartItems==='function') syncLoadoutToStartItems();
-  if(typeof pintarPantallaLoadout==='function') pintarPantallaLoadout();
-}
-function renderReservedItemsCategory(){
-  const main=overlay.querySelector('#forgeMain');
-  if(!main) return;
-  camp.start=camp.start||{items:[],reservedItems:[]};
-  if(!Array.isArray(camp.start.reservedItems)) camp.start.reservedItems=[];
-  const ids=camp.start.reservedItems.slice();
-  let allPool=[]; if(typeof GRUPOS_INICIO==='function'){ GRUPOS_INICIO().filter(function(g){return g && g[0]!=='loot';}).forEach(function(g){ (g[1]||[]).forEach(function(x){ allPool.push(x); }); }); }
-  const poolById={}; allPool.forEach(function(x){ if(x && x.id) poolById[x.id]=x; });
-  const allItems=ids.map(function(id){ var x=poolById[id] || (typeof DATA!=='undefined' && DATA.recipes? DATA.recipes.find(function(r){return r.id===id;}) : null) || {id:id}; return x; });
-  function imageFor(id){
-    id=String(id||''); let base=id.replace(/^RECIPE_/i,'').replace(/_UPGRADED$|_PLUS$/i,'');
-    let folder=null;
-    if(/ARMOR/.test(id)) folder='armor';
-    else if(/TRINKET/.test(id)) folder='trinket';
-    else if(/WEAPON_PART/.test(id)) folder='weapon';
-    else if(/CSM/.test(id) || /MAT_/.test(id)) folder='csm';
-    if(!folder) return '';
-    return '<img src="../img/'+folder+'/'+base+'.png" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
-  }
-  function groupOf(x){
-    const id=String(x.id||'').toUpperCase();
-    if(/ARMOR/.test(id)) return 'Armor';
-    if(/TRINKET/.test(id)) return 'Trinkets';
-    if(/WEAPON_PART/.test(id)) return 'Weapons';
-    if(/CSM/.test(id)) return 'Consumables';
-    if(/MAT_/.test(id)) return 'Materials';
-    return 'Other';
-  }
-  const groupOrder=['Armor','Trinkets','Weapons','Consumables','Materials','Other'];
-  const grouped={};
-  allItems.forEach(function(x){ const g=groupOf(x); if(!grouped[g]) grouped[g]=[]; grouped[g].push(x); });
-  const sections=groupOrder.map(function(gn){
-    const items=grouped[gn]; if(!items||!items.length) return '';
-    const cells=items.map(function(x){
-      const name=prettyName((typeof L==='function')? L(x,'name') : (x.name_en||x.name||x.id));
-      const flavor=(typeof partFlavor==='function')? partFlavor(x) : '';
-      const title= flavor || name || x.id;
-      const img=imageFor(x.id);
-      return '<div style="padding:8px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">'+img+'<span style="word-break:break-all;flex:1;">'+esc(title)+(title!==x.id? '<div style="color:var(--dim);font-size:11px;">'+esc(x.id)+'</div>':'')+'</span><button data-release="'+x.id+'" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">REL</button></div>';
-    }).join('');
-    return '<div style="margin-bottom:8px;"><h3 style="margin:0 0 6px 0;font-size:15px;color:var(--text);font-weight:700;">'+esc(gn)+' ('+items.length+')</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'+cells+'</div></div>';
-  }).join('');
-  main.innerHTML=
-    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">'+
-      '<button id="forgeReservedClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>'+
-    '</div>'+
-    '<div style="color:var(--dim);font-size:12px;margin-bottom:8px;text-align:center;">Reserved items (story/feat rewards).</div>'+
-    (ids.length? '' : '<p style="color:var(--dim);text-align:center;margin-top:20px;">No reserved items.</p>')+
-    sections;
-  main.querySelectorAll('[data-release]').forEach(function(b){
-    b.addEventListener('click', function(){
-      const id=b.getAttribute('data-release');
-      camp.start.reservedItems=camp.start.reservedItems.filter(function(x){return x!==id;});
-      renderReservedItemsCategory();
-    });
-  });
 
-  const clearBtn=main.querySelector('#forgeReservedClear');
-  if(clearBtn) clearBtn.addEventListener('click', function(){ camp.start.reservedItems=[]; renderReservedItemsCategory(); });
-}
-function renderActiveCategory(){ if(activeCat==='weapons') renderLoadoutCategory(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='reserved') renderReservedItemsCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='weaponinv') renderWeaponInventoryCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
+function renderActiveCategory(){ if(activeCat==='weapons') renderLoadoutCategory(); else if(activeCat==='shared') renderSharedCategory(); else if(activeCat==='itempool') renderItemPoolCategory(); else if(activeCat==='reserved') renderReservedItemsCategory(); else if(activeCat==='startinv') renderStartingInventoryCategory(); else if(activeCat==='armor') renderArmorCategory(); else if(activeCat==='trinkets') renderTrinketsCategory(); else if(activeCat==='weaponinv') renderWeaponInventoryCategory(); else if(activeCat==='enemies') renderEnemiesCategory(); }
 function renderAll(){}
 function setCat(cat){
   activeCat=cat;
@@ -1176,7 +1255,7 @@ function setCat(cat){
 overlay.querySelectorAll('[data-forgecat]').forEach(function(b){
   b.addEventListener('click',function(){ setCat(b.getAttribute('data-forgecat')); });
 });
-overlay.querySelector('#forgeSearch').addEventListener('input',function(){ if(activeCat==='weapons') renderList(); });
+overlay.querySelector('#forgeSearch').addEventListener('input',function(){ if(activeCat==='weaponinv') renderList(); });
 overlay.querySelector('#forgeNew').addEventListener('click',function(){const c={id:'WEAPON_PART_NEW',name:'New Part',name_en:'New Part',class:'Rune',slot:'A',upgrade:false};state.weaponParts.push(c);selected=c.id;persist();renderAll();});
 const modesel=document.getElementById('modesel');
 const btn=document.createElement('button');
@@ -1187,7 +1266,7 @@ if(topAddAll) topAddAll.addEventListener('click',function(){ if(typeof addAllUpg
 const topManage=overlay.querySelector('#forgeTopManage');
 if(topManage) topManage.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 const topClear=overlay.querySelector('#forgeTopClear');
-if(topClear) topClear.addEventListener('click',function(){ clearAllStartInv(); });
+if(topClear) topClear.addEventListener('click',function(){ clearAllStartInv(); renderActiveCategory(); });
 
 function placeForge(){ var h=document.querySelector('header'); var top=h?(h.getBoundingClientRect().bottom||h.offsetHeight||0):0; overlay.style.top=top+'px'; }
 function openForge(){ window.__forgeOpen=true; placeForge(); overlay.style.display='block'; btn.classList.add('on'); renderActiveCategory(); }
