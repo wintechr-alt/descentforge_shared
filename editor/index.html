@@ -7226,6 +7226,27 @@ function openDlg(title,body,foot){ document.getElementById('dlgTitle').textConte
 
 /* `lista` es «primary» u «optional»: el mismo catálogo sirve para las dos, y
    tenerlo dos veces era pedir que se separaran. */
+/* Busca un nombre de variable que no se use ya en ningún trigger u objetivo
+   del mapa: `base` si está libre, si no `base1`, `base2`… Así el asistente
+   de recolección se puede usar varias veces en la misma misión sin que una
+   tirada pise la variable (y los triggers) de la anterior. */
+function collectUsedVarNames(){
+  const used=new Set();
+  const take=p=>{ if(p && typeof p==='object' && typeof p.var==='string' && p.var) used.add(p.var); };
+  (state.triggers||[]).forEach(t=>{
+    take(t.event && t.event.params);
+    (t.conditions||[]).forEach(c=>take(c.params));
+    (t.actions||[]).forEach(a=>take(a.params));
+  });
+  ['primary','optional','failConditions'].forEach(l=>(state.objectives[l]||[]).forEach(o=>take(o.params)));
+  return used;
+}
+function uniqueVarName(base){
+  const used=collectUsedVarNames();
+  if(!used.has(base)) return base;
+  let n=1; while(used.has(base+n)) n++;
+  return base+n;
+}
 function keyGatherWizard(){
   openDlg(TS('Key Gather Wizard','Key Gather Wizard'),
     `<div class="field"><label>${TS('Item type','Item type')}</label>
@@ -7262,7 +7283,7 @@ function keyGatherWizard(){
       shards:{var:'shards',flag:'shard_collected',flavor:'You collected a shard.',progress:'Shards collected',complete:'You can continue.'},
       runes:{var:'runes',flag:'rune_found',flavor:'You found a rune.',progress:'Runes gathered',complete:'The path is open.'},
       relics:{var:'relics',flag:'relic_found',flavor:'You obtained a relic.',progress:'Relics gathered',complete:'The way is clear.'}}[kind]||{var:'keys',flag:'key_taken',flavor:'You found an item.',progress:'Items collected',complete:'You can continue.'};
-    const kindVar=kindCfg.var, kindFlag=kindCfg.flag, kindFlavor=kindCfg.flavor, kindProgress=kindCfg.progress, kindComplete=kindCfg.complete;
+    const kindVar=uniqueVarName(kindCfg.var), kindFlag=kindCfg.flag, kindFlavor=kindCfg.flavor, kindProgress=kindCfg.progress, kindComplete=kindCfg.complete;
     const capKind=kind.charAt(0).toUpperCase()+kind.slice(1);
     const groupRaw=(document.getElementById('kg_group')?.value||'').trim();
     const group = groupRaw || null;
@@ -7274,7 +7295,7 @@ function keyGatherWizard(){
         try{
         const n=collected.length; if(!n) return;
         state.objectives.primary.push({id:'collect_keys',params:{n:n,var:kindVar,type:'InteractToken'},text:'Find the '+n+' '+kind+' to open the way.'});
-        if(doorIdx!==null) state.objectives.primary.push({id:'use_object',params:{interactable:doorIdx},hidden:true,mission:'keys',text:'Advance to the door.'});
+        if(doorIdx!==null) state.objectives.primary.push({id:'use_object',params:{interactable:doorIdx},hidden:true,mission:kindVar,text:'Advance to the door.'});
         const before=state.triggers.length;
         cambio(()=>{
           const init={id:'kg_'+Date.now().toString(36)+'_init',name:kindVar+': init',once:true,event:{id:'mapStart',params:{}},conditions:[],actions:[
@@ -7292,7 +7313,7 @@ function keyGatherWizard(){
               ]});
           });
           for(let k=1;k<n;k++){
-            state.triggers.push({id:'kg_progress_'+k,name:kindVar+': progress '+k+'/'+n,once:true,
+            state.triggers.push({id:prefix+'_progress_'+k,name:kindVar+': progress '+k+'/'+n,once:true,
               event:{id:'variableAbove',params:{var:kindVar,value:k-1}},
               conditions:[], actions:[{id:'showMessage',params:{text:kindProgress+' '+k+'/'+n+'.'}}]});
           }
@@ -7301,12 +7322,12 @@ function keyGatherWizard(){
           if(doorIdx!==null){ compActions.push({id:'unlockDoor',params:{interactable:doorIdx}});
             const door=state.spawns.interactables[doorIdx]; if(door&&Array.isArray(door.pos)) compActions.push({id:'focusCamera',params:{cell:[door.pos[0],door.pos[1]]}}); }
           if(group) compActions.push({id:'revealTiles',params:{group}});
-          state.triggers.push({id:'kg_complete',name:kindVar+': complete',once:true,
+          state.triggers.push({id:prefix+'_complete',name:kindVar+': complete',once:true,
             event:{id:'variableAbove',params:{var:kindVar,value:n-1}},
             conditions:[], actions:compActions});
           state.triggers.push({id:prefix+'_announce',name:kindVar+': announce',once:true,
             event:{id:'variableEquals',params:{var:kindVar,value:n}},
-            conditions:[], actions:[{id:'announceMission',params:{text:kindComplete,mission:'keys'}}]});
+            conditions:[], actions:[{id:'announceMission',params:{text:kindComplete,mission:kindVar}}]});
         });
         trgOpen=before; rtab='obj'; syncTabs(); renderRight(); draw();
         hidePlaceHint(); flash(TS('Key Gather wizard placed tokens and generated triggers.','Key Gather wizard placed tokens and generated triggers.'));
