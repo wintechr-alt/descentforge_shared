@@ -8708,6 +8708,8 @@ function askDoorLockedFromStart(o, includeLocked=true){
        <label class="chk"><input type="radio" name="doorRoomOpt" value="new" ${defaultExisting?'':'checked'}> ${TS('Create new room behind door (Room Builder)','Create new room behind door (Room Builder)')}</label>
        <label class="chk"><input type="radio" name="doorRoomOpt" value="existing" ${defaultExisting?'checked':''}> ${TS('Reveal an existing tile group','Reveal an existing tile group')}</label>
        <select id="doorTileGroup" style="margin-top:6px" ${tileGroupList.length?'':'disabled'}>${tileGroupOptions}</select></div>
+<label class="chk"><input type="radio" name="doorRoomOpt" value="default"> Default door</label>
+                <hr style="margin: 8px 0;">
      <div class="field"><label>${TS('Spawn enemy groups when opened','Spawn enemy groups when opened')}</label>${groupBoxes}</div>`,
     `<button class="sm" id="doorSetupCancel">${TS('Cancel','Cancel')}</button>
      <button class="primary sm" id="doorSetupCreate">${TS('Create','Create')}</button>`);
@@ -8726,9 +8728,39 @@ function askDoorLockedFromStart(o, includeLocked=true){
     if(includeLocked){ o.locked=locked; o.preview=locked ? ('The '+w+' is LOCKED.') : ('Select a Hero to OPEN this '+w+'.'); }
     else o.locked=false;
     const createRoom=(document.querySelector('input[name="doorRoomOpt"]:checked')?.value==='new');
+    const isDefaultDoor=(document.querySelector('input[name="doorRoomOpt"]:checked')?.value==='default');
     const selectedTileGroup=(document.getElementById('doorTileGroup')?.value||'').trim();
     const selectedGroups=[...document.querySelectorAll('input[data-dgrp]:checked')].map(x=>x.dataset.dgrp);
-    dlg.close();
+    
+    // Handle default door
+    if(isDefaultDoor){
+      const i=state.spawns.interactables.indexOf(o);
+      if(i>=0){
+        o.name = '';
+        o.text = '';
+        o.behavior = 'custom';
+        o.uses = '';
+        o.freeAction = false;
+        o.locked = false;
+        o.loot = {
+          mode: 'none',
+          items: [],
+          traits: [],
+          points: 0
+        };
+        const trigId = 't' + Date.now().toString(36);
+        const newTrig = {
+          id: trigId,
+          name: TS('Opens ', 'Opens ')+(o.name||'Door'),
+          once: true,
+          event: { id: eventFor, params: { interactable: i } },
+          conditions: [],
+          actions: []
+        };
+        cambio(()=>state.triggers.push(newTrig));
+      }
+    }
+
     renderRight(); draw();
     const i=state.spawns.interactables.indexOf(o);
     if(i<0) return;
@@ -8759,6 +8791,7 @@ function askDoorLockedFromStart(o, includeLocked=true){
       });
     });
     renderRight();
+    dlg.close();
   };
 }
 function setupSightTokenDefaults(o){
