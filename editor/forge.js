@@ -432,7 +432,7 @@ function renderArmorCategory(){
     const img = baseData ? '<img src="../img/armor/'+baseId+'.png" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">' : '';
     return {act: act, html: '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'+
       img+
-      '<div style="flex:1;min-width:140px;">'+esc(name)+(act>=2?' (Act II)':'')+'</div>'+
+      '<div style="flex:1;min-width:140px;">'+esc(name)+'<br style="clear:both;"> <span style="color:var(--dim);font-size:11px;">'+baseId+'</span>'+(act>=2?' (Act II)':'')+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">'+
         '<label style="display:flex;align-items:center;gap:4px;font-size:12px;'+(plusOwned?'opacity:.45;':'')+'"><input type="checkbox" data-startid="'+baseId+'" '+(baseOwned?'checked':'')+(plusOwned?' disabled':'')+'> Base</label>'+
         '<label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" data-startid="'+plusId+'" '+(plusOwned?'checked':'')+'> Upgraded</label>'+
@@ -486,7 +486,7 @@ function renderTrinketsCategory(){
     const img = baseData ? '<img src="../img/trinket/'+baseId+'.png" style="width:64px;height:64px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">' : '';
     return {act: act, html: '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'+
       img+
-      '<div style="flex:1;min-width:140px;">'+esc(name)+(act>=2?' (Act II)':'')+'</div>'+
+      '<div style="flex:1;min-width:140px;">'+esc(name)+'<br style="clear:both;"> <span style="color:var(--dim);font-size:11px;">'+baseId+'</span>'+(act>=2?' (Act II)':'')+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">'+
         '<label style="display:flex;align-items:center;gap:4px;font-size:12px;'+(plusOwned?'opacity:.45;':'')+'"><input type="checkbox" data-startid="'+baseId+'" '+(baseOwned?'checked':'')+(plusOwned?' disabled':'')+'> Base</label>'+
         '<label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" data-startid="'+plusId+'" '+(plusOwned?'checked':'')+'> Upgraded</label>'+
