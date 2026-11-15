@@ -88,6 +88,7 @@ overlay.innerHTML=
     '<h1 style="margin:0;font-size:18px;">Forge</h1>'+
     '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:6px;">'+
       '<button id="forgeTopAddAll" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Add all upgraded (selected act)</button>'+
+'<button id="forgeTopDefaultStart" style="background:var(--gold);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Default Starting Inventory</button>'+
       '<button id="forgeTopManage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Manage Starting Inventory</button>'+
       '<button id="forgeTopClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Clear all</button>'+
     '</div>'+
@@ -408,6 +409,7 @@ function renderSimpleCategory(title, items, imgFolder){
   if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 }
 function forgeAllowedAct2(){ try { return !!(typeof camp!=="undefined" && camp && camp.meta && (camp.meta.act!=="I" || !!camp.meta.requiresAct2)); } catch(e){ return false; } }
+function forgeTopDefaultStartInv(){ try { camp.start=camp.start||{items:[]}; const defaultParts = ["WEAPON_PART_A_KNIVES_1", "WEAPON_PART_A_WAND_1", "WEAPON_PART_A_DUAL_BLADES_1", "WEAPON_PART_A_BOW_1", "WEAPON_PART_A_WARBELL_1", "WEAPON_PART_A_SPEAR_1", "WEAPON_PART_A_HAMMER_1", "WEAPON_PART_A_SWORD_1", "WEAPON_PART_A_WARHAMMER_1", "WEAPON_PART_A_STAFF_1", "WEAPON_PART_A_CROSSBOW_1", "WEAPON_PART_A_GAUNTLET_1"]; defaultParts.forEach(function(id){ if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1}); }); } catch(e){} if(typeof renderRight==="function") renderRight(); renderActiveCategory(); }
 function clearAllStartInv(){ try { camp.start=camp.start||{items:[]}; camp.start.items=[]; } catch(e){} if(typeof renderRight==='function') renderRight(); renderActiveCategory(); }
 function renderArmorCategory(){
   const main=overlay.querySelector('#forgeMain');
@@ -1661,6 +1663,7 @@ if(modesel) modesel.appendChild(btn);
 const topAddAll=overlay.querySelector('#forgeTopAddAll');
 if(topAddAll) topAddAll.addEventListener('click',function(){ if(typeof addAllUpgradedGlobal==='function') addAllUpgradedGlobal(); renderActiveCategory(); });
 const topManage=overlay.querySelector('#forgeTopManage');
+const topDefault=overlay.querySelector("#forgeTopDefaultStart");if(topDefault) topDefault.addEventListener("click",function(){ forgeTopDefaultStartInv(); renderActiveCategory(); });
 if(topManage) topManage.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 const topClear=overlay.querySelector('#forgeTopClear');
 if(topClear) topClear.addEventListener('click',function(){ clearAllStartInv(); renderActiveCategory(); });
