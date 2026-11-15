@@ -915,6 +915,11 @@ function renderEnemiesCategory(){
     const tag=manual || mapped || auto;
     const mechTag= tag==='boss' ? 'Boss' : (tag==='mini' ? 'Mini' : (tag==='base' ? 'Base' : ''));
     if(mechTag && x.mech.indexOf(mechTag)<0) x.mech.push(mechTag);
+  // Add "Common" mech tag to enemies that don't have Base, Mini, or Boss
+  const hasBase= x.mech && x.mech.indexOf('Base')>=0;
+  const hasMini= x.mech && x.mech.indexOf('Mini')>=0;
+  const hasBoss= x.mech && x.mech.indexOf('Boss')>=0;
+  if(!hasBase && !hasMini && !hasBoss && !x.mech.includes('Common')) x.mech.push('Common');
   });
   const allowedAct2=(typeof camp!=='undefined' && camp.meta && (camp.meta.act!=='I' || !!camp.meta.requiresAct2)) || false;
   const filteredBase=items.filter(function(x){ const act=familyAct(x); return !(act>=2 && !allowedAct2); });
@@ -1044,7 +1049,7 @@ function renderEnemiesCategory(){
     '</div>';
   const mechOpts=Array.from(new Set(filteredBase.reduce(function(acc,x){ if(Array.isArray(x.mech)) x.mech.forEach(function(t){ if(['Base','Mini','Boss'].indexOf(t)<0) acc.push(t); }); return acc; },[]))).sort();
   const themeOpts=Array.from(new Set(filteredBase.reduce(function(acc,x){ if(Array.isArray(x.theme)) x.theme.forEach(function(t){acc.push(t);}); return acc; },[]))).sort();
-  const customOpts=['Base','Mini','Boss'].filter(function(t){ return (filteredBase||[]).some(function(x){ return Array.isArray(x.mech) && x.mech.indexOf(t)>=0; }); });
+  const customOpts=['Base','Mini','Boss','Common'].filter(function(t){ if(t==='Common'){ return (filteredBase||[]).some(function(x){ return !Array.isArray(x.mech) || !(x.mech||[]).includes('Base') && !(x.mech||[]).includes('Mini') && !(x.mech||[]).includes('Boss'); }); } else { return (filteredBase||[]).some(function(x){ return Array.isArray(x.mech) && x.mech.indexOf(t)>=0; }); } });
   const mechSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:4px;margin-bottom:2px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Mech:</span>'+mechOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-mech="'+esc(t)+'" '+(enemyMechFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
   const themeSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:4px;margin-bottom:2px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Theme:</span>'+themeOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-theme="'+esc(t)+'" '+(enemyThemeFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
   const customSel='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:4px;"><span style="font-size:11px;color:var(--text);width:68px;font-weight:600;">Custom:</span>'+customOpts.map(function(t){return '<label style="font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="checkbox" data-mech="'+esc(t)+'" '+(enemyMechFilter.indexOf(t)>=0?'checked':'')+'> '+esc(t)+'</label>';}).join(' ')+'</div>';
