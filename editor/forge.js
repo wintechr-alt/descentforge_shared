@@ -409,7 +409,33 @@ function renderSimpleCategory(title, items, imgFolder){
   if(manageBtn) manageBtn.addEventListener('click',function(){ if(typeof abrirInicioPopup==='function') abrirInicioPopup(); });
 }
 function forgeAllowedAct2(){ try { return !!(typeof camp!=="undefined" && camp && camp.meta && (camp.meta.act!=="I" || !!camp.meta.requiresAct2)); } catch(e){ return false; } }
-function forgeTopDefaultStartInv(){ try { camp.start=camp.start||{items:[]}; const defaultParts = ["WEAPON_PART_A_KNIVES_1", "WEAPON_PART_A_WAND_1", "WEAPON_PART_A_DUAL_BLADES_1", "WEAPON_PART_A_BOW_1", "WEAPON_PART_A_WARBELL_1", "WEAPON_PART_A_SPEAR_1", "WEAPON_PART_A_HAMMER_1", "WEAPON_PART_A_SWORD_1", "WEAPON_PART_A_WARHAMMER_1", "WEAPON_PART_A_STAFF_1", "WEAPON_PART_A_CROSSBOW_1", "WEAPON_PART_A_GAUNTLET_1"]; defaultParts.forEach(function(id){ if(!camp.start.items.some(function(i){return i.id===id;})) camp.start.items.push({id:id,qty:1}); }); } catch(e){} if(typeof renderRight==="function") renderRight(); renderActiveCategory(); }
+
+function hasUpgradedVersion(baseId) {
+  if (!Array.isArray(camp.start.items)) return false;
+  const prefix = baseId.replace(/\d+$/, ''); // e.g., "WEAPON_PART_A_SWORD_" from "WEAPON_PART_A_SWORD_1"
+  const upgradedPattern = prefix + '([2-9]|10|11)'; // match upgraded versions (2, 3, ... 9, 10, 11)
+  return camp.start.items.some(function(i){ return new RegExp(upgradedPattern,'').test(i.id); });
+}
+
+function forgeTopDefaultStartInv() {
+    try {
+        camp.start = camp.start || { items: [] };
+        const defaultParts = ["WEAPON_PART_A_KNIVES_1", "WEAPON_PART_A_WAND_1", "WEAPON_PART_A_DUAL_BLADES_1", "WEAPON_PART_A_BOW_1", "WEAPON_PART_A_WARBELL_1", "WEAPON_PART_A_SPEAR_1", "WEAPON_PART_A_HAMMER_1", "WEAPON_PART_A_SWORD_1", "WEAPON_PART_A_WARHAMMER_1", "WEAPON_PART_A_STAFF_1", "WEAPON_PART_A_CROSSBOW_1", "WEAPON_PART_A_GAUNTLET_1"];
+        defaultParts.forEach(function(id) {
+            // Checks if: 1. Base item is not selected AND 2. No upgrade (starts with baseID_) is selected in the starting inventory.
+            if (!camp.start.items.some(function(i) { return i.id === id; }) && !camp.start.items.some(function(i) { return i.id.startsWith(id + '_'); })) {
+                camp.start.items.push({ id: id, qty: 1 });
+            }
+        });
+    } catch (e) {
+        // Existing error handling flow
+    }
+    if (typeof renderRight === "function") {
+        renderRight();
+    }
+    renderActiveCategory();
+}
+
 function clearAllStartInv(){ try { camp.start=camp.start||{items:[]}; camp.start.items=[]; } catch(e){} if(typeof renderRight==='function') renderRight(); renderActiveCategory(); }
 function renderArmorCategory(){
   const main=overlay.querySelector('#forgeMain');
