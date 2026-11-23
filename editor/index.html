@@ -193,6 +193,10 @@
   .modesel button{border:0;border-radius:0;padding:5px 11px;font-size:12px}
   .modesel button+button{border-left:1px solid var(--edge)}
   .modesel button.on{background:var(--torch);color:var(--ink);font-weight:600}
+  /* Flow is a separate full-page workspace below the navigation header. */
+  #flowOverlay{display:none;flex:1;min-height:0;overflow:auto;background:var(--ink)}
+  body.flow-mode main{display:none}
+  body.flow-mode #flowOverlay{display:block}
   .dot{width:11px;height:11px;border-radius:50%;flex:none;border:1.5px solid var(--ink)}
   .langsel{display:flex;border:1px solid var(--edge);border-radius:5px;overflow:hidden}
   .langsel button{border:0;border-radius:0;padding:4px 8px;font-size:11px;letter-spacing:.06em}
@@ -702,7 +706,7 @@
     <span data-t="subtitle"></span>
   </div>
   <div class="modesel" id="modesel">
-    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button>
+    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="flow" data-t="modeFlow"></button>
   </div>
   <!-- La barra de útiles de arriba ya no existe: loseta, enemigo y objeto se
        elegían aquí Y en la paleta de la izquierda, y la paleta ya cambia el
@@ -720,6 +724,8 @@
   <button id="btnImport" data-t="open"></button>
   <button class="primary" id="btnExport" data-t="export"></button>
 </header>
+
+<div id="flowOverlay" aria-label="Flow editor" aria-hidden="true"></div>
 
 <main>
   <!-- Capas: como Figma, la columna izquierda tiene dos pestañas:
@@ -1129,7 +1135,7 @@ const UI={
   exported:'Exportado {0}', loaded:'Cargado {0}', badFile:'Archivo no válido',
   demoLoaded:'Mapa de ejemplo cargado',
   // ---- campaña ----
-  modeScenario:'Escenario', modeCampaign:'Campaña',
+  modeScenario:'Escenario', modeCampaign:'Campaña', modeFlow:'Flujo',
   exportCamp:'Exportar .dcamp',
   tabNodes:'Nodos', tabDialogues:'Diálogos', tabNode:'Nodo',
   /* ---- tutorial ---- */
@@ -1656,7 +1662,7 @@ const UI={
   exported:'Exported {0}', loaded:'Loaded {0}', badFile:'Not a valid file',
   demoLoaded:'Example map loaded',
   // ---- campaign ----
-  modeScenario:'Scenario', modeCampaign:'Campaign',
+  modeScenario:'Scenario', modeCampaign:'Campaign', modeFlow:'Flow',
   exportCamp:'Export .dcamp',
   tabNodes:'Nodes', tabDialogues:'Dialogues', tabNode:'Node',
   /* ---- tutorial ---- */
@@ -2058,7 +2064,8 @@ const state={
    Documento aparte del escenario: el .dmap es un tablero, el .dcamp es lo que
    enhebra varios tableros sobre el mapa del mundo. Comparten editor pero no
    estado, y solo se exporta el del modo activo. */
-let mode='scenario';                 // scenario | campaign
+let mode='scenario';                 // scenario | campaign | flow
+let editorModeBeforeFlow='scenario';
 let selNode=null, selDlg=null, ctab='nodes';
 const camp={
   meta:{id:'campaign-01',name:'',author:'',description:'',act:'I',
@@ -12493,9 +12500,39 @@ sanearEscenario=function(s){
 /* ================= modo ================= */
 function setMode(m){
   if(m===mode){ return; }
+  const flowOverlay=document.getElementById('flowOverlay');
+  if(m==='flow'){
+    editorModeBeforeFlow = mode==='flow' ? editorModeBeforeFlow : mode;
+    VIEW[mode]={zoom,panX,panY};
+    
+    // Sync viewport for flow mode and initialize chart
+    ({zoom,panX,panY}=VIEW['campaign']||VIEW.flow||{zoom:1,panX:0,panY:0});
+    mode='flow';
+    document.body.classList.add('flow-mode');
+    if(flowOverlay) flowOverlay.setAttribute('aria-hidden','false');
+    paintChrome();
+    
+    // Initialize flow chart when entering flow mode
+    console.log('[index.html] Checking for DescentForgeFlow...');
+    if (typeof DescentForgeFlow !== 'undefined') {
+      console.log('[index.html] DescentForgeFlow found, calling init()');
+      DescentForgeFlow.init();
+    } else {
+      console.error('[index.html] ERROR: DescentForgeFlow not defined! Check flow.js loaded.');
+    }
+    window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:'flow'}}));
+    return;
+  }
+  if(mode==='flow'){
+    mode=editorModeBeforeFlow||'scenario';
+    document.body.classList.remove('flow-mode');
+    if(flowOverlay) flowOverlay.setAttribute('aria-hidden','true');
+    window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:m}}));
+  }
+  if(m===mode) { paintChrome(); return; }
   VIEW[mode]={zoom,panX,panY};                   // guardar la vista del modo que se deja
   mode=m;
-  ({zoom,panX,panY}=VIEW[m]);
+  ({zoom,panX,panY}=VIEW[m]||VIEW.scenario);
   // el panel derecho arranca en la ficha de lo que se esté editando
   rtab='sel'; ptab='tiles'; ctab='nodes';
   paintChrome(); renderTools(); renderPalette(); syncTabs(); renderRight(); draw();
@@ -12957,5 +12994,6 @@ function pintarInicioPopup(){
 </script>
 <script src="weapon_flavor.js"></script>
 <script src="forge.js"></script>
+<script src="flow.js"></script>
 </body>
 </html>
