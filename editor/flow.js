@@ -536,7 +536,6 @@
     }
 
     }
-
     function triggerEditNode(node) {
       console.log('[Flow.js] Edit requested for', node.id);
       openPanelFor(node);
