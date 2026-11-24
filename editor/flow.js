@@ -535,7 +535,6 @@
 
     }
 
-    }
     function triggerEditNode(node) {
       console.log('[Flow.js] Edit requested for', node.id);
       if (typeof window.DescentForgeFlow.onEditNode === 'function') {
