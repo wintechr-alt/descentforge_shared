@@ -41,11 +41,11 @@
   }
 
   // ---------- Constants ----------
-  const NODE_W = 220;
-  const NODE_H = 76;
-  const COL_SPACING = 50;
-  const ROW_SPACING = 40;
-  const PAD = 60;
+  const NODE_W = 240;
+  const NODE_H = 90;
+  const COL_SPACING = 140;
+  const ROW_SPACING = 120;
+  const PAD = 80;
   const MIN_ZOOM = 0.3;
   const MAX_ZOOM = 3;
   const DRAG_THRESHOLD = 4;  // px in content-space before a click becomes a drag
@@ -90,7 +90,7 @@
     // The edit panel is docked absolutely inside this element, so it needs
     // to actually be a positioning context.
     if (getComputedStyle(overlay).position === 'static') {
-      overlay.style.position = 'relative';
+      overlay.style.display = 'flex'; overlay.style.flexDirection = 'row'; overlay.style.height = '100%';
     }
 
     let state = {
@@ -237,102 +237,80 @@
     // only — never re-run on drag, drop, or Reset View, so it never fights
     // a position you've set by hand).
     //
-    // "main" nodes (raw.marker === 'main', or no marker at all) form one
-    // straight left->right backbone, topologically ordered by their *own*
-    // afterNodes links to each other (a link to/from a non-main node is
-    // ignored for this ordering, so an offshoot can never push the main
-    // line onto a new row).
-    //
-    // "narrative"/"side" nodes are offshoots: each one hangs just below-
-    // and-right of whatever node its own afterNodes[0] points at, on its
-    // own row, entirely separate from the main sequence.
+    // Column-based layout: every node is placed in the same column as the
+    // node it lists in its afterNodes (its prerequisite). Roots (nodes with
+    // no afterNodes, or whose afterNodes reference an unknown node) each get
+    // their own column, laid out left-to-right. Dependents stack vertically
+    // below their prerequisite within that same column. This keeps arrows
+    // short and vertical for much better visibility.
     function layoutNodes(nodes) {
-      const mainNodes = nodes.filter(n => getMarker(n.raw) === 'main');
-      const offshoots = nodes.filter(n => getMarker(n.raw) !== 'main');
-      const mainIds = new Set(mainNodes.map(n => n.id));
+      // Build dependency maps from afterNodes
+      const dependents = new Map(); // id -> [ids that list this in afterNodes]
+      const prereqOf = new Map();   // id -> first afterNode id (or null)
+      nodes.forEach(n => dependents.set(n.id, []));
 
-      const pred = new Map(); // id -> prerequisite ids (main-to-main only)
-      const succ = new Map(); // id -> successor ids (main-to-main only)
-      mainNodes.forEach(n => { pred.set(n.id, []); succ.set(n.id, []); });
-      mainNodes.forEach(n => {
-        getAfterNodes(n.raw).forEach(id => {
-          if (mainIds.has(id)) {
-            pred.get(n.id).push(id);
-            succ.get(id).push(n.id);
-          }
-        });
-      });
-
-      // Topological order (roots / no-prerequisite nodes first).
-      const order = [];
-      const remaining = new Map();
-      const queue = [];
-      mainNodes.forEach(n => remaining.set(n.id, pred.get(n.id).length));
-      mainNodes.forEach(n => { if (pred.get(n.id).length === 0) queue.push(n.id); });
-      let qi = 0;
-      while (qi < queue.length) {
-        const id = queue[qi++];
-        order.push(id);
-        for (const s of succ.get(id)) {
-          remaining.set(s, (remaining.get(s) || 0) - 1);
-          if ((remaining.get(s) || 0) === 0) queue.push(s);
-        }
-      }
-      mainNodes.forEach(n => { if (!order.includes(n.id)) order.push(n.id); });
-
-      // Row assignment for the main nodes: stays on one straight row unless
-      // a main node genuinely forks into more than one main successor, in
-      // which case the extra branch(es) drop onto new rows.
-      const rowOf = new Map();
-      const rowClaimed = new Set();
-      let nextFreeRow = 0;
-      order.forEach(id => {
-        const preds = pred.get(id);
-        if (!preds.length) { rowOf.set(id, nextFreeRow++); return; }
-        let primary = preds[0];
-        preds.forEach(pid => {
-          if ((rowOf.get(pid) ?? Infinity) < (rowOf.get(primary) ?? Infinity)) primary = pid;
-        });
-        const primaryRow = rowOf.get(primary) ?? 0;
-        if (!rowClaimed.has(primary)) { rowOf.set(id, primaryRow); rowClaimed.add(primary); }
-        else { rowOf.set(id, nextFreeRow++); }
-      });
-
-      order.forEach((id, idx) => {
-        const node = nodes.find(n => n.id === id);
-        node.x = PAD + idx * (NODE_W + COL_SPACING);
-        node.y = PAD + (rowOf.get(id) || 0) * (NODE_H + ROW_SPACING);
-      });
-
-      // Offshoots: each sits directly below whatever node it attaches to
-      // (its own afterNodes[0]) — same x, one row lower. Multiple
-      // offshoots on the same attach point stack beneath it in their own
-      // count, so one busy node's stack never pushes a different node's
-      // offshoots down too (each attach point starts back at row 1).
-      const attachStackCount = new Map();
-      let noneAttachCount = 0;
-      offshoots.forEach(n => {
-        const attachId = getAfterNodes(n.raw)[0];
-        const attachNode = attachId ? nodes.find(nn => nn.id === attachId) : null;
-        if (attachNode) {
-          const count = (attachStackCount.get(attachId) || 0) + 1;
-          attachStackCount.set(attachId, count);
-          n.x = attachNode.x;
-          n.y = attachNode.y + count * (NODE_H + ROW_SPACING);
+      nodes.forEach(n => {
+        const after = getAfterNodes(n.raw);
+        if (after.length > 0) {
+          prereqOf.set(n.id, after[0]);
+          if (!dependents.has(after[0])) dependents.set(after[0], []);
+          dependents.get(after[0]).push(n.id);
         } else {
-          // No recorded attachment: park it past the main chain, in its
-          // own stack.
-          noneAttachCount++;
-          n.x = PAD + order.length * (NODE_W + COL_SPACING);
-          n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
+          prereqOf.set(n.id, null);
         }
+      });
+
+      // Find roots: nodes with no afterNodes
+      const roots = nodes.filter(n => prereqOf.get(n.id) === null);
+
+      // Assign columns to roots (left to right)
+      const colOf = new Map();
+      let colIndex = 0;
+      roots.forEach(r => { colOf.set(r.id, colIndex++); });
+
+      // BFS to assign columns and rows to all nodes
+      const rowOf = new Map();
+      const colStackCount = new Map(); // col -> next free row index
+
+      const queue = [...roots];
+      roots.forEach(r => {
+        rowOf.set(r.id, 0);
+        colStackCount.set(colOf.get(r.id), 1);
+      });
+
+      while (queue.length > 0) {
+        const id = queue.shift();
+        const col = colOf.get(id);
+
+        const deps = dependents.get(id) || [];
+        deps.forEach(depId => {
+          // Same column as prerequisite
+          colOf.set(depId, col);
+          // Next available row in this column
+          const nextRow = colStackCount.get(col) || 0;
+          rowOf.set(depId, nextRow);
+          colStackCount.set(col, nextRow + 1);
+          queue.push(depId);
+        });
+      }
+
+      // Handle orphaned nodes (circular deps or prereq not in set)
+      nodes.forEach(n => {
+        if (!colOf.has(n.id)) {
+          colOf.set(n.id, colIndex++);
+          rowOf.set(n.id, 0);
+          colStackCount.set(colOf.get(n.id), 1);
+        }
+      });
+
+      // Place nodes: column determines x, row determines y
+      nodes.forEach(n => {
+        const col = colOf.get(n.id);
+        const row = rowOf.get(n.id);
+        n.x = PAD + col * (NODE_W + COL_SPACING);
+        n.y = PAD + row * (NODE_H + ROW_SPACING);
       });
     }
-
-    // Dropping a dragged node just finalizes its free position. Moving a
-    // node is NEVER allowed to rewrite anyone's afterNodes — that's done
-    // explicitly, by dragging a handle dot onto a node (adds a link) or
-    // clicking a selected node's "×" badges (removes one).
     function finishNodeDrag(dragNode) {
       state.pos[dragNode.id] = { x: dragNode.x, y: dragNode.y };
       render();
@@ -346,8 +324,8 @@
     // drag). Content is a placeholder for now — wire up real fields later
     // by editing openPanelFor() below.
     let panelEl = null;
-    const PANEL_TOP = 12;  // top of the flow chart view itself, not down near the page nav
-    const PANEL_WIDTH = 320;
+    const PANEL_TOP = 0;  // 
+    const PANEL_WIDTH = 340;
     const PANEL_BG = '#cbbda5';     // tan, matching the nav
     const PANEL_BORDER = '#a89672'; // darker tan
     const PANEL_TEXT = '#2a241c';   // dark, same as a node's own name text
@@ -395,19 +373,17 @@
       panelEl = document.createElement('div');
       panelEl.id = 'flowNodeEditPanel';
       panelEl.style.cssText =
-        'position:absolute;top:' + PANEL_TOP + 'px;right:0;bottom:0;width:' + PANEL_WIDTH + 'px;box-sizing:border-box;' +
+        'flex:0 0 ' + PANEL_WIDTH + 'px;box-sizing:border-box;' +
         'background:' + PANEL_BG + ';color:' + PANEL_TEXT + ';border-left:1px solid ' + PANEL_BORDER + ';' +
         'box-shadow:-6px 0 18px rgba(0,0,0,0.35);' +
-        'font:13px/1.5 sans-serif;padding:18px;overflow-y:auto;z-index:2000;';
+        'font:13px/1.5 sans-serif;padding:18px;overflow-y:auto;z-index:2000;' +
+        'display:flex;flex-direction:column;'
       panelEl.innerHTML =
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+        '<div style="margin-bottom:14px;">' +
           '<strong style="font-size:15px;color:' + PANEL_TEXT + ';">Node Edit</strong>' +
-          '<button type="button" id="flowNodeEditClose" aria-label="Clear selection" title="Clear selection" ' +
-            'style="background:none;border:none;color:' + PANEL_MUTED + ';font-size:20px;line-height:1;cursor:pointer;">&times;</button>' +
         '</div>' +
         '<div id="flowNodeEditBody" style="color:' + PANEL_MUTED + ';">No node selected.</div>';
       overlay.appendChild(panelEl);
-      panelEl.querySelector('#flowNodeEditClose').addEventListener('click', closeNodeEditPanel);
       return panelEl;
     }
 
@@ -559,15 +535,6 @@
 
     }
 
-    // "Closing" now just clears the selection and the panel back to its
-    // placeholder — the dock itself is permanent and never hides.
-    function closeNodeEditPanel() {
-      state.selectedId = null;
-      if (panelEl) {
-        const body = panelEl.querySelector('#flowNodeEditBody');
-        if (body) body.innerHTML = 'No node selected.';
-      }
-      render();
     }
 
     function triggerEditNode(node) {
@@ -596,7 +563,7 @@
       });
 
       svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.style.cssText = 'width:100%;height:100%;display:block;background:#2a241e';
+      svg.style.cssText = 'flex:1;min-width:0;display:block;background:#2a241e';
       svg.setAttribute('tabindex', '0');
 
       content = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -664,7 +631,6 @@
         '<strong>Flow Chart</strong><br>' +
         state.nodes.length + ' node' + (state.nodes.length !== 1 ? 's' : '') +
         ' &middot; ' + state.links.length + ' link' + (state.links.length !== 1 ? 's' : '') +
-        '<br><span style="opacity:.75">drag a node to move it &middot; drag its dot to connect &middot; select + &times; to detach</span>';
       overlay.appendChild(status);
 
       // ---- reset view / update buttons ----
@@ -704,7 +670,7 @@
       drawNodes();
 
       svg.appendChild(content);
-      overlay.appendChild(svg);
+      overlay.insertBefore(svg, panelEl);
 
       // Center content in the viewport ONCE, the first time there's
       // something to show. After that, panning/dragging/selecting never
@@ -1184,7 +1150,6 @@
       // Clicking a node's connection dot opens the built-in "Node Edit"
       // side panel (currently just a placeholder — add real fields in
       // openPanelFor()). Call this to close it programmatically.
-      closeNodeEditPanel: closeNodeEditPanel,
       // Optionally ALSO set this to a function(raw, node) if you want your
       // own logic to run (or your own panel to open) on the same click.
       // `raw` is the original campaign-data object for that node; `node`
