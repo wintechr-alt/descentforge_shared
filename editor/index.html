@@ -56,9 +56,9 @@
   button.primary{background:var(--torch);border-color:var(--torch);color:var(--ink);font-weight:600}
   button.sm{padding:3px 7px;font-size:11.5px}
 
-  main{flex:1;display:grid;grid-template-columns:238px 1fr 296px}
-  aside{background:var(--panel);display:flex;flex-direction:column;min-height:100%;overflow:hidden}
-  aside.left{background:var(--panel);display:flex;flex-direction:column;min-height:100%;overflow:hidden;border-right:1px solid var(--edge)}
+  main{flex:1;display:grid;grid-template-columns:238px 1fr 296px;min-height:0}
+  aside{background:var(--panel);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  aside.left{border-right:1px solid var(--edge)}
   aside.right{border-left:1px solid var(--edge)}
   .tabs{display:flex;border-bottom:1px solid var(--edge);flex:none}
   .tabs button{flex:1;border:0;border-radius:0;padding:8px 3px;font-size:10.5px;
@@ -750,6 +750,7 @@
       <div class="scroll" id="salasArbol"></div>
     </div>
     <div class="lpane" id="piezas" hidden>
+      <div class="destino" id="destinoPiezas"></div>
       <div class="tabs" id="ptabs">
         <button class="on" data-tab="tiles" data-t="tabTiles"></button>
         <button data-tab="enemies" data-t="tabEnemies"></button>
@@ -1151,10 +1152,8 @@ const UI={
   demoLoaded:'Mapa de ejemplo cargado',
   // ---- campaña ----
   modeScenario:'Escenario', modeCampaign:'Campaña', modeFlow:'Flujo',
-  campViewFlow:'Flujo', campViewMap:'Campaña',
+  campViewFlow:'Flujo de Mapa', campViewMap:'Campaña',
   campViewFlowTip:'Cambiar al diagrama de flujo', campViewMapTip:'Cambiar al mapa de campaña',
-  flowInfo0:'Flujo — 0 nodos · 0 enlaces',
-  flowInfo1:'Flujo — 1 nodo · 1 enlace',
   exportCamp:'Exportar .dcamp',
   tabNodes:'Nodos', tabDialogues:'Diálogos', tabNode:'Nodo',
   /* ---- tutorial ---- */
@@ -1682,10 +1681,8 @@ const UI={
   demoLoaded:'Example map loaded',
   // ---- campaign ----
   modeScenario:'Scenario', modeCampaign:'Campaign', modeFlow:'Flow',
-  campViewFlow:'Flow', campViewMap:'Campaign Map',
+  campViewFlow:'Flow Chart', campViewMap:'Campaign Map',
   campViewFlowTip:'Switch to flow chart', campViewMapTip:'Switch to campaign map',
-  flowInfo0:'Flow - 0 Nodes - 0 Links',
-  flowInfo1:'Flow - 1 Node - 1 Link',
   exportCamp:'Export .dcamp',
   tabNodes:'Nodes', tabDialogues:'Dialogues', tabNode:'Node',
   /* ---- tutorial ---- */
@@ -12621,7 +12618,7 @@ function updateFlowInfo(){
     links+=(node.spawn&&Array.isArray(node.spawn.afterNodes)?node.spawn.afterNodes.length:0);
     links+=(Array.isArray(node.afterNodes)?node.afterNodes.length:0);
   });
-  info.textContent=T(camp_?'flowInfo0':'flowInfo1')+' · '+T(camp_?'nodo':'Node')+(n>1?'s':'')+' · '+T(camp_?'enlace':'Link')+(links>1?'s':'');
+  info.textContent='Flow Chart — '+n+' Node'+(n!==1?'s':'')+' · '+links+' Link'+(links!==1?'s':'');
 }
 
 function setMode(m){
