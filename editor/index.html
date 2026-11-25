@@ -715,7 +715,7 @@
     <span data-t="subtitle"></span>
   </div>
   <div class="modesel" id="modesel">
-    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="workshop" data-t="modeWorkshop">Workshop</button>
+    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="workshop" data-t="Workshop">Workshop</button>
   </div>
   <!-- La barra de útiles de arriba ya no existe: loseta, enemigo y objeto se
        elegían aquí Y en la paleta de la izquierda, y la paleta ya cambia el
@@ -735,6 +735,8 @@
 </header>
 
 <div id="flowOverlay" aria-label="Flow editor" aria-hidden="true"></div>
+
+<div id="workshopOverlay" aria-label="Workshop editor" aria-hidden="true"></div>
 
 <main>
   <!-- Capas: como Figma, la columna izquierda tiene dos pestañas:
@@ -13161,5 +13163,6 @@ function pintarInicioPopup(){
 <script src="weapon_flavor.js"></script>
 <script src="forge.js"></script>
 <script src="flow.js"></script>
+<script src="workshop.js"></script>
 </body>
 </html>
