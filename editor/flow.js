@@ -909,19 +909,16 @@
     // then center it. Never touches node positions or afterNodes — it's
     // "show me everything", not "re-lay-out everything".
     function resetView() {
-      // Fit the zoom to show all nodes, then center the view.
-      // If svg or nodes are unavailable, fall back to preserving existing state.
       if (state.nodes.length && svg) {
         const b = contentBounds();
         const svgW = svg.clientWidth || window.innerWidth || 800;
         const svgH = svg.clientHeight || window.innerHeight || 600;
         const fitZoom = Math.min(svgW / b.w, svgH / b.h) || 1;
         state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom));
-        // Center the view on the content bounds using the new zoom
-        state.panX = (svgW / 2 / state.zoom) - (b.x + b.w / 2);
-        state.panY = (svgH / 2 / state.zoom) - (b.y + b.h / 2);
+      } else {
+        state.zoom = 1;
       }
-      // Otherwise preserve existing zoom and pan values (don't override them to 1/0)
+      centerView();
       clampPan();
       // Re-render so the svg is recreated with the corrected camera transform
       // applied. Just calling updateTransform() on the old svg can leave the

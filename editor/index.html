@@ -12590,15 +12590,11 @@ function toggleCampView(){
         draw();
         updateFlowInfo();
       }
-      // Add flow-mode class when entering flow view
-      document.body.classList.add('flow-mode');
     } else {
       if(fs) fs.style.display='none';
       if(btn){ btn.textContent=T('campViewFlow'); btn.title=T('campViewFlowTip'); }
       if(info) info.textContent='';
       draw();
-      // Remove flow-mode class when entering map view
-      document.body.classList.remove('flow-mode');
     }
     renderRight();
   }catch(e){
