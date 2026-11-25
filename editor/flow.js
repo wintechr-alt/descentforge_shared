@@ -339,6 +339,16 @@
       // attach point stack beneath that same forward column, in their own
       // count, so one busy node's stack never pushes a different node's
       // offshoots down too (each attach point starts back at row 1).
+      // Orphan offshoots (no recorded attach point) get their own column,
+      // one full column to the LEFT of the main backbone's starting
+      // column. Using PAD directly here was a bug: that's the exact same
+      // x as order[0] (the first main node), so orphans would land in the
+      // same column as the start of the main chain and only differ by y —
+      // leaving them to rely entirely on avoidNodeOverlap() to separate
+      // them from main nodes, which isn't guaranteed to converge for
+      // every node before it hits its iteration cap.
+      const ORPHAN_X = PAD - (NODE_W + COL_SPACING);
+
       const attachStackCount = new Map();
       let noneAttachCount = 0;
       offshoots.forEach(n => {
@@ -352,11 +362,11 @@
             : attachNode.x + (NODE_W + COL_SPACING);
           n.y = attachNode.y + count * (NODE_H + ROW_SPACING);
         } else {
-          // No recorded attachment: park it past the main chain, in its
-          // own stack.
-          noneAttachCount++;
-          n.x = PAD + order.length * (NODE_W + COL_SPACING);
+          // No recorded attachment: place it in its own column clear of
+          // the main backbone, stacked from the top.
+          n.x = ORPHAN_X;
           n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
+          noneAttachCount++;
         }
       });
     }
@@ -369,18 +379,32 @@
 
     // Avoid node overlap: if nodes are too close, shift the later one down
     function avoidNodeOverlap(){
-      const MIN_DIST = NODE_W + 40; // minimum horizontal distance
+      const MIN_DIST = NODE_W + 40; // minimum horizontal distance before considering overlap
+      const VERTICAL_THRESHOLD = NODE_H + 20; // vertical distance threshold
       const nodes = state.nodes;
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = Math.abs(nodes[i].x - nodes[j].x);
-          const dy = Math.abs(nodes[i].y - nodes[j].y);
-          // If nodes overlap or are very close horizontally
-          if (dx < MIN_DIST && dy < NODE_H + 20) {
-            // Shift node j down below node i
-            nodes[j].y = nodes[i].y + NODE_H + 20;
+      let changed = true;
+      // Iteratively resolve overlaps until no more changes are needed
+      // Maximum iterations to prevent infinite loops in edge cases
+      let maxIterations = nodes.length * 2;
+      let iterations = 0;
+      while (changed && iterations < maxIterations) {
+        changed = false;
+        iterations++;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = Math.abs(nodes[i].x - nodes[j].x);
+            const dy = Math.abs(nodes[i].y - nodes[j].y);
+            // If nodes overlap or are very close horizontally AND vertically
+            if (dx < MIN_DIST && dy < VERTICAL_THRESHOLD) {
+              // Shift node j down below node i to resolve overlap
+              nodes[j].y = nodes[i].y + VERTICAL_THRESHOLD;
+              changed = true;
+            }
           }
         }
+      }
+      if (iterations >= maxIterations) {
+        console.log('[Flow.js] avoidNodeOverlap reached max iterations', maxIterations);
       }
       // Re-persist positions
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
