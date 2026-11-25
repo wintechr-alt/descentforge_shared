@@ -197,6 +197,15 @@
   #flowOverlay{display:none;flex:1;min-height:0;overflow:auto;background:var(--ink)}
   body.flow-mode main{display:none}
   body.flow-mode #flowOverlay{display:block}
+  /* Workshop is a separate full-page workspace below the navigation header. */
+  #workshopOverlay{display:none;flex:1;min-height:0;overflow:auto;background:var(--ink)}
+  body.workshop-mode main{display:none}
+  body.workshop-mode #workshopOverlay{display:block}
+  /* Workshop chart embebido dentro de la ventana del Mapa de Campaña (centro). */
+  #campTopBar{position:absolute;left:0;right:0;top:0;height:34px;z-index:20;background:var(--panel);border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:10px;padding:0 10px;box-sizing:border-box;}
+  #flowStage{position:absolute;left:0;top:34px;right:0;bottom:0;display:none;background:var(--board);z-index:10;overflow:hidden;}
+  #btnFlowToggle{position:static;z-index:auto;padding:4px 10px;font-size:12px;}
+  #flowInfo{margin-left:auto;font:12px/1.4 sans-serif;color:var(--text);white-space:nowrap;opacity:.85;}
   .dot{width:11px;height:11px;border-radius:50%;flex:none;border:1.5px solid var(--ink)}
   .langsel{display:flex;border:1px solid var(--edge);border-radius:5px;overflow:hidden}
   .langsel button{border:0;border-radius:0;padding:4px 8px;font-size:11px;letter-spacing:.06em}
@@ -255,7 +264,7 @@
   .lootgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
   .chk{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 5px;border-radius:4px;cursor:pointer}
   .chk:hover{background:var(--panel2)}
-  .chk input{width:auto;margin:0}
+  .chk input{width:auto;margin:0;flex-shrink:1}
   /* ---- el Taller: mismas piezas que el resto del editor (ficha, etiqueta,
      tarjeta), solo colocadas para una ficha de monstruo ---- */
   .twcab{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:12px;
@@ -706,7 +715,7 @@
     <span data-t="subtitle"></span>
   </div>
   <div class="modesel" id="modesel">
-    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="flow" data-t="modeFlow"></button>
+    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="workshop" data-t="modeWorkshop">Workshop</button>
   </div>
   <!-- La barra de útiles de arriba ya no existe: loseta, enemigo y objeto se
        elegían aquí Y en la paleta de la izquierda, y la paleta ya cambia el
@@ -771,6 +780,11 @@
     <div class="overlay placehint" id="placeHint"></div>
     <div class="overlay" id="hint"></div>
     <div class="overlay" id="coords">—</div>
+    <div id="campTopBar">
+      <button id="btnFlowToggle" onclick="toggleCampView(); return false;"></button>
+      <div id="flowInfo"></div>
+    </div>
+    <div id="flowStage"></div>
   </div>
 
   <aside class="right">
@@ -1136,6 +1150,8 @@ const UI={
   demoLoaded:'Mapa de ejemplo cargado',
   // ---- campaña ----
   modeScenario:'Escenario', modeCampaign:'Campaña', modeFlow:'Flujo',
+  campViewFlow:'Flujo', campViewMap:'Campaña',
+  campViewFlowTip:'Cambiar al diagrama de flujo', campViewMapTip:'Cambiar al mapa de campaña',
   exportCamp:'Exportar .dcamp',
   tabNodes:'Nodos', tabDialogues:'Diálogos', tabNode:'Nodo',
   /* ---- tutorial ---- */
@@ -1663,6 +1679,8 @@ const UI={
   demoLoaded:'Example map loaded',
   // ---- campaign ----
   modeScenario:'Scenario', modeCampaign:'Campaign', modeFlow:'Flow',
+  campViewFlow:'Flow', campViewMap:'Campaign Map',
+  campViewFlowTip:'Switch to flow chart', campViewMapTip:'Switch to campaign map',
   exportCamp:'Export .dcamp',
   tabNodes:'Nodes', tabDialogues:'Dialogues', tabNode:'Node',
   /* ---- tutorial ---- */
@@ -2066,6 +2084,9 @@ const state={
    estado, y solo se exporta el del modo activo. */
 let mode='scenario';                 // scenario | campaign | flow
 let editorModeBeforeFlow='scenario';
+let campView = guardado.leer('descentforge.campView') || 'map'; // 'map' | 'flow'
+  const fbtn=document.getElementById('btnFlowToggle');
+  if(fbtn) fbtn.style.display = mode==='campaign' ? '' : 'none';
 let selNode=null, selDlg=null, ctab='nodes';
 const camp={
   meta:{id:'campaign-01',name:'',author:'',description:'',act:'I',
@@ -2895,7 +2916,20 @@ function draw(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle=css('--board'); ctx.fillRect(0,0,W,H);
   ctx.save(); ctx.translate(panX,panY); ctx.scale(zoom,zoom);
-  if(mode==='campaign'){ drawWorld(W,H); ctx.restore(); updateCounts(); return; }
+  if(mode==='campaign'){
+    if(campView==='flow'){
+      console.log('[draw] campView is flow, rendering flow chart');
+      const fs=document.getElementById('flowStage');
+      if(fs){ fs.style.display='block'; fs.style.width=stage.clientWidth+'px'; fs.style.height=stage.clientHeight+'px'; }
+      if(typeof DescentForgeFlow!=='undefined'){
+        DescentForgeFlow.onNodeSelect = flowNodeSelected;
+        DescentForgeFlow.render(fs);
+        updateFlowInfo();
+      }
+      ctx.restore(); updateCounts(); return;
+    }
+    drawWorld(W,H); ctx.restore(); updateCounts(); return;
+  }
   // la vista 3D pinta el tablero entero por su cuenta (ver vista3d.js)
   if(v3d){ ctx.restore(); draw3d(W,H); updateCounts(); return; }
   const C=BASE;
@@ -4762,7 +4796,7 @@ function arrastrarA(x,y){
    Así que se marca en la **fase de captura**, que va de fuera adentro y llega
    antes que nadie, cuando el botón todavía está en su sitio. Se marca sobre el
    propio evento para que no pueda confundirse con el siguiente. */
-const MANDOS_CSS = '.zoombar,.levelbar,.toolbar,.overlay';
+const MANDOS_CSS = '.zoombar,.levelbar,.toolbar,.overlay,#btnFlowToggle';
 ['pointerdown','pointerup','click','dblclick'].forEach(t =>
   stage.addEventListener(t, ev => {
     if (ev.target?.closest?.(MANDOS_CSS)) ev.deUnMando = true;
@@ -4772,6 +4806,15 @@ const enUnMando = (ev) => !!ev.deUnMando;
 
 stage.addEventListener('pointerdown',ev=>{
   if(enUnMando(ev)) return;
+  // Mientras el editor de flujo está activo dentro del mapa de campaña, el
+  // gráfico es el dueño de la entrada del ratón sobre el lienzo.
+  // Se bloquea cualquier añadido de nodos/clics que afecten al canvas.
+  console.log('[pointerdown] mode=',mode,'campView=',campView);
+  if(mode==='campaign'&&campView==='flow'){
+    // allow clicks to reach flow chart for node selection and panning
+    console.log('[pointerdown] campaign flow view - allowing clicks for node selection');
+    // intentionally not blocking - flow chart needs click handling
+  }
   // en 3D el botón derecho gira la vista; el del medio y Mayús la mueven, como en 2D
   if(en3d()&&ev.button===2){ orbita3dEmpieza(ev); return; }
   if(ev.button===1||ev.button===2||ev.shiftKey){ dragging=true; moved=false;
@@ -5034,6 +5077,18 @@ function estorbo(p){
    algo ya puesto no seleccionaba ni colocaba nada, mientras que pulsar en una
    casilla vacía (donde no se captura nada) sí funcionaba. */
 stage.addEventListener('click',ev=>{
+  // Block clicks in campaign flow mode from registering tiles in SME
+  // unless the click is on the flow chart itself
+  if(mode==='campaign'&&campView==='flow') {
+    const flowOverlay = document.getElementById('flowOverlay');
+    // If click is NOT on the flow chart, block SME tile placement
+    if (!flowOverlay || !flowOverlay.contains(ev.target)) {
+      console.log('[pointerdown] Blocked: SME tile placement in flow mode');
+      return;
+    }
+    // Click is on flow chart - allow node selection and panning
+    console.log('[pointerdown] campaign flow view - click on flow chart, allowing node selection');
+  }
   if(enUnMando(ev)) return;
   if(pick && mode!=='campaign'){
     const [px,py]=toCell(ev); if(px<0||py<0||px>=GRID||py>=GRID) { moved=false; return; }
@@ -5044,7 +5099,7 @@ stage.addEventListener('click',ev=>{
     flash(T('picked')); return;
   }
   if(moved){ moved=false; return; }
-  if(mode==='campaign'){
+  if(mode==='campaign'&&campView!=='flow'){
     const [px,py]=toWorldPx(ev);
     if(px<0||py<0||px>=CANVAS[0]||py>=CANVAS[1]) return;
     if(nodeAt(px,py)>=0) return;             // seleccionar ya lo hace el pointerdown
@@ -5881,7 +5936,15 @@ function renderRight(){
     if(rtab==='map') return renderCampMeta(el);
     if(rtab==='obj') return renderIssues(el);
     if(selDlg!==null) return renderDialogue(el);
-    return renderNode(el);
+    renderNode(el);
+    if(campView==='flow' && typeof DescentForgeFlow!=='undefined'){
+      const fs=document.getElementById('flowStage');
+      if(fs && fs.style.display!=='none'){
+        DescentForgeFlow.render(fs);
+        updateFlowInfo();
+      }
+    }
+    return;
   }
   if(rtab==='map') return renderMap(el);
   if(rtab==='obj') return renderObjectives(el);
@@ -12498,6 +12561,65 @@ sanearEscenario=function(s){
   return sanearEscenarioSinExpedicion(s);
 };
 /* ================= modo ================= */
+// Cuando se hace clic en un nodo del diagrama de flujo (dentro del mapa de
+// campaña), se selecciona el equivalente en camp.nodes y se muestra su ficha
+// en el panel derecho (Propiedades).
+function flowNodeSelected(raw, node){
+  const i = camp.nodes.indexOf(raw);
+  if(i>=0){ selNode = i; selDlg = null; ctab = 'nodes'; renderRight(); }
+}
+
+// Alterna entre el Mapa de Campaña (lienzo) y el Editor de Flujo dentro de
+// la ventana central. El NAV «Flow» de arriba se deja intacto.
+function toggleCampView(){
+  try{
+    if(mode!=='campaign') return;
+    console.log('[toggleCampView] before - campView=',campView);
+    campView = campView==='map' ? 'flow' : 'map';
+    console.log('[toggleCampView] after - campView=',campView);
+    guardado.poner('descentforge.campView', campView);
+    const fs=document.getElementById('flowStage');
+    const btn=document.getElementById('btnFlowToggle');
+    const info=document.getElementById('flowInfo');
+    if(campView==='flow'){
+      if(fs){ fs.style.display='block'; fs.style.width=stage.clientWidth+'px'; fs.style.height=stage.clientHeight+'px'; }
+      if(btn){ btn.textContent=T('campViewMap'); btn.title=T('campViewMapTip'); }
+      if(typeof DescentForgeFlow!=='undefined'){
+        DescentForgeFlow.onNodeSelect = flowNodeSelected;
+        DescentForgeFlow.render(fs);
+        draw();
+        updateFlowInfo();
+      }
+      // Add flow-mode class when entering flow view
+      document.body.classList.add('flow-mode');
+    } else {
+      if(fs) fs.style.display='none';
+      if(btn){ btn.textContent=T('campViewFlow'); btn.title=T('campViewFlowTip'); }
+      if(info) info.textContent='';
+      draw();
+      // Remove flow-mode class when entering map view
+      document.body.classList.remove('flow-mode');
+    }
+    renderRight();
+  }catch(e){
+    console.error('[toggleCampView] ERROR:',e);
+  }
+}
+
+// Muestra en la barra superior el conteo de nodos y enlaces del flujo.
+function updateFlowInfo(){
+  const info=document.getElementById('flowInfo');
+  if(!info) return;
+  if(campView!=='flow'){ info.textContent=''; return; }
+  const n=camp.nodes?camp.nodes.length:0;
+  let links=0;
+  camp.nodes.forEach(node=>{
+    links+=(node.spawn&&Array.isArray(node.spawn.afterNodes)?node.spawn.afterNodes.length:0);
+    links+=(Array.isArray(node.afterNodes)?node.afterNodes.length:0);
+  });
+  info.textContent='Flujo — '+n+' nodo'+(n!==1?'s':'')+' · '+links+' enlace'+(links!==1?'s':'');
+}
+
 function setMode(m){
   if(m===mode){ return; }
   const flowOverlay=document.getElementById('flowOverlay');
@@ -12523,11 +12645,35 @@ function setMode(m){
     window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:'flow'}}));
     return;
   }
+  if(m==='workshop'){
+    VIEW[mode]={zoom,panX,panY};
+    mode='workshop';
+    document.body.classList.add('workshop-mode');
+    if(flowOverlay) flowOverlay.setAttribute('aria-hidden','false');
+    paintChrome();
+    // Initialize workshop when entering workshop mode
+    console.log('[index.html] Checking for DescentForgeWorkshop...');
+    if (typeof DescentForgeWorkshop !== 'undefined') {
+      console.log('[index.html] DescentForgeWorkshop found, calling init()');
+      DescentForgeWorkshop.init();
+    } else {
+      console.error('[index.html] ERROR: DescentForgeWorkshop not defined! Check workshop.js loaded.');
+    }
+    window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:'workshop'}}));
+    return;
+  }
   if(mode==='flow'){
     mode=editorModeBeforeFlow||'scenario';
     document.body.classList.remove('flow-mode');
     if(flowOverlay) flowOverlay.setAttribute('aria-hidden','true');
     window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:m}}));
+    console.log('[setMode] Flow->Scenario: mode now='+mode+' (was editorModeBeforeFlow='+editorModeBeforeFlow+')');
+  }
+  if(mode==='workshop'){
+    document.body.classList.remove('workshop-mode');
+    if(flowOverlay) flowOverlay.setAttribute('aria-hidden','true');
+    window.dispatchEvent(new CustomEvent('forge:modechange',{detail:{mode:m}}));
+    console.log('[setMode] Workshop->Scenario: mode now='+mode);
   }
   if(m===mode) { paintChrome(); return; }
   VIEW[mode]={zoom,panX,panY};                   // guardar la vista del modo que se deja
@@ -12535,6 +12681,21 @@ function setMode(m){
   ({zoom,panX,panY}=VIEW[m]||VIEW.scenario);
   // el panel derecho arranca en la ficha de lo que se esté editando
   rtab='sel'; ptab='tiles'; ctab='nodes';
+  if(m==='campaign'){
+    const btn=document.getElementById('btnFlowToggle');
+    if(btn){ btn.style.display=''; btn.textContent = campView==='flow' ? T('campViewMap') : T('campViewFlow'); }
+    if(typeof DescentForgeFlow!=='undefined') DescentForgeFlow.onNodeSelect = flowNodeSelected;
+    if(campView==='flow') updateFlowInfo();
+  } else {
+    const btn=document.getElementById('btnFlowToggle');
+    if(btn) btn.style.display='none';
+    // Al salir del modo campaña, restablecimos campView para que el diagrama
+    // de flujo no se muestre al volver al modo escenario.
+    campView = 'map';
+    // Asegurarse de que el stage de flujo esté oculto al cambiar de modo
+    const fs=document.getElementById('flowStage');
+    if(fs) fs.style.display='none';
+  }
   paintChrome(); renderTools(); renderPalette(); syncTabs(); renderRight(); draw();
 }
 document.getElementById('modesel').onclick=e=>{

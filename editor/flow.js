@@ -8,16 +8,25 @@
 //   * Auto layout (used once, for brand-new nodes only): "main"-marked
 //     nodes (raw.marker === 'main', or no marker at all) form one straight
 //     left->right backbone; "narrative"/"side"/"city"-marked nodes are
-//     offshoots, stacked directly beneath whatever node their own
-//     afterNodes[0] points to (each attach point keeps its own stack, so
-//     one busy node's offshoots don't push another's downward).
+//     offshoots, stacked one row below and one column FORWARD of whatever
+//     node their own afterNodes[0] points to — i.e. in that attach node's
+//     next column along the main backbone, so their incoming arrow runs
+//     down-and-right instead of straight down (each attach point keeps
+//     its own stack, so one busy node's offshoots don't push another's
+//     downward).
 //   * Click a node's body (center) to select it AND load it into the
 //     permanently-docked "Node Edit" panel on the right, which lists its
 //     prerequisites by name with a "×" next to each to detach just that
-//     connection.
+//     connection. The panel is a fixed-width docked pane that owns its own
+//     strip of screen space — the flow chart canvas is sized to sit beside
+//     it, never underneath it.
 //   * Click a node's handle dot (right edge) to open the edit panel; drag
 //     it onto another node to ADD a connection (that node's afterNodes
 //     gets this node's id appended).
+//   * Click a thin strip along a node's LEFT edge to pop up a small list
+//     of every arrow pointing INTO that node (its own afterNodes), each
+//     with its own × to detach just that one connection. Click outside
+//     the popup to dismiss it.
 //   * Left-click + drag a node's body to move it. This ONLY repositions
 //     the node — it never touches afterNodes/arrows. Positions are free-
 //     form and persist across re-renders.
@@ -41,16 +50,21 @@
   }
 
   // ---------- Constants ----------
-  const NODE_W = 240;
-  const NODE_H = 90;
-  const COL_SPACING = 140;
-  const ROW_SPACING = 120;
-  const PAD = 80;
+  const NODE_W = 220;
+  const NODE_H = 76;
+  // Wider spacing between nodes so the bezier arrows between them have
+  // room to read clearly instead of bunching up edge-to-edge.
+  const COL_SPACING = 110;
+  const ROW_SPACING = 80;
+  const PAD = 60;
   const MIN_ZOOM = 0.3;
   const MAX_ZOOM = 3;
   const DRAG_THRESHOLD = 4;  // px in content-space before a click becomes a drag
   const HANDLE_R = 7;        // connection-dot radius
   const HANDLE_HIT_R = 12;   // generous click target around the dot
+  const LEFT_EDGE_W = 14;    // width of the clickable strip along a node's left edge
+                             // (click it to pop up that node's incoming arrows, each
+                             // removable with its own ×)
 
   const MARKER_LABEL = {
     main: 'Main Quest',
@@ -90,7 +104,7 @@
     // The edit panel is docked absolutely inside this element, so it needs
     // to actually be a positioning context.
     if (getComputedStyle(overlay).position === 'static') {
-      overlay.style.display = 'flex'; overlay.style.flexDirection = 'row'; overlay.style.height = '100%';
+      overlay.style.position = 'relative';
     }
 
     let state = {
@@ -131,6 +145,7 @@
     };
 
     let svg, content;
+    let flowEl = null;   // element the chart renders into (#flowOverlay or #flowStage)
 
     // ---------- Data ----------
     // Reads a node's prerequisite list regardless of whether your data
@@ -237,83 +252,121 @@
     // only — never re-run on drag, drop, or Reset View, so it never fights
     // a position you've set by hand).
     //
-    // Column-based layout: every node is placed in the same column as the
-    // node it lists in its afterNodes (its prerequisite). Roots (nodes with
-    // no afterNodes, or whose afterNodes reference an unknown node) each get
-    // their own column, laid out left-to-right. Dependents stack vertically
-    // below their prerequisite within that same column. This keeps arrows
-    // short and vertical for much better visibility.
+    // "main" nodes (raw.marker === 'main', or no marker at all) form one
+    // straight left->right backbone, topologically ordered by their *own*
+    // afterNodes links to each other (a link to/from a non-main node is
+    // ignored for this ordering, so an offshoot can never push the main
+    // line onto a new row).
+    //
+    // "narrative"/"side"/"city" nodes are offshoots: each one hangs below
+    // and ONE COLUMN FORWARD of whatever node its own afterNodes[0] points
+    // at — i.e. in the same column as that attach node's own next node in
+    // the main backbone, one row below it — so its incoming arrow draws
+    // diagonally down-and-right instead of straight down. Offshoots that
+    // share the same afterNodes[0] value stack beneath that same forward
+    // column, one below the next.
     function layoutNodes(nodes) {
-      // Build dependency maps from afterNodes
-      const dependents = new Map(); // id -> [ids that list this in afterNodes]
-      const prereqOf = new Map();   // id -> first afterNode id (or null)
-      nodes.forEach(n => dependents.set(n.id, []));
+      const mainNodes = nodes.filter(n => getMarker(n.raw) === 'main');
+      const offshoots = nodes.filter(n => getMarker(n.raw) !== 'main');
+      const mainIds = new Set(mainNodes.map(n => n.id));
 
-      nodes.forEach(n => {
-        const after = getAfterNodes(n.raw);
-        if (after.length > 0) {
-          prereqOf.set(n.id, after[0]);
-          if (!dependents.has(after[0])) dependents.set(after[0], []);
-          dependents.get(after[0]).push(n.id);
-        } else {
-          prereqOf.set(n.id, null);
-        }
-      });
-
-      // Find roots: nodes with no afterNodes
-      const roots = nodes.filter(n => prereqOf.get(n.id) === null);
-
-      // Assign columns to roots (left to right)
-      const colOf = new Map();
-      let colIndex = 0;
-      roots.forEach(r => { colOf.set(r.id, colIndex++); });
-
-      // BFS to assign columns and rows to all nodes
-      const rowOf = new Map();
-      const colStackCount = new Map(); // col -> next free row index
-
-      const queue = [...roots];
-      roots.forEach(r => {
-        rowOf.set(r.id, 0);
-        colStackCount.set(colOf.get(r.id), 1);
-      });
-
-      while (queue.length > 0) {
-        const id = queue.shift();
-        const col = colOf.get(id);
-
-        const deps = dependents.get(id) || [];
-        deps.forEach(depId => {
-          // Same column as prerequisite
-          colOf.set(depId, col);
-          // Next available row in this column
-          const nextRow = colStackCount.get(col) || 0;
-          rowOf.set(depId, nextRow);
-          colStackCount.set(col, nextRow + 1);
-          queue.push(depId);
+      const pred = new Map(); // id -> prerequisite ids (main-to-main only)
+      const succ = new Map(); // id -> successor ids (main-to-main only)
+      mainNodes.forEach(n => { pred.set(n.id, []); succ.set(n.id, []); });
+      mainNodes.forEach(n => {
+        getAfterNodes(n.raw).forEach(id => {
+          if (mainIds.has(id)) {
+            pred.get(n.id).push(id);
+            succ.get(id).push(n.id);
+          }
         });
-      }
-
-      // Handle orphaned nodes (circular deps or prereq not in set)
-      nodes.forEach(n => {
-        if (!colOf.has(n.id)) {
-          colOf.set(n.id, colIndex++);
-          rowOf.set(n.id, 0);
-          colStackCount.set(colOf.get(n.id), 1);
-        }
       });
 
-      // Place nodes: column determines x, row determines y
-      nodes.forEach(n => {
-        const col = colOf.get(n.id);
-        const row = rowOf.get(n.id);
-        n.x = PAD + col * (NODE_W + COL_SPACING);
-        n.y = PAD + row * (NODE_H + ROW_SPACING);
+      // Topological order (roots / no-prerequisite nodes first).
+      const order = [];
+      const remaining = new Map();
+      const queue = [];
+      mainNodes.forEach(n => remaining.set(n.id, pred.get(n.id).length));
+      mainNodes.forEach(n => { if (pred.get(n.id).length === 0) queue.push(n.id); });
+      let qi = 0;
+      while (qi < queue.length) {
+        const id = queue[qi++];
+        order.push(id);
+        for (const s of succ.get(id)) {
+          remaining.set(s, (remaining.get(s) || 0) - 1);
+          if ((remaining.get(s) || 0) === 0) queue.push(s);
+        }
+      }
+      mainNodes.forEach(n => { if (!order.includes(n.id)) order.push(n.id); });
+
+      // Row assignment for the main nodes: stays on one straight row unless
+      // a main node genuinely forks into more than one main successor, in
+      // which case the extra branch(es) drop onto new rows.
+      const rowOf = new Map();
+      const rowClaimed = new Set();
+      let nextFreeRow = 0;
+      order.forEach(id => {
+        const preds = pred.get(id);
+        if (!preds.length) { rowOf.set(id, nextFreeRow++); return; }
+        let primary = preds[0];
+        preds.forEach(pid => {
+          if ((rowOf.get(pid) ?? Infinity) < (rowOf.get(primary) ?? Infinity)) primary = pid;
+        });
+        const primaryRow = rowOf.get(primary) ?? 0;
+        if (!rowClaimed.has(primary)) { rowOf.set(id, primaryRow); rowClaimed.add(primary); }
+        else { rowOf.set(id, nextFreeRow++); }
+      });
+
+      const mainColOf = new Map(); // main node id -> its column index in `order`
+      order.forEach((id, idx) => {
+        const node = nodes.find(n => n.id === id);
+        node.x = PAD + idx * (NODE_W + COL_SPACING);
+        node.y = PAD + (rowOf.get(id) || 0) * (NODE_H + ROW_SPACING);
+        mainColOf.set(id, idx);
+      });
+
+      // Offshoots: each sits one row below, and one COLUMN FORWARD of,
+      // whatever node it attaches to (its own afterNodes[0]) — so if Side
+      // is "after completing Q09" and the main backbone's next node after
+      // Q09 is Q10, the Side node lands in Q10's column, letting its arrow
+      // run down-and-right from Q09 instead of straight down. When the
+      // attach node is itself a main node, "forward" means the next
+      // column in the main sequence (idx+1), regardless of whether a node
+      // actually occupies it. When the attach node is some other offshoot
+      // (not in the main backbone), "forward" falls back to one column
+      // past that offshoot's own x. Multiple offshoots that share the same
+      // attach point stack beneath that same forward column, in their own
+      // count, so one busy node's stack never pushes a different node's
+      // offshoots down too (each attach point starts back at row 1).
+      const attachStackCount = new Map();
+      let noneAttachCount = 0;
+      offshoots.forEach(n => {
+        const attachId = getAfterNodes(n.raw)[0];
+        const attachNode = attachId ? nodes.find(nn => nn.id === attachId) : null;
+        if (attachNode) {
+          const count = (attachStackCount.get(attachId) || 0) + 1;
+          attachStackCount.set(attachId, count);
+          n.x = mainColOf.has(attachId)
+            ? PAD + (mainColOf.get(attachId) + 1) * (NODE_W + COL_SPACING)
+            : attachNode.x + (NODE_W + COL_SPACING);
+          n.y = attachNode.y + count * (NODE_H + ROW_SPACING);
+        } else {
+          // No recorded attachment: park it past the main chain, in its
+          // own stack.
+          noneAttachCount++;
+          n.x = PAD + order.length * (NODE_W + COL_SPACING);
+          n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
+        }
       });
     }
+
+    // Dropping a dragged node just finalizes its free position. Moving a
+    // node is NEVER allowed to rewrite anyone's afterNodes — that's done
+    // explicitly, by dragging a handle dot onto a node (adds a link) or
+    // clicking a selected node's "×" badges (removes one).
     function finishNodeDrag(dragNode) {
       state.pos[dragNode.id] = { x: dragNode.x, y: dragNode.y };
-      render();
+      render(flowEl);
     }
 
     // ---------- Node edit panel ----------
@@ -321,11 +374,17 @@
     // flow chart view, not the page. render() wipes and rebuilds
     // everything else in the overlay on every call, but explicitly skips
     // this element so it survives (otherwise it'd flicker/reset on every
-    // drag). Content is a placeholder for now — wire up real fields later
-    // by editing openPanelFor() below.
+    // drag). It is a permanent, full-height docked pane: there is no
+    // open/close animation and nothing slides away — the "×" only clears
+    // the current selection back to the placeholder text, it never hides
+    // or collapses the pane itself. The flow chart canvas (the <svg>) is
+    // explicitly sized to stop short of this pane (see render()), so the
+    // pane sits beside the chart rather than floating on top of it.
+    // Content is a placeholder for now — wire up real fields later by
+    // editing openPanelFor() below.
     let panelEl = null;
-    const PANEL_TOP = 0;  // 
-    const PANEL_WIDTH = 340;
+    const PANEL_TOP = 12;  // top of the flow chart view itself, not down near the page nav
+    const PANEL_WIDTH = 320;
     const PANEL_BG = '#cbbda5';     // tan, matching the nav
     const PANEL_BORDER = '#a89672'; // darker tan
     const PANEL_TEXT = '#2a241c';   // dark, same as a node's own name text
@@ -337,47 +396,18 @@
       ));
     }
 
-    // Build <option> elements for dialogue nodes, for the "When it appears"
-    // select (mirrors Campaign mode's dlgOptions(n.onArrive) behavior).
-    function dialogueOptionsHtml(selectedValue) {
-      let html = '<option value="">(none)</option>';
-      state.nodes.forEach(n => {
-        if (n.kind !== 'dialogue') return;
-        html += '<option value="' + escapeHtml(n.id) + '"' +
-          (n.id === selectedValue ? ' selected' : '') + '>' +
-          escapeHtml(n.name || n.id) + '</option>';
-      });
-      return html;
-    }
-
-    // Build a vertical list of checkboxes for afterNodes / hideAfterNodes,
-    // listing every other node as a checkbox option (mirrors Campaign mode's
-    // "After completing…" / "Disappears after completing…" grids).
-    function buildSpawnCheckboxList(checkedIds, excludeId, kind) {
-      let html = '';
-      state.nodes.forEach(n => {
-        if (n.id === excludeId) return;
-        const isChecked = checkedIds.indexOf(n.id) >= 0;
-        html += '<label style="display:block;margin-bottom:4px;cursor:pointer;"><input type="checkbox" ' +
-          'data-ref-' + kind + '="' + escapeHtml(n.id) + '" ' +
-          (isChecked ? 'checked' : '') + ' style="margin-right:6px;">' +
-          escapeHtml(n.name || n.id) + '</label>';
-      });
-      return html || '<p style="opacity:.7;margin:4px 0;">No other nodes.</p>';
-    }
-
     // Permanently docked — no open/close animation, no slide-away. Always
-    // visible on the right, showing a placeholder until a node is clicked.
+    // visible on the right, full height of the flow chart view, showing a
+    // placeholder until a node is clicked.
     function ensurePanel() {
       if (panelEl) return panelEl;
       panelEl = document.createElement('div');
       panelEl.id = 'flowNodeEditPanel';
       panelEl.style.cssText =
-        'flex:0 0 ' + PANEL_WIDTH + 'px;box-sizing:border-box;' +
+        'position:absolute;top:' + PANEL_TOP + 'px;right:0;bottom:0;width:' + PANEL_WIDTH + 'px;box-sizing:border-box;' +
         'background:' + PANEL_BG + ';color:' + PANEL_TEXT + ';border-left:1px solid ' + PANEL_BORDER + ';' +
         'box-shadow:-6px 0 18px rgba(0,0,0,0.35);' +
-        'font:13px/1.5 sans-serif;padding:18px;overflow-y:auto;z-index:2000;' +
-        'display:flex;flex-direction:column;'
+        'font:13px/1.5 sans-serif;padding:18px;overflow-y:auto;z-index:2000;';
       panelEl.innerHTML =
         '<div style="margin-bottom:14px;">' +
           '<strong style="font-size:15px;color:' + PANEL_TEXT + ';">Node Edit</strong>' +
@@ -387,10 +417,36 @@
       return panelEl;
     }
 
+    // Build a two-column grid of checkboxes for afterNodes / hideAfterNodes,
+    // listing every other node as a checkbox option — mirrors Campaign
+    // mode's "After completing…" / "Disappears after completing…" grids
+    // (two columns, checkbox snug against its label text).
+    function buildSpawnCheckboxList(checkedIds, excludeId, kind) {
+      let items = '';
+      state.nodes.forEach(n => {
+        if (n.id === excludeId) return;
+        const isChecked = checkedIds.indexOf(n.id) >= 0;
+        // The label text sits in a `display:block` span so text-overflow:
+        // ellipsis actually renders (it's a no-op on a plain inline span in
+        // most browsers — the text would just get hard-clipped with no "…"
+        // and, combined with flex-shrink, could collapse to nothing). The
+        // span is also an explicit flex item (flex:1 1 0%; min-width:0) so
+        // it's the one that shrinks for a long name — never the checkbox.
+        items += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;width:100%;min-width:0;box-sizing:border-box;">' +
+          '<input type="checkbox" data-ref-' + kind + '="' + escapeHtml(n.id) + '" ' +
+          (isChecked ? 'checked' : '') + ' style="flex:0 0 auto;margin:0;flex-shrink:1;">' +
+          escapeHtml(n.name || n.id) +
+          '</label>';
+      });
+      if (!items) return '<p style="opacity:.7;margin:4px 0;">No other nodes.</p>';
+      // minmax(0,1fr) (not plain 1fr) lets each column actually shrink to
+      // fit the panel instead of overflowing it or starving the ellipsis.
+      return '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">' + items + '</div>';
+    }
+
     function openPanelFor(node) {
       const panel = ensurePanel();
       const body = panel.querySelector('#flowNodeEditBody');
-      const afterIds = getAfterNodes(node.raw);
 
       body.innerHTML =
         '<div style="color:' + colorForMarker(node.marker) + ';font-weight:700;letter-spacing:.5px;margin-bottom:8px;">' +
@@ -467,40 +523,74 @@
       const kindSelect = body.querySelector('#flowEditKind');
       const autoInput = body.querySelector('#flowEditAuto');
 
-      if (nameInput) nameInput.oninput = () => {
+      // NOTE: uses onchange (fires on blur/Enter), not oninput — oninput
+      // would call render()+openPanelFor() on every keystroke, which
+      // rebuilds this very <input> and knocks the cursor/focus out of it.
+      if (nameInput) nameInput.onchange = () => {
         node.raw.name = nameInput.value;
         node.name = nameInput.value;
-        render();
+        render(flowEl);
         openPanelFor(node);
       };
       if (idInput) idInput.onchange = () => {
-        node.raw.id = idInput.value;
-        node.id = idInput.value;
+        const oldId = node.id;
+        const newId = idInput.value.trim();
+
+        if (!newId || newId === oldId) {
+          idInput.value = oldId; // ignore a blank id or a no-op edit
+          return;
+        }
+        if (state.nodes.some(n => n !== node && n.id === newId)) {
+          alert('A node with id "' + newId + '" already exists. Choose a different id.');
+          idInput.value = oldId;
+          return;
+        }
+
+        // Propagate the rename so no other node's afterNodes/hideAfterNodes
+        // is left pointing at an id that no longer exists.
+        state.nodes.forEach(n => {
+          if (n === node) return;
+          const after = getAfterNodes(n.raw);
+          if (after.includes(oldId)) {
+            setAfterNodes(n.raw, after.map(id => id === oldId ? newId : id));
+          }
+          if (n.raw.spawn && Array.isArray(n.raw.spawn.hideAfterNodes) && n.raw.spawn.hideAfterNodes.includes(oldId)) {
+            n.raw.spawn.hideAfterNodes = n.raw.spawn.hideAfterNodes.map(id => id === oldId ? newId : id);
+          }
+        });
+        if (state.pos[oldId]) {
+          state.pos[newId] = state.pos[oldId];
+          delete state.pos[oldId];
+        }
+
+        node.raw.id = newId;
+        node.id = newId;
         state.links = computeLinks(state.nodes);
-        render();
+        console.log('[Flow.js] Renamed node', oldId, '->', newId, '(references updated)');
+        render(flowEl);
         openPanelFor(node);
       };
       if (descInput) descInput.onchange = () => {
         node.raw.description = descInput.value;
-        render();
+        render(flowEl);
       };
       if (markerSelect) markerSelect.onchange = () => {
         node.raw.marker = markerSelect.value;
         node.marker = markerSelect.value;
         state.links = computeLinks(state.nodes);
-        render();
+        render(flowEl);
         openPanelFor(node);
       };
       if (kindSelect) kindSelect.onchange = () => {
         node.raw.kind = kindSelect.value;
         node.kind = kindSelect.value;
-        render();
+        render(flowEl);
         openPanelFor(node);
       };
       if (autoInput) autoInput.onchange = () => {
         if (!node.raw.spawn) node.raw.spawn = {};
         node.raw.spawn.auto = autoInput.checked;
-        render();
+        render(flowEl);
       };
 
       // After completing… checkboxes (spawn.afterNodes)
@@ -513,7 +603,7 @@
           else { if (k >= 0) a.splice(k, 1); }
           setAfterNodes(node.raw, a);
           state.links = computeLinks(state.nodes);
-          render();
+          render(flowEl);
           openPanelFor(node);
         };
       });
@@ -528,39 +618,138 @@
           if (cb.checked) { if (k < 0) a.push(id); }
           else { if (k >= 0) a.splice(k, 1); }
           if (!a.length) delete node.raw.spawn.hideAfterNodes;
-          render();
+          render(flowEl);
           openPanelFor(node);
         };
       });
+    }
 
+    // Clears the selection and the panel back to its placeholder — the
+    // dock itself is permanent and never hides/collapses.
+    function closeNodeEditPanel() {
+      state.selectedId = null;
+      if (panelEl) {
+        const body = panelEl.querySelector('#flowNodeEditBody');
+        if (body) body.innerHTML = 'No node selected.';
+      }
+      render(flowEl);
+    }
+
+    // ---------- Incoming-arrows popup ----------
+    // A small popup, opened by clicking a node's left-edge strip, listing
+    // every arrow that points INTO that node (i.e. the node's own
+    // afterNodes) with an × next to each to detach just that one. It's a
+    // separate, lightweight alternative to editing the "After completing…"
+    // checkboxes in the full Node Edit panel — handy when all you want is
+    // to snip one incoming arrow without opening the whole node.
+    let popupEl = null;
+
+    function closeArrowPopup() {
+      if (popupEl && popupEl.parentNode) popupEl.parentNode.removeChild(popupEl);
+      popupEl = null;
+      document.removeEventListener('mousedown', onDocMouseDownForPopup, true);
+    }
+
+    // Closes the popup on any click outside it. Added on a deferred timer
+    // (see openIncomingArrowsPopup) so it doesn't also catch the very
+    // mousedown that opened the popup.
+    function onDocMouseDownForPopup(ev) {
+      if (popupEl && !popupEl.contains(ev.target)) {
+        closeArrowPopup();
+      }
+    }
+
+    function openIncomingArrowsPopup(node, clientX, clientY) {
+      closeArrowPopup(); // only one open at a time
+
+      const rect = flowEl.getBoundingClientRect();
+      popupEl = document.createElement('div');
+      popupEl.id = 'flowArrowPopup';
+      popupEl.style.cssText =
+        'position:absolute;left:' + (clientX - rect.left + 10) + 'px;top:' + (clientY - rect.top + 10) + 'px;' +
+        'min-width:200px;max-width:260px;box-sizing:border-box;' +
+        'background:var(--panel);color:var(--text);border:1px solid var(--edge);' +
+        'border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.5);' +
+        'font:12px/1.5 sans-serif;padding:10px;z-index:3000;';
+
+      const renderPopupBody = () => {
+        const afterIds = getAfterNodes(node.raw);
+        const rows = afterIds.length
+          ? afterIds.map(pid => {
+              const pNode = state.nodes.find(n => n.id === pid);
+              return '<div style="display:flex;align-items:center;justify-content:space-between;' +
+                'padding:4px 6px;margin-bottom:3px;background:rgba(0,0,0,0.08);border-radius:5px;">' +
+                '<span>' + escapeHtml(pNode ? pNode.name : pid) + '</span>' +
+                '<button type="button" class="flowPopupRemove" data-remove-after="' + escapeHtml(pid) + '" ' +
+                  'aria-label="Remove this arrow" ' +
+                  'style="background:none;border:none;color:#8a2f2f;font-size:14px;line-height:1;cursor:pointer;padding:2px 4px;">&times;</button>' +
+                '</div>';
+            }).join('')
+          : '<div style="opacity:.7;">None</div>';
+
+        popupEl.innerHTML =
+          '<div style="font-weight:700;margin-bottom:6px;">Arrows into "' + escapeHtml(node.name) + '"</div>' +
+          rows;
+
+        popupEl.querySelectorAll('.flowPopupRemove').forEach(btn => {
+          btn.addEventListener('mousedown', e => e.stopPropagation()); // don't let the outside-click closer eat this
+          btn.addEventListener('click', () => {
+            const pid = btn.getAttribute('data-remove-after');
+            const remaining = getAfterNodes(node.raw).filter(id => id !== pid);
+            setAfterNodes(node.raw, remaining);
+            state.links = computeLinks(state.nodes);
+            console.log('[Flow.js] Detached', pid, '->', node.id);
+            render(flowEl);
+            // panel removed: the right Properties box edits the selected node
+            if (getAfterNodes(node.raw).length) {
+              renderPopupBody(); // still arrows left: keep the popup open, just refresh its list
+            } else {
+              closeArrowPopup();
+            }
+          });
+        });
+      };
+
+      renderPopupBody();
+      flowEl.appendChild(popupEl);
+
+      // Defer so this same mousedown event doesn't immediately close it.
+      setTimeout(() => {
+        document.addEventListener('mousedown', onDocMouseDownForPopup, true);
+      }, 0);
     }
 
     function triggerEditNode(node) {
+      state.selectedId = node.id;
       console.log('[Flow.js] Edit requested for', node.id);
-      if (typeof window.DescentForgeFlow.onEditNode === 'function') {
+      if (typeof window.DescentForgeFlow.onNodeSelect === 'function') {
         try {
-          window.DescentForgeFlow.onEditNode(node.raw, node);
+          window.DescentForgeFlow.onNodeSelect(node.raw, node);
         } catch (e) {
-          console.error('[Flow.js] onEditNode handler threw:', e);
+          console.error('[Flow.js] onNodeSelect handler threw:', e);
         }
       }
-      overlay.dispatchEvent(new CustomEvent('flow:node-edit', {
+      flowEl.dispatchEvent(new CustomEvent('flow:node-select', {
         detail: { id: node.id, name: node.name, kind: node.kind, marker: node.marker, raw: node.raw }
       }));
     }
 
     // ---------- Render ----------
-    function render() {
-      // The edit panel is docked inside #flowOverlay but must survive this
-      // wipe (it's created once, not rebuilt every render) — everything
-      // else gets torn down and rebuilt fresh.
-      ensurePanel();
-      Array.from(overlay.childNodes).forEach(child => {
-        if (child !== panelEl) overlay.removeChild(child);
+    function render(container) {
+      if (!container) container = document.getElementById('flowOverlay');
+      flowEl = container;
+      closeArrowPopup();
+      Array.from(flowEl.childNodes).forEach(child => {
+        if (child !== popupEl) flowEl.removeChild(child);
       });
 
       svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.style.cssText = 'flex:1;min-width:0;display:block;background:#2a241e';
+      // The chart canvas is explicitly sized to stop at the edge of the
+      // docked panel (not 100% of the overlay) so the panel sits beside
+      // the chart, never on top of it.
+      svg.style.cssText =
+        'position:absolute;left:0;top:0;width:100%;height:100%;' +
+        'display:block;background:var(--board)';
       svg.setAttribute('tabindex', '0');
 
       content = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -616,27 +805,12 @@
       // ---- source data (built once; layout preserved across re-renders) ----
       buildData();
 
-      // ---- status badge ----
-      const status = document.createElement('div');
-      status.style.cssText =
-        'position:absolute;top:70px;left:22px;z-index:1000;' +
-        'padding:6px 10px;border-radius:6px;' +
-        'background:rgba(20,20,20,0.8);color:#f4efe5;' +
-        'font:12px/1.4 sans-serif;border:1px solid #cbbda5;' +
-        'pointer-events:none;';
-      status.innerHTML =
-        '<strong>Flow Chart</strong><br>' +
-        state.nodes.length + ' node' + (state.nodes.length !== 1 ? 's' : '') +
-        ' &middot; ' + state.links.length + ' link' + (state.links.length !== 1 ? 's' : '') +
-      overlay.appendChild(status);
-
       // ---- reset view / update buttons ----
       // Both sit at the flow chart view's own top (70px — clear of the
       // page's outer nav above it) and are offset left of where the edit
       // panel docks, so the panel opening never covers them.
-      const BTN_RIGHT = PANEL_WIDTH + 20;
       const btnBaseCss =
-        'position:absolute;right:' + BTN_RIGHT + 'px;z-index:1000;' +
+        'position:absolute;right:10px;z-index:1000;' +
         'padding:6px 12px;border-radius:6px;' +
         'background:#3d3a34;color:#f4efe5;border:1px solid #cbbda5;' +
         'font:12px/1.4 sans-serif;cursor:pointer;' +
@@ -645,17 +819,17 @@
       const resetBtn = document.createElement('button');
       resetBtn.type = 'button';
       resetBtn.textContent = 'Reset View';
-      resetBtn.style.cssText = btnBaseCss + 'top:' + PANEL_TOP + 'px;';
+      resetBtn.style.cssText = btnBaseCss + 'top:10px;';
       resetBtn.onclick = resetView;
-      overlay.appendChild(resetBtn);
+      flowEl.appendChild(resetBtn);
 
       const updateBtn = document.createElement('button');
       updateBtn.type = 'button';
       updateBtn.textContent = 'Update';
       updateBtn.title = 'Re-run the auto-layout from the current afterNodes/marker data';
-      updateBtn.style.cssText = btnBaseCss + 'top:' + (PANEL_TOP + 38) + 'px;';
+      updateBtn.style.cssText = btnBaseCss + 'top:48px;';
       updateBtn.onclick = updateLayout;
-      overlay.appendChild(updateBtn);
+      flowEl.appendChild(updateBtn);
 
       // ---- links (behind nodes) ----
       drawLinks();
@@ -667,7 +841,7 @@
       drawNodes();
 
       svg.appendChild(content);
-      overlay.insertBefore(svg, panelEl);
+      flowEl.appendChild(svg);
 
       // Center content in the viewport ONCE, the first time there's
       // something to show. After that, panning/dragging/selecting never
@@ -735,18 +909,24 @@
     // then center it. Never touches node positions or afterNodes — it's
     // "show me everything", not "re-lay-out everything".
     function resetView() {
+      // Fit the zoom to show all nodes, then center the view.
+      // If svg or nodes are unavailable, fall back to preserving existing state.
       if (state.nodes.length && svg) {
         const b = contentBounds();
         const svgW = svg.clientWidth || window.innerWidth || 800;
         const svgH = svg.clientHeight || window.innerHeight || 600;
         const fitZoom = Math.min(svgW / b.w, svgH / b.h) || 1;
         state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom));
-      } else {
-        state.zoom = 1;
+        // Center the view on the content bounds using the new zoom
+        state.panX = (svgW / 2 / state.zoom) - (b.x + b.w / 2);
+        state.panY = (svgH / 2 / state.zoom) - (b.y + b.h / 2);
       }
-      centerView();
+      // Otherwise preserve existing zoom and pan values (don't override them to 1/0)
       clampPan();
-      updateTransform();
+      // Re-render so the svg is recreated with the corrected camera transform
+      // applied. Just calling updateTransform() on the old svg can leave the
+      // chart detached or off-screen after a re-render elsewhere.
+      render(flowEl);
     }
 
     // "Update": re-runs the auto-layout from the current afterNodes/marker
@@ -756,7 +936,7 @@
       layoutNodes(state.nodes);
       state.links = computeLinks(state.nodes);
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
-      render();
+      render(flowEl);
     }
 
     // Links run from the source node's handle (right-mid edge) into the
@@ -815,7 +995,7 @@
     }
 
     function drawNodes() {
-      state.nodes.forEach(node => {
+      state.nodes.forEach((node, nodeIdx) => {
         const isDragging = state.isNodeDragging && state.dragNode && node.id === state.dragNode.id;
         const isSelected = node.id === state.selectedId;
         const markerColor = colorForMarker(node.marker);
@@ -858,6 +1038,35 @@
         rect.setAttribute('filter', isDragging ? 'url(#nodeDragShadow)' : 'url(#nodeShadow)');
         rect.setAttribute('pointer-events', 'none');
         g.appendChild(rect);
+
+        // Thick left-edge strip, matching LEFT_EDGE_W exactly, as a visual
+        // cue for "click here to pop up/detach this node's incoming
+        // arrows". Clipped to the card's own rounded-corner shape (via a
+        // per-node clipPath) so it hugs the card's top-left/bottom-left
+        // curve instead of showing square corners poking out past it.
+        const clipId = 'flowNodeClip' + nodeIdx;
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+        clip.setAttribute('id', clipId);
+        const clipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clipRect.setAttribute('x', '0');
+        clipRect.setAttribute('y', '0');
+        clipRect.setAttribute('width', NODE_W);
+        clipRect.setAttribute('height', NODE_H);
+        clipRect.setAttribute('rx', '12');
+        clipRect.setAttribute('ry', '12');
+        clip.appendChild(clipRect);
+        g.appendChild(clip);
+
+        const leftEdge = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftEdge.setAttribute('x', '0');
+        leftEdge.setAttribute('y', '0');
+        leftEdge.setAttribute('width', LEFT_EDGE_W);
+        leftEdge.setAttribute('height', NODE_H);
+        leftEdge.setAttribute('clip-path', 'url(#' + clipId + ')');
+        leftEdge.setAttribute('fill', markerColor);
+        leftEdge.setAttribute('opacity', '0.6');
+        leftEdge.setAttribute('pointer-events', 'none');
+        g.appendChild(leftEdge);
 
         // marker label (Main Quest / Side Quest / Narrative Event / City Event)
         const tKind = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -965,6 +1174,17 @@
       return null;
     }
 
+    // Is (x,y) within the clickable strip running down this node's left
+    // edge? Clicking there pops up the list of arrows coming INTO this
+    // node (i.e. its own afterNodes), each removable with an ×.
+    function findLeftEdgeAt(x, y) {
+      for (let i = state.nodes.length - 1; i >= 0; i--) {
+        const n = state.nodes[i];
+        if (x >= n.x && x <= n.x + LEFT_EDGE_W && y >= n.y && y <= n.y + NODE_H) return n;
+      }
+      return null;
+    }
+
     function updateTransform() {
       content.setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
     }
@@ -972,6 +1192,29 @@
     // ---------- Interaction ----------
     function onLeftMouseDown(ev) {
       if (ev.button !== 0) return;
+      
+      // Mode-based blocking: when in campaign flow mode, prevent clicks
+      // from registering in the SME beneath the flow chart. This mirrors
+      // the blocking in index.html for pointerdown events, ensuring
+      // consistent behavior across both mousedown and pointerdown handlers.
+      // We check BOTH the flow-mode class on body AND the flow overlay visibility
+      // for robust detection that works across different mode-switching scenarios.
+      const inFlowMode = document.body.classList.contains('flow-mode');
+      const flowOverlay = document.getElementById('flowOverlay');
+      const flowOverlayVisible = flowOverlay && flowOverlay.style.display !== 'none';
+      
+      console.log('[onLeftMouseDown] flow-mode class:', inFlowMode);
+      console.log('[onLeftMouseDown] flowOverlay visible:', flowOverlayVisible);
+      
+      if (inFlowMode && flowOverlayVisible) {
+        // In Flow mode: return early to prevent any click action that
+        // would register in the SME tile placement area. The index.html
+        // pointerdown blocking handles the stage element, and this handles
+        // the flow chart SVG mousedown.
+        console.log('[onLeftMouseDown] Early return - Flow mode active');
+        return;
+      }
+
       const p = screenToContent(ev.clientX, ev.clientY);
 
       // handle dot: click opens the edit panel, drag starts a new connection
@@ -988,6 +1231,15 @@
         return;
       }
 
+      // left-edge strip: click pops up this node's incoming arrows (its own
+      // afterNodes), each with an × to detach it — doesn't start a drag.
+      const leftEdgeNode = findLeftEdgeAt(p.x, p.y);
+      if (leftEdgeNode) {
+        ev.preventDefault();
+        openIncomingArrowsPopup(leftEdgeNode, ev.clientX, ev.clientY);
+        return;
+      }
+
       const node = findNodeAt(p.x, p.y);
       if (node) {
         ev.preventDefault();
@@ -999,6 +1251,30 @@
         state.dragOrigX = node.x;
         state.dragOrigY = node.y;
       } else {
+        // Mode-based approach: when in Flow mode, prevent clicks from
+        // registering in the SME beneath the flow chart. The flow chart
+        // SVG has pointer-events: none on most elements, allowing clicks
+        // to pass through to the SME area below. When in flow mode,
+        // stop event propagation to keep clicks within the flow chart.
+        // Check BOTH the flow-mode class on body AND campaign mode with campView='flow'
+        // for robust detection across different mode-switching scenarios.
+        const isFlowMode = document.body.classList.contains('flow-mode');
+        // Note: mode and campView are index.html variables; if inaccessible, fall back to flow-mode check only
+        let inCampaignFlowMode = false;
+        try {
+          inCampaignFlowMode = (typeof mode !== 'undefined' && mode === 'campaign' && typeof campView !== 'undefined' && campView === 'flow');
+        } catch(e) {
+          // Variables not accessible, fall through
+        }
+        
+        if (isFlowMode || inCampaignFlowMode) {
+          // In Flow mode: stop event propagation so clicks stay within the flow chart
+          // and don't register in the SME tile placement area beneath.
+          // Return early to prevent panning/other actions that would register in SME.
+          ev.stopPropagation();
+          return;
+        }
+
         state.isPanning = true;
         // Pan start/delta tracking uses raw screen pixels, not content
         // coordinates — panX/panY are screen-space, so the delta we add to
@@ -1023,7 +1299,7 @@
         }
         state.linkCurX = p.x;
         state.linkCurY = p.y;
-        if (state.linkDragMoved) render();
+        if (state.linkDragMoved) render(flowEl);
         return;
       }
 
@@ -1036,7 +1312,7 @@
         if (state.dragMoved) {
           state.dragNode.x = state.dragOrigX + dx;
           state.dragNode.y = state.dragOrigY + dy;
-          render();
+          render(flowEl);
         }
         return;
       }
@@ -1052,7 +1328,7 @@
         return;
       }
 
-      if (findHandleAt(p.x, p.y)) {
+      if (findHandleAt(p.x, p.y) || findLeftEdgeAt(p.x, p.y)) {
         svg.style.cursor = 'pointer';
       } else {
         svg.style.cursor = findNodeAt(p.x, p.y) ? 'grab' : 'default';
@@ -1084,7 +1360,7 @@
           state.selectedId = fromNode.id;
           triggerEditNode(fromNode);
         }
-        render();
+        render(flowEl);
         return;
       }
 
@@ -1102,7 +1378,7 @@
           // the edit panel
           state.selectedId = node.id;
           triggerEditNode(node);
-          render();
+          render(flowEl);
         }
         return;
       }
@@ -1141,17 +1417,16 @@
 
     // ---------- Public API ----------
     window.DescentForgeFlow = {
-      init: render,
+      init: function(container){ render(container || document.getElementById('flowOverlay')); },
       render: render,
       resetView: resetView,
-      // Clicking a node's connection dot opens the built-in "Node Edit"
-      // side panel (currently just a placeholder — add real fields in
-      // openPanelFor()). Call this to close it programmatically.
-      // Optionally ALSO set this to a function(raw, node) if you want your
-      // own logic to run (or your own panel to open) on the same click.
-      // `raw` is the original campaign-data object for that node; `node`
-      // is flow.js's internal {id, name, kind, subtitle, x, y, raw} wrapper.
-      onEditNode: null
+      updateLayout: updateLayout,
+      selectNode: function(id){ state.selectedId = id; render(flowEl); },
+      getSelectedNode: function(){ return state.selectedId ? state.nodes.find(n=>n.id===state.selectedId) : null; },
+      closeSelection: function(){ state.selectedId = null; render(flowEl); },
+      // Fired when a node is clicked in the chart. Receives (raw, node).
+      // The host page (e.g. Campaign mode's right Properties box) owns editing.
+      onNodeSelect: null
     };
   }
 })();
