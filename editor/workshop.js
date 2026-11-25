@@ -353,8 +353,12 @@
         } else {
           // No recorded attachment: park it past the main chain, in its
           // own stack.
+          // [UPDATED] Orphan nodes now positioned 4 columns right of farthest left node
+          const ORPHAN_X = PAD + 4 * (NODE_W + COL_SPACING);
           noneAttachCount++;
-          n.x = PAD + order.length * (NODE_W + COL_SPACING);
+          n.x = ORPHAN_X;
+          // [UPDATED] Orphan nodes now positioned 4 columns right of farthest left node
+          console.log('[Flow.js] ORPHAN_X set to:', ORPHAN_X, '-(UPDATED: 4 columns, was order.length columns)');
           n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
         }
       });
@@ -934,6 +938,7 @@
     // unlike Reset View (camera only), this one DOES move nodes.
     function updateLayout() {
       layoutNodes(state.nodes);
+      avoidNodeOverlap();
       state.links = computeLinks(state.nodes);
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
       render(flowEl);
