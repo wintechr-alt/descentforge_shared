@@ -12621,7 +12621,7 @@ function updateFlowInfo(){
     links+=(node.spawn&&Array.isArray(node.spawn.afterNodes)?node.spawn.afterNodes.length:0);
     links+=(Array.isArray(node.afterNodes)?node.afterNodes.length:0);
   });
-  info.textContent='Flujo — '+n+' nodo'+(n!==1?'s':'')+' · '+links+' enlace'+(links!==1?'s':'');
+  info.textContent=T(camp_?'flowInfo0':'flowInfo1')+' · '+T(camp_?'nodo':'Node')+(n>1?'s':'')+' · '+T(camp_?'enlace':'Link')+(links>1?'s':'');
 }
 
 function setMode(m){
