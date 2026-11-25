@@ -2087,6 +2087,9 @@ let editorModeBeforeFlow='scenario';
 let campView = guardado.leer('descentforge.campView') || 'map'; // 'map' | 'flow'
   const fbtn=document.getElementById('btnFlowToggle');
   if(fbtn) fbtn.style.display = mode==='campaign' ? '' : 'none';
+   // Also hide the campTopBar container in non-campaign modes
+  const ctbar=document.getElementById("campTopBar");
+  if(ctbar) ctbar.style.display = mode==="campaign" ? "" : "none";
 let selNode=null, selDlg=null, ctab='nodes';
 const camp={
   meta:{id:'campaign-01',name:'',author:'',description:'',act:'I',
@@ -12680,11 +12683,17 @@ function setMode(m){
   if(m==='campaign'){
     const btn=document.getElementById('btnFlowToggle');
     if(btn){ btn.style.display=''; btn.textContent = campView==='flow' ? T('campViewMap') : T('campViewFlow'); }
+    // Also show the campTopBar container in campaign mode
+    const ctbar=document.getElementById('campTopBar');
+    if(ctbar) ctbar.style.display='';
     if(typeof DescentForgeFlow!=='undefined') DescentForgeFlow.onNodeSelect = flowNodeSelected;
     if(campView==='flow') updateFlowInfo();
   } else {
     const btn=document.getElementById('btnFlowToggle');
     if(btn) btn.style.display='none';
+    // Also hide the campTopBar container in non-campaign modes
+    const ctbar=document.getElementById('campTopBar');
+    if(ctbar) ctbar.style.display='none';
     // Al salir del modo campaña, restablecimos campView para que el diagrama
     // de flujo no se muestre al volver al modo escenario.
     campView = 'map';
