@@ -212,6 +212,7 @@
         });
         state.links = computeLinks(state.nodes);
         layoutNodes(state.nodes);
+        avoidNodeOverlap();
         // Persist computed layout so drag positions survive re-renders.
         state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
       } else {
@@ -364,7 +365,28 @@
     // node is NEVER allowed to rewrite anyone's afterNodes — that's done
     // explicitly, by dragging a handle dot onto a node (adds a link) or
     // clicking a selected node's "×" badges (removes one).
-    function finishNodeDrag(dragNode) {
+    
+
+    // Avoid node overlap: if nodes are too close, shift the later one down
+    function avoidNodeOverlap(){
+      const MIN_DIST = NODE_W + 40; // minimum horizontal distance
+      const nodes = state.nodes;
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = Math.abs(nodes[i].x - nodes[j].x);
+          const dy = Math.abs(nodes[i].y - nodes[j].y);
+          // If nodes overlap or are very close horizontally
+          if (dx < MIN_DIST && dy < NODE_H + 20) {
+            // Shift node j down below node i
+            nodes[j].y = nodes[i].y + NODE_H + 20;
+          }
+        }
+      }
+      // Re-persist positions
+      state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
+    }
+
+function finishNodeDrag(dragNode) {
       state.pos[dragNode.id] = { x: dragNode.x, y: dragNode.y };
       render(flowEl);
     }
@@ -931,6 +953,7 @@
     // unlike Reset View (camera only), this one DOES move nodes.
     function updateLayout() {
       layoutNodes(state.nodes);
+      avoidNodeOverlap();
       state.links = computeLinks(state.nodes);
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
       render(flowEl);
