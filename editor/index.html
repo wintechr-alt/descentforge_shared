@@ -2091,6 +2091,11 @@ let campView = guardado.leer('descentforge.campView') || 'map'; // 'map' | 'flow
    // Also hide the campTopBar container in non-campaign modes
   const ctbar=document.getElementById("campTopBar");
   if(ctbar) ctbar.style.display = mode==="campaign" ? "" : "none";
+  // Hide 3D and marks buttons in campaign mode (they're for scenario editor only)
+  const z3d=document.getElementById('z3d');
+  if(z3d) z3d.style.display = mode==='campaign' ? 'none' : '';
+  const zMarcas=document.getElementById('zMarcas');
+  if(zMarcas) zMarcas.style.display = mode==='campaign' ? 'none' : '';
 let selNode=null, selDlg=null, ctab='nodes';
 const camp={
   meta:{id:'campaign-01',name:'',author:'',description:'',act:'I',
