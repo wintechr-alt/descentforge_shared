@@ -347,12 +347,10 @@
       // leaving them to rely entirely on avoidNodeOverlap() to separate
       // them from main nodes, which isn't guaranteed to converge for
       // every node before it hits its iteration cap.
-      // Orphan nodes are placed 2 columns to the right of the farthest left
+// Orphan nodes are placed 4 columns to the right of the farthest left
       // attached node, giving them clear space away from the main backbone
       // and any attached side-quest/city/narrative offshoots.
       const ORPHAN_X = PAD + 4 * (NODE_W + COL_SPACING);
-      // [UPDATED] Orphan nodes now positioned 4 columns right of farthest left node
-      console.log('[Flow.js] ORPHAN_X set to:', ORPHAN_X, '-(UPDATED: 4 columns, was 2 columns)');
 
       const attachStackCount = new Map();
       let noneAttachCount = 0;
@@ -383,6 +381,7 @@
     
 
     // Avoid node overlap: if nodes are too close, shift the later one down
+
     function avoidNodeOverlap() {
       const MIN_DIST = NODE_W + 40; // minimum horizontal distance before considering overlap
       // Use NODE_H + ROW_SPACING + 1 as the vertical threshold so that the overlap
@@ -392,7 +391,8 @@
       // Without this fix, the original threshold of NODE_H + 20 (96) would fail to
       // detect nodes at the standard spacing, leaving overlapping nodes unresolved.
       const VERTICAL_THRESHOLD = NODE_H + ROW_SPACING + 1; // vertical distance threshold
-      const nodes = state.nodes;
+    }
+    const nodes = state.nodes;
       let changed = true;
       // Iteratively resolve overlaps until no more changes are needed
       // Maximum iterations to prevent infinite loops in edge cases
