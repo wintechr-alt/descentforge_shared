@@ -126,6 +126,9 @@
   #hint{left:10px;bottom:10px}
   #coords{right:10px;bottom:10px}
   .zoombar{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+  body.campaign-map .zoombar{top:44px}
+  body.campaign-map .levelbar{top:44px}
+  body.campaign-map .toolbar{top:80px}
   .zoombar button{background:var(--panel);width:30px;height:28px;padding:0;font-size:15px}
   /* la vista 3D encendida: el botón queda marcado y el lienzo se arrastra para girar */
   .zoombar button.on{background:var(--torch);color:var(--ink);border-color:var(--torch)}
@@ -204,7 +207,9 @@
   /* Workshop chart embebido dentro de la ventana del Mapa de Campaña (centro). */
   #campTopBar{position:absolute;left:0;right:0;top:0;height:34px;z-index:20;background:var(--panel);border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:10px;padding:0 10px;box-sizing:border-box;}
   #flowStage{position:absolute;left:0;top:34px;right:0;bottom:0;display:none;background:var(--board);z-index:10;overflow:hidden;}
-  #btnFlowToggle{position:static;z-index:auto;padding:4px 10px;font-size:12px;}
+  #btnCampMap,#btnCampFlow{position:static;z-index:auto;padding:4px 10px;font-size:12px;border:1px solid var(--edge);border-radius:4px;background:var(--panel);color:var(--text);}
+  #btnCampMap.on,#btnCampFlow.on{background:var(--torch);color:var(--ink);font-weight:600;border-color:var(--torch);}
+  #flowNodeLinks{position:static;z-index:auto;font-size:11px;color:var(--text);white-space:nowrap;opacity:.85;margin-left:8px;}
   #flowInfo{margin-left:auto;font:12px/1.4 sans-serif;color:var(--text);white-space:nowrap;opacity:.85;}
   .dot{width:11px;height:11px;border-radius:50%;flex:none;border:1.5px solid var(--ink)}
   .langsel{display:flex;border:1px solid var(--edge);border-radius:5px;overflow:hidden}
@@ -782,7 +787,9 @@
     <div class="overlay" id="hint"></div>
     <div class="overlay" id="coords">—</div>
     <div id="campTopBar">
-      <button id="btnFlowToggle" onclick="toggleCampView(); return false;"></button>
+      <button id="btnCampMap" onclick="setCampView('map'); return false;">Campaign Map</button>
+      <button id="btnCampFlow" onclick="setCampView('flow'); return false;">Flow Chart</button>
+      <span id="flowNodeLinks" style="font-size:11px;color:var(--text);white-space:nowrap;opacity:.85;">Flow Chart: Node, Links</span>
       <div id="flowInfo"></div>
     </div>
     <div id="flowStage"></div>
@@ -2018,6 +2025,8 @@ function paintChrome(){
 
   // las pestañas y los rótulos que cambian de significado según el modo
   const camp_=mode==='campaign';
+  const campMap = camp_ && campView==='map';
+  document.body.classList.toggle('campaign-map', campMap);
   const rot=(sel,k)=>{const e=document.querySelector(sel); if(e) e.textContent=T(k);};
   rot('#ptabs [data-tab="tiles"]',   camp_?'tabNodes':'tabTiles');
   rot('#ptabs [data-tab="enemies"]', camp_?'tabDialogues':'tabEnemies');
@@ -2031,6 +2040,11 @@ function paintChrome(){
   off('#rtabs [data-rt="trg"]',!camp_);
   off('.levelbar',!camp_);
   off('.toolbar',!camp_);
+  // 3D y marcas solo en editor de escenario, no en Mapa de Campaña
+  const z3d=document.getElementById('z3d');
+  if(z3d) z3d.style.display = campMap ? 'none' : '';
+  const zMarcas=document.getElementById('zMarcas');
+  if(zMarcas) zMarcas.style.display = campMap ? 'none' : '';
   // (la barra de útiles de arriba ya no existe: `.toolbar`, sobre el tablero,
   //  es la única que hay y se apaga en campaña con la línea de arriba)
   document.title='DescentForge — '+(lang==='en'
@@ -2086,16 +2100,17 @@ const state={
 let mode='scenario';                 // scenario | campaign | flow
 let editorModeBeforeFlow='scenario';
 let campView = guardado.leer('descentforge.campView') || 'map'; // 'map' | 'flow'
-  const fbtn=document.getElementById('btnFlowToggle');
-  if(fbtn) fbtn.style.display = mode==='campaign' ? '' : 'none';
+  const bmap=document.getElementById('btnCampMap');
+  const bflow=document.getElementById('btnCampFlow');
+  if(bmap) bmap.style.display = mode==='campaign' ? '' : 'none';
+  if(bflow) bflow.style.display = mode==='campaign' ? '' : 'none';
+  if(mode==='campaign'){
+    if(bmap) bmap.classList.toggle('on', campView==='map');
+    if(bflow) bflow.classList.toggle('on', campView==='flow');
+  }
    // Also hide the campTopBar container in non-campaign modes
   const ctbar=document.getElementById("campTopBar");
   if(ctbar) ctbar.style.display = mode==="campaign" ? "" : "none";
-  // Hide 3D and marks buttons in campaign mode (they're for scenario editor only)
-  const z3d=document.getElementById('z3d');
-  if(z3d) z3d.style.display = mode==='campaign' ? 'none' : '';
-  const zMarcas=document.getElementById('zMarcas');
-  if(zMarcas) zMarcas.style.display = mode==='campaign' ? 'none' : '';
 let selNode=null, selDlg=null, ctab='nodes';
 const camp={
   meta:{id:'campaign-01',name:'',author:'',description:'',act:'I',
@@ -4805,7 +4820,7 @@ function arrastrarA(x,y){
    Así que se marca en la **fase de captura**, que va de fuera adentro y llega
    antes que nadie, cuando el botón todavía está en su sitio. Se marca sobre el
    propio evento para que no pueda confundirse con el siguiente. */
-const MANDOS_CSS = '.zoombar,.levelbar,.toolbar,.overlay,#btnFlowToggle';
+const MANDOS_CSS = '.zoombar,.levelbar,.toolbar,.overlay,#btnCampMap,#btnCampFlow';
 ['pointerdown','pointerup','click','dblclick'].forEach(t =>
   stage.addEventListener(t, ev => {
     if (ev.target?.closest?.(MANDOS_CSS)) ev.deUnMando = true;
@@ -12578,21 +12593,25 @@ function flowNodeSelected(raw, node){
   if(i>=0){ selNode = i; selDlg = null; ctab = 'nodes'; renderRight(); }
 }
 
-// Alterna entre el Mapa de Campaña (lienzo) y el Editor de Flujo dentro de
-// la ventana central. El NAV «Flow» de arriba se deja intacto.
-function toggleCampView(){
+// Cambia entre el Mapa de Campaña (lienzo) y el Editor de Flujo dentro de
+// la ventana central. Ambos botones quedan siempre visibles; el activo se
+// marca con la clase .on igual que el NAV de arriba.
+function setCampView(view){
   try{
     if(mode!=='campaign') return;
-    console.log('[toggleCampView] before - campView=',campView);
-    campView = campView==='map' ? 'flow' : 'map';
-    console.log('[toggleCampView] after - campView=',campView);
+    if(campView===view) return;
+    campView = view;
+    console.log('[setCampView] campView=',campView);
     guardado.poner('descentforge.campView', campView);
+    document.body.classList.toggle('campaign-map', campView==='map');
     const fs=document.getElementById('flowStage');
-    const btn=document.getElementById('btnFlowToggle');
+    const bmap=document.getElementById('btnCampMap');
+    const bflow=document.getElementById('btnCampFlow');
     const info=document.getElementById('flowInfo');
     if(campView==='flow'){
       if(fs){ fs.style.display='block'; fs.style.width=stage.clientWidth+'px'; fs.style.height=stage.clientHeight+'px'; }
-      if(btn){ btn.textContent=T('campViewMap'); btn.title=T('campViewMapTip'); }
+      if(bmap) bmap.classList.remove('on');
+      if(bflow) bflow.classList.add('on');
       if(typeof DescentForgeFlow!=='undefined'){
         DescentForgeFlow.onNodeSelect = flowNodeSelected;
         DescentForgeFlow.render(fs);
@@ -12601,13 +12620,14 @@ function toggleCampView(){
       }
     } else {
       if(fs) fs.style.display='none';
-      if(btn){ btn.textContent=T('campViewFlow'); btn.title=T('campViewFlowTip'); }
+      if(bmap) bmap.classList.add('on');
+      if(bflow) bflow.classList.remove('on');
       if(info) info.textContent='';
       draw();
     }
     renderRight();
   }catch(e){
-    console.error('[toggleCampView] ERROR:',e);
+    console.error('[setCampView] ERROR:',e);
   }
 }
 
@@ -12687,16 +12707,20 @@ function setMode(m){
   // el panel derecho arranca en la ficha de lo que se esté editando
   rtab='sel'; ptab='tiles'; ctab='nodes';
   if(m==='campaign'){
-    const btn=document.getElementById('btnFlowToggle');
-    if(btn){ btn.style.display=''; btn.textContent = campView==='flow' ? T('campViewMap') : T('campViewFlow'); }
+    const bmap=document.getElementById('btnCampMap');
+    const bflow=document.getElementById('btnCampFlow');
+    if(bmap){ bmap.style.display=''; bmap.classList.toggle('on', campView==='map'); }
+    if(bflow){ bflow.style.display=''; bflow.classList.toggle('on', campView==='flow'); }
     // Also show the campTopBar container in campaign mode
     const ctbar=document.getElementById('campTopBar');
     if(ctbar) ctbar.style.display='';
     if(typeof DescentForgeFlow!=='undefined') DescentForgeFlow.onNodeSelect = flowNodeSelected;
     if(campView==='flow') updateFlowInfo();
   } else {
-    const btn=document.getElementById('btnFlowToggle');
-    if(btn) btn.style.display='none';
+    const bmap=document.getElementById('btnCampMap');
+    const bflow=document.getElementById('btnCampFlow');
+    if(bmap) bmap.style.display='none';
+    if(bflow) bflow.style.display='none';
     // Also hide the campTopBar container in non-campaign modes
     const ctbar=document.getElementById('campTopBar');
     if(ctbar) ctbar.style.display='none';
