@@ -115,13 +115,13 @@
             '</div>' +
             '</div>' +
             '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);justify-content:center;">' +
-            '<button data-forgecat="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>' +
-            '<button data-forgecat="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>' +
-            '<button data-forgecat="weaponinv" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Weapons</button>' +
-            '<button data-forgecat="itempool" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Item Pool</button>' +
-            '<button data-forgecat="reserved" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Reserved</button>' +
-            '<button data-forgecat="startinv" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Starting Inventory</button>' +
-            '<button data-forgecat="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>' +
+            '<button data-forgecat="armor" data-t="armor" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Armor</button>' +
+            '<button data-forgecat="trinkets" data-t="trinkets" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Trinkets</button>' +
+            '<button data-forgecat="weaponinv" data-t="weapons" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Weapons</button>' +
+            '<button data-forgecat="itempool" data-t="itemPool" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Item Pool</button>' +
+            '<button data-forgecat="reserved" data-t="reserved" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Reserved</button>' +
+            '<button data-forgecat="startinv" data-t="startingInventory" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Starting Inventory</button>' +
+            '<button data-forgecat="enemies" data-t="enemies" style="padding:6px 12px;border:1px solid var(--edge);background:var(--panel);color:var(--text);border-radius:4px;cursor:pointer;">Enemies</button>' +
             '</div>' +
             '<div id="forgeMain" style="overflow:auto;height:calc(100% - 106px);padding:10px 18px;">' +
             '<div id="forgeSearchWrap">' +
@@ -601,9 +601,9 @@
         const allowedAct2 = forgeAllowedAct2();
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeAddAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeAddAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeClearPage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeAddAllBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeAddAllUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeClearPage" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">' +
                 '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Armor - Act I</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">' + (act1Rows || '<p style="color:var(--dim);">No items found.</p>') + '</div></div>' +
@@ -667,9 +667,9 @@
         const allowedAct2 = forgeAllowedAct2();
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeAddAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeAddAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeClearPage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeAddAllBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeAddAllUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeClearPage" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">' +
                 '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Trinkets - Act I</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">' + (act1Rows || '<p style="color:var(--dim);">No items found.</p>') + '</div></div>' +
@@ -2058,9 +2058,9 @@
         }).join('');
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeInvAddBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeInvAddUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeInvClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeInvAddBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeInvAddUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeInvClear" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">' +
                 '<div style="display:flex;flex-direction:column;gap:8px;">' + left + '</div>' +
@@ -2266,6 +2266,7 @@
     btn.textContent = 'Forge';
     btn.id = 'forgeBtn';
     btn.setAttribute('data-forge', '1');
+    btn.setAttribute('data-t', 'modeForge');
     if (modesel)
         modesel.appendChild(btn);
     const topAddAll = overlay.querySelector('#forgeTopAddAll');
