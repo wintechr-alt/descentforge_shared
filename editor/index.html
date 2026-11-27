@@ -2077,7 +2077,7 @@ const TOOLS=[{id:'select',k:'toolSelect'},{id:'tile',k:'toolTile'},{id:'enemy',k
              {id:'prop',k:'toolProp'},{id:'hero',k:'toolHero'},
              {id:'erase',k:'toolErase'}];
 if(!ASSETS.enemyFamily) ASSETS.enemyFamily={}; ASSETS.enemyFamily.RANDOM_POOL='randompool'; loadImg('face:randompool', ASSETS.portraits.randompool);
-let tool='tile', selTile=DATA.tiles[0]?.id, selEnemy=DATA.enemies[0]?.id,
+let tool='select', selTile=DATA.tiles[0]?.id, selEnemy=DATA.enemies[0]?.id,
     selProp='Chest', rot=0, level=0, zoom=1, panX=40, panY=40, sel=null, ptab='tiles', rtab='sel';
 let roomModeActive=false, roomModeName=null;
 let objHighlight=null;
