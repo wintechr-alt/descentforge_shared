@@ -41,7 +41,7 @@
 (function() {
   'use strict';
 
-  console.log('[Flow.js] Script loaded V2_19');
+  console.log('[Flow.js] Script loaded');
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', onDOMReady);
@@ -59,7 +59,7 @@
   const PAD = 60;
   const MIN_ZOOM = 0.3;
   const MAX_ZOOM = 3;
-  const DRAG_THRESHOLD = 4;  // px in content-space before a click becomes a drag
+  const DRAG_THRESHOLD = 1;  // px in content-space before a click becomes a drag (reduced from 4 to allow single left-click-drag to work)
   const HANDLE_R = 7;        // connection-dot radius
   const HANDLE_HIT_R = 12;   // generous click target around the dot
   const LEFT_EDGE_W = 14;    // width of the clickable strip along a node's left edge
@@ -70,13 +70,13 @@
     main: 'Main Quest',
     side: 'Side Quest',
     narrative: 'Narrative Event',
-    city: 'City Event'
+    city: 'Workshop Event'
   };
   const MARKER_COLOR = {
     main: '#8bc34a',      // green
     side: '#f0a830',      // orange
     narrative: '#9c27b0', // purple
-    city: '#d4af37'       // gold
+    city: '#607d8b'       // workshop blue-gray
   };
   const DEFAULT_COLOR = '#f0a830'; // fallback, shouldn't normally be hit — getMarker() always returns a known key
   const CARD_BG = '#1b2130';
@@ -339,19 +339,6 @@
       // attach point stack beneath that same forward column, in their own
       // count, so one busy node's stack never pushes a different node's
       // offshoots down too (each attach point starts back at row 1).
-      // Orphan offshoots (no recorded attach point) get their own column,
-      // one full column to the LEFT of the main backbone's starting
-      // column. Using PAD directly here was a bug: that's the exact same
-      // x as order[0] (the first main node), so orphans would land in the
-      // same column as the start of the main chain and only differ by y —
-      // leaving them to rely entirely on avoidNodeOverlap() to separate
-      // them from main nodes, which isn't guaranteed to converge for
-      // every node before it hits its iteration cap.
-// Orphan nodes are placed 4 columns to the right of the farthest left
-      // attached node, giving them clear space away from the main backbone
-      // and any attached side-quest/city/narrative offshoots.
-      const ORPHAN_X = PAD + 4 * (NODE_W + COL_SPACING);
-
       const attachStackCount = new Map();
       let noneAttachCount = 0;
       offshoots.forEach(n => {
@@ -365,11 +352,15 @@
             : attachNode.x + (NODE_W + COL_SPACING);
           n.y = attachNode.y + count * (NODE_H + ROW_SPACING);
         } else {
-          // No recorded attachment: place it in its own column clear of
-          // the main backbone, stacked from the top.
-          n.x = ORPHAN_X;
-          n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
+          // No recorded attachment: park it past the main chain, in its
+          // own stack.
+          // [UPDATED] Orphan nodes now positioned 4 columns right of farthest left node
+          const ORPHAN_X = PAD + 4 * (NODE_W + COL_SPACING);
           noneAttachCount++;
+          n.x = ORPHAN_X;
+          // [UPDATED] Orphan nodes now positioned 4 columns right of farthest left node
+          console.log('[Flow.js] ORPHAN_X set to:', ORPHAN_X, '-(UPDATED: 4 columns, was order.length columns)');
+          n.y = PAD + noneAttachCount * (NODE_H + ROW_SPACING);
         }
       });
     }
@@ -378,10 +369,7 @@
     // node is NEVER allowed to rewrite anyone's afterNodes — that's done
     // explicitly, by dragging a handle dot onto a node (adds a link) or
     // clicking a selected node's "×" badges (removes one).
-    
-
     // Avoid node overlap: if nodes are too close, shift the later one down
-
     function avoidNodeOverlap() {
       const MIN_DIST = NODE_W + 40; // minimum horizontal distance before considering overlap
       // Use NODE_H + ROW_SPACING + 1 as the vertical threshold so that the overlap
@@ -391,8 +379,7 @@
       // Without this fix, the original threshold of NODE_H + 20 (96) would fail to
       // detect nodes at the standard spacing, leaving overlapping nodes unresolved.
       const VERTICAL_THRESHOLD = NODE_H + ROW_SPACING + 1; // vertical distance threshold
-    }
-    const nodes = state.nodes;
+      const nodes = state.nodes;
       let changed = true;
       // Iteratively resolve overlaps until no more changes are needed
       // Maximum iterations to prevent infinite loops in edge cases
@@ -421,7 +408,7 @@
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
     }
 
-function finishNodeDrag(dragNode) {
+    function finishNodeDrag(dragNode) {
       state.pos[dragNode.id] = { x: dragNode.x, y: dragNode.y };
       render(flowEl);
     }
@@ -966,16 +953,19 @@ function finishNodeDrag(dragNode) {
     // then center it. Never touches node positions or afterNodes — it's
     // "show me everything", not "re-lay-out everything".
     function resetView() {
+      // Fit the zoom to show all nodes, then center the view.
+      // If svg or nodes are unavailable, fall back to preserving existing state.
       if (state.nodes.length && svg) {
         const b = contentBounds();
         const svgW = svg.clientWidth || window.innerWidth || 800;
         const svgH = svg.clientHeight || window.innerHeight || 600;
         const fitZoom = Math.min(svgW / b.w, svgH / b.h) || 1;
         state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom));
-      } else {
-        state.zoom = 1;
+        // Center the view on the content bounds using the new zoom
+        state.panX = (svgW / 2 / state.zoom) - (b.x + b.w / 2);
+        state.panY = (svgH / 2 / state.zoom) - (b.y + b.h / 2);
       }
-      centerView();
+      // Otherwise preserve existing zoom and pan values (don't override them to 1/0)
       clampPan();
       // Re-render so the svg is recreated with the corrected camera transform
       // applied. Just calling updateTransform() on the old svg can leave the
@@ -987,9 +977,7 @@ function finishNodeDrag(dragNode) {
     // data and snaps every node back into its computed grid position —
     // unlike Reset View (camera only), this one DOES move nodes.
     function updateLayout() {
-      console.log('[Flow.js] updateLayout called - will run layoutNodes');
       layoutNodes(state.nodes);
-      console.log('[Flow.js] layoutNodes completed');
       avoidNodeOverlap();
       state.links = computeLinks(state.nodes);
       state.nodes.forEach(n => { state.pos[n.id] = { x: n.x, y: n.y }; });
@@ -1313,18 +1301,9 @@ function finishNodeDrag(dragNode) {
         // SVG has pointer-events: none on most elements, allowing clicks
         // to pass through to the SME area below. When in flow mode,
         // stop event propagation to keep clicks within the flow chart.
-        // Check BOTH the flow-mode class on body AND campaign mode with campView='flow'
-        // for robust detection across different mode-switching scenarios.
         const isFlowMode = document.body.classList.contains('flow-mode');
-        // Note: mode and campView are index.html variables; if inaccessible, fall back to flow-mode check only
-        let inCampaignFlowMode = false;
-        try {
-          inCampaignFlowMode = (typeof mode !== 'undefined' && mode === 'campaign' && typeof campView !== 'undefined' && campView === 'flow');
-        } catch(e) {
-          // Variables not accessible, fall through
-        }
         
-        if (isFlowMode || inCampaignFlowMode) {
+        if (isFlowMode) {
           // In Flow mode: stop event propagation so clicks stay within the flow chart
           // and don't register in the SME tile placement area beneath.
           // Return early to prevent panning/other actions that would register in SME.
