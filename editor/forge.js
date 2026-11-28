@@ -108,10 +108,10 @@
         '<div style="padding:10px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);display:flex;align-items:center;justify-content:flex-start;position:relative;">' +
             '<h1 style="margin:0;font-size:18px;">Forge</h1>' +
             '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:6px;">' +
-            '<button id="forgeTopAddAll" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Add all upgraded (selected act)</button>' +
-            '<button id="forgeTopDefaultStart" style="background:var(--gold);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Default Starting Inventory</button>' +
-            '<button id="forgeTopManage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Manage Starting Inventory</button>' +
-            '<button id="forgeTopClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Clear all</button>' +
+            '<button id="forgeTopAddAll" data-t="addAllUpgSelectedAct" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Add all upgraded (selected act)</button>' +
+            '<button id="forgeTopDefaultStart" data-t="defaultStartInventory" style="background:var(--gold);color:var(--ink);border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;">Default Starting Inventory</button>' +
+            '<button id="forgeTopManage" data-t="manageStartInventory" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Manage Starting Inventory</button>' +
+            '<button id="forgeTopClear" data-t="clearAll" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12px;">Clear all</button>' +
             '</div>' +
             '</div>' +
             '<div style="display:flex;gap:8px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--edge);justify-content:center;">' +
@@ -132,6 +132,318 @@
             '<div id="forgeEditor" style="margin-top:12px;"></div>' +
             '</div>';
     document.body.appendChild(overlay);
+
+    // Forge UI translations. The main editor uses UI/T(), but this separately
+    // mounted overlay used hard-coded English strings and did not repaint when
+    // the ES/EN switch changed. Translate rendered text nodes so every dynamic
+    // Forge panel (including dialogs and empty states) follows the same switch.
+    const FORGE_TEXT_ES = {
+        'Forge':'Forja',
+        'Search weapon parts...':'Buscar piezas de arma...',
+        '+ New weapon part':'+ Nueva pieza de arma',
+        'Select a weapon part to edit, or create a new one.':'Selecciona una pieza de arma para editarla o crea una nueva.',
+        'ID':'Identificador',
+        'Name (ES)':'Nombre (ES)',
+        'Name (EN)':'Nombre (EN)',
+        'Name':'Nombre',
+        'Class':'Clase',
+        'Slot':'Ranura',
+        'Upgraded':'Mejorada',
+        'Flavor text':'Texto descriptivo',
+        'Save':'Guardar',
+        'Duplicate':'Duplicar',
+        'Delete':'Eliminar',
+        'Edit':'Editar',
+        'RSV':'RES',
+        'RMV':'QUITAR',
+        'REL':'LIBERAR',
+        'Del':'Eliminar',
+        'Cancel':'Cancelar',
+        'none':'ninguno',
+        'None':'Ninguno',
+        'No items':'No hay objetos',
+        'No items found.':'No se encontraron objetos.',
+        'No available items.':'No hay objetos disponibles.',
+        'No reserved items.':'No hay objetos reservados.',
+        'No custom monsters.':'No hay monstruos personalizados.',
+        'No enemy pools yet. Create one above.':'Todavía no hay grupos de enemigos. Crea uno arriba.',
+        'No enemies found in file':'No se encontraron enemigos en el archivo.',
+        'Could not parse file':'No se pudo interpretar el archivo.',
+        'Loadout editor not available.':'El editor de equipamiento no está disponible.',
+        'This weapon is not one of the selected hero default slots.':'Esta arma no pertenece a una de las ranuras predeterminadas del héroe seleccionado.',
+        'Dialog not available':'El cuadro de diálogo no está disponible.',
+        'Add all upgraded (selected act)':'Añadir todas las mejoras (acto seleccionado)',
+        'Default Starting Inventory':'Inventario inicial predeterminado',
+        'Manage Starting Inventory':'Gestionar inventario inicial',
+        'Clear all':'Limpiar todo',
+        'Armor':'Armaduras',
+        'Trinkets':'Abalorios',
+        'Weapons':'Armas',
+        'Item Pool':'Grupo de objetos',
+        'Reserved':'Reservados',
+        'Starting Inventory':'Inventario inicial',
+        'Enemies':'Enemigos',
+        'In Starting Inventory':'En el inventario inicial',
+        'Not in Starting Inventory':'No está en el inventario inicial',
+        'Add all upgraded for selected Acts':'Añadir todas las mejoras de los actos seleccionados',
+        'Add all base':'Añadir todos los básicos',
+        'Add all upgraded':'Añadir todas las mejoras',
+        'Clear':'Limpiar',
+        'Armor - Act I':'Armaduras - Acto I',
+        'Armor - Act II':'Armaduras - Acto II',
+        'Trinkets - Act I':'Abalorios - Acto I',
+        'Trinkets - Act II':'Abalorios - Acto II',
+        'Items in Starting Inventory.':'Objetos del inventario inicial.',
+        'Reserved items (story/feat rewards).':'Objetos reservados (recompensas de historia/proezas).',
+        'Available recipes and items not in Starting Inventory.':'Recetas y objetos disponibles que no están en el inventario inicial.',
+        'Add to Starting Inventory':'Añadir al inventario inicial',
+        'Remove':'Quitar',
+        'Release':'Liberar',
+        'Base':'Básico',
+        'Common':'Común',
+        'Other':'Otro',
+        'Named':'Con nombre propio',
+        'Custom':'Personalizados',
+        'Custom monster':'Monstruo personalizado',
+        'Custom monsters':'Monstruos personalizados',
+        'Base enemy':'Enemigo base',
+        'Damage traits (W=Weak, R=Resist, blank=None)':'Rasgos de daño (W=Débil, R=Resiste, vacío=Ninguno)',
+        'Immune to':'Inmune a',
+        'Tiers (stats per hero count)':'Niveles (estadísticas según número de héroes)',
+        'Mechanical traits':'Rasgos mecánicos',
+        'Huge/Small are inherited from the base and shown in Advanced.':'Enorme/Pequeño se heredan del enemigo base y se muestran en Avanzado.',
+        'Theme traits':'Rasgos temáticos',
+        'Locked traits (inherited from base):':'Rasgos bloqueados (heredados del enemigo base):',
+        'Activation':'Activación',
+        'Tactics':'Tácticas',
+        'Defense':'Defensa',
+        'Advanced (edit locked)':'Avanzado (editar bloqueados)',
+        'Locked theme traits':'Rasgos temáticos bloqueados',
+        'Sword':'Espada',
+        'Warhammer':'Martillo de guerra',
+        'Staff':'Bastón',
+        'Wand':'Varita',
+        'DualBlades':'Hojas dobles',
+        'Bow':'Arco',
+        'Warbell':'Campana de guerra',
+        'Spear':'Lanza',
+        'Hammer':'Martillo',
+        'Crossbow':'Ballesta',
+        'Gauntlet':'Guantelete',
+        'ThrowingKnives':'Cuchillos arrojadizos',
+        'Rune':'Runa',
+        'Bandit':'Bandido',
+        'Fae':'Hada',
+        'Golem':'Gólem',
+        'Hybrid Harbinger':'Heraldo híbrido',
+        'Reanimate':'Reanimado',
+        'Salamander':'Salamandra',
+        'Specter':'Espectro',
+        'Uthuk Berserker':'Berserker Uthuk',
+        'Uthuk Blood Witch':'Bruja sangrienta Uthuk',
+        'Vampire':'Vampiro',
+        'Viper Legionnaire':'Legionario víbora',
+        'Wight':'Aparición',
+        'Wolf':'Lobo',
+        'Zealot':'Fanático',
+        'Melee':'Cuerpo a cuerpo',
+        'Ranged':'A distancia',
+        'Striker':'Atacante',
+        'Tank':'Defensor',
+        'Support':'Apoyo',
+        'Debuffer':'Perjudicador',
+        'Fast':'Rápido',
+        'Slow':'Lento',
+        'Flying':'Volador',
+        'Huge':'Enorme',
+        'Small':'Pequeño',
+        'Intelligent':'Inteligente',
+        'Creature':'Criatura',
+        'Undead':'No muerto',
+        'Dragonkind':'Dragón',
+        'Uthuk':'Uthuk',
+        'Otherworldly':'De otro mundo',
+        'Construct':'Constructo',
+        'Wild':'Salvaje',
+        'Raider':'Saqueador',
+        'Mercenary':'Mercenario',
+        'Type':'Tipo',
+        'Faction':'Facción',
+        'Feature':'Característica',
+        'original':'original',
+        'No items yet.':'Todavía no hay objetos.',
+        'Load game data':'Cargar datos del juego',
+        'External enemy data: not loaded':'Datos externos de enemigos: no cargados',
+        'Filter: AND (all selected)':'Filtro: Y (todos los seleccionados)',
+        'Filter: OR (any selected)':'Filtro: O (cualquiera seleccionado)',
+        'Mech:':'Mecánica:',
+        'Theme:':'Tema:',
+        'Custom:':'Personalizados:',
+        'Type':'Tipo',
+        'Faction':'Facción',
+        'Feature':'Característica',
+        'Create pool':'Crear grupo',
+        'Create Pool':'Crear grupo',
+        'Add preset':'Añadir preajuste',
+        'Preset: Base':'Preajuste: Básicos',
+        'Preset: Uthuk Faction':'Preajuste: Facción Uthuk',
+        'Preset: Dragon Faction':'Preajuste: Facción de dragones',
+        'Preset: Baronial Faction':'Preajuste: Facción baronial',
+        'Preset: Undead Faction':'Preajuste: Facción de no muertos',
+        'Custom Pool':'Grupo personalizado',
+        'Uthuk Faction':'Facción Uthuk',
+        'Dragon Faction':'Facción de dragones',
+        'Baronial Faction':'Facción baronial',
+        'Undead Faction':'Facción de no muertos',
+        'Act 1 Pool':'Grupo del Acto I',
+        'Act 2 Pool':'Grupo del Acto II',
+        'Mini-Bosses':'Minijefes',
+        'Bosses':'Jefes',
+        'active':'activo',
+        'select':'Seleccionar',
+        'Del pool':'Eliminar grupo',
+        'enemies':'enemigos',
+        'Empty':'Vacío',
+        'Pool':'Grupo',
+        'In Starting Inventory':'En el inventario inicial',
+        'Not in Starting Inventory':'No está en el inventario inicial',
+        'Shared Weapons - Act I':'Armas compartidas - Acto I',
+        'Shared Weapons - Act II':'Armas compartidas - Acto II',
+        'Common weapons':'Armas comunes',
+        'No available items.':'No hay objetos disponibles.',
+        'Add all upgraded for selected Acts':'Añadir todas las mejoras de los actos seleccionados',
+        'click to make hero\'s loadout':'Pulsa para crear el equipamiento del héroe',
+        'Make hero loadout':'Crear equipamiento del héroe',
+        'none listed':'ninguno',
+        'Resist: ':'Resiste: ',
+        'Weak: ':'Débil a: ',
+        'none listed':'ninguno',
+        'original':'original',
+        'HP':'Vida',
+        'DEF':'DEF',
+        'ATK':'ATQ',
+        'Mech':'Mecánica',
+        'Theme':'Tema',
+        'Owned':'En propiedad',
+        'External enemy data: parse found no enemies':'Datos externos de enemigos: no se encontraron enemigos',
+        'External enemy data: file loaded but no game data global':'Datos externos de enemigos: se cargó el archivo, pero no contiene datos globales del juego',
+        'External enemy data: no default file (use button to load)':'Datos externos de enemigos: no hay archivo predeterminado (usa el botón para cargarlo)',
+        'External enemy data: auto-load failed':'Datos externos de enemigos: falló la carga automática',
+        'External enemy data:':'Datos externos de enemigos:',
+        'Could not parse file':'No se pudo interpretar el archivo',
+        'No enemies found in file':'No se encontraron enemigos en el archivo',
+        'Load failed:':'Error al cargar:',
+        'Loaded':'Cargados',
+        'enemies from game data.':'enemigos desde los datos del juego.',
+        'Saved':'Guardado',
+        'New Part':'Pieza nueva',
+        'Custom monster ':'Monstruo personalizado ',
+        'Loadout updated for ':'Equipamiento actualizado para ',
+        'Failed: ':'Error: ',
+        'slot ':'ranura ',
+        'Available recipes and items not in Starting Inventory.':'Recetas y objetos disponibles que no están en el inventario inicial.'
+    };
+    const FORGE_TEXT_EN = Object.fromEntries(Object.entries(FORGE_TEXT_ES).map(([en, es]) => [es, en]));
+    function forgeLanguage() {
+        return (document.documentElement.lang || (typeof lang !== 'undefined' ? lang : 'en')).toLowerCase().startsWith('es') ? 'es' : 'en';
+    }
+    function translateForgeText(value) {
+        const original = String(value == null ? '' : value);
+        const trimmed = original.trim();
+        if (!trimmed) return original;
+        const dict = forgeLanguage() === 'es' ? FORGE_TEXT_ES : FORGE_TEXT_EN;
+        let translated = dict[trimmed];
+        if (translated == null) {
+            if (forgeLanguage() === 'es') {
+                translated = trimmed
+                    .replace(/^Weapons \((\d+)\)$/, 'Armas ($1)')
+                    .replace(/^Enemy Pools \((\d+)\)$/, 'Grupos de enemigos ($1)')
+                    .replace(/^Pool (\d+)$/, 'Grupo $1')
+                    .replace(/^Slot (\d+) - (.+)$/, 'Ranura $1 - $2')
+                    .replace(/^Part ([ABC])$/, 'Pieza $1')
+                    .replace(/^([ABC]) part \((\d+)\/(\d+) · owned (\d+)\)$/, 'Pieza $1 ($2/$3 · en propiedad $4)')
+                    .replace(/^Custom monster (\d+)$/, 'Monstruo personalizado $1')
+                    .replace(/^External enemy data: (\d+) loaded \((.+)\)$/, 'Datos externos de enemigos: $1 cargados ($2)')
+                    .replace(/^External enemy data: (\d+) loaded \(button\)$/, 'Datos externos de enemigos: $1 cargados (botón)')
+                    .replace(/^External enemy data: error (.+)$/, 'Datos externos de enemigos: error $1')
+                    .replace(/^(\d+) enemies$/, '$1 enemigos')
+                    .replace(/^Act I$/, 'Acto I')
+                    .replace(/^Act II$/, 'Acto II');
+            } else {
+                translated = trimmed
+                    .replace(/^Armas \((\d+)\)$/, 'Weapons ($1)')
+                    .replace(/^Grupos de enemigos \((\d+)\)$/, 'Enemy Pools ($1)')
+                    .replace(/^Grupo (\d+)$/, 'Pool $1')
+                    .replace(/^Ranura (\d+) - (.+)$/, 'Slot $1 - $2')
+                    .replace(/^Pieza ([ABC])$/, 'Part $1')
+                    .replace(/^Pieza ([ABC]) \((\d+)\/(\d+) · en propiedad (\d+)\)$/, '$1 part ($2/$3 · owned $4)')
+                    .replace(/^Monstruo personalizado (\d+)$/, 'Custom monster $1')
+                    .replace(/^Datos externos de enemigos: (\d+) cargados \((.+)\)$/, 'External enemy data: $1 loaded ($2)')
+                    .replace(/^Datos externos de enemigos: (\d+) cargados \(botón\)$/, 'External enemy data: $1 loaded (button)')
+                    .replace(/^Datos externos de enemigos: error (.+)$/, 'External enemy data: error $1')
+                    .replace(/^(\d+) enemigos$/, '$1 enemies')
+                    .replace(/^Acto I$/, 'Act I')
+                    .replace(/^Acto II$/, 'Act II');
+            }
+        }
+        if (forgeLanguage() === 'es') {
+            translated = translated
+                .replace(/\bHP\b/g, 'Vida')
+                .replace(/\bATK\b/g, 'ATQ')
+                .replace(/\bAct I\b/g, 'Acto I')
+                .replace(/\bAct II\b/g, 'Acto II')
+                .replace(/\bMech:/g, 'Mecánica:')
+                .replace(/\bTheme:/g, 'Tema:')
+                .replace(/\bWeak:/g, 'Débil a:')
+                .replace(/\bResist:/g, 'Resiste:');
+        } else {
+            translated = translated
+                .replace(/\bVida\b/g, 'HP')
+                .replace(/\bATQ\b/g, 'ATK')
+                .replace(/\bActo I\b/g, 'Act I')
+                .replace(/\bActo II\b/g, 'Act II')
+                .replace(/\bMecánica:/g, 'Mech:')
+                .replace(/\bTema:/g, 'Theme:')
+                .replace(/\bDébil a:/g, 'Weak:')
+                .replace(/\bResiste:/g, 'Resist:');
+        }
+        if (translated === trimmed) return original;
+        const lead = original.match(/^\s*/)?.[0] || '';
+        const tail = original.match(/\s*$/)?.[0] || '';
+        return lead + translated + tail;
+    }
+    function applyForgeTranslations(root) {
+        if (!root) return;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            const next = translateForgeText(node.nodeValue);
+            if (next !== node.nodeValue) node.nodeValue = next;
+        }
+        root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(function (el) {
+            ['placeholder', 'title', 'aria-label'].forEach(function (attr) {
+                if (el.hasAttribute(attr)) {
+                    const next = translateForgeText(el.getAttribute(attr));
+                    if (next !== el.getAttribute(attr)) el.setAttribute(attr, next);
+                }
+            });
+        });
+    }
+    window.__forgeRefreshLanguage = function () {
+        applyForgeTranslations(overlay);
+        if (window.__forgeOpen && typeof renderActiveCategory === 'function') {
+            try { renderActiveCategory(); } catch (e) {}
+        }
+    };
+    const forgeTextObserver = new MutationObserver(function () {
+        applyForgeTranslations(overlay);
+    });
+    forgeTextObserver.observe(overlay, { childList: true, subtree: true, characterData: true });
+    const forgeLangObserver = new MutationObserver(function () {
+        window.__forgeRefreshLanguage();
+    });
+    forgeLangObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    applyForgeTranslations(overlay);
     const HERO_NAMES = ['HERO_BRYNN', 'HERO_SYRUS', 'HERO_GALADEN', 'HERO_VAERIX', 'HERO_KEHLI', 'HERO_CHANCE'];
     const HERO_LABELS = { 'HERO_BRYNN': 'Brynn', 'HERO_SYRUS': 'Syrus', 'HERO_GALADEN': 'Galaden', 'HERO_VAERIX': 'Vaerix', 'HERO_KEHLI': 'Kehli', 'HERO_CHANCE': 'Chance' };
     const HERO_weapons = { 'HERO_BRYNN': ['Sword', 'Warhammer'], 'HERO_SYRUS': ['Staff', 'Wand'], 'HERO_GALADEN': ['DualBlades', 'Bow'], 'HERO_VAERIX': ['Warbell', 'Spear'], 'HERO_KEHLI': ['Hammer', 'Crossbow'], 'HERO_CHANCE': ['Gauntlet', 'ThrowingKnives'] };
@@ -199,7 +511,7 @@
         const q = (overlay.querySelector('#forgeSearch').value || '').toLowerCase();
         const list = overlay.querySelector('#forgeList');
         list.innerHTML = '';
-        state.weaponParts.slice().sort(function (a, b) { return a.id > b.id ? 1 : -1; }).filter(function (p) { return !q || String(p.id).toLowerCase().includes(q) || String(p.name_en || '').toLowerCase().includes(q); }).forEach(function (p) {
+        state.weaponParts.slice().sort(function (a, b) { return a.id > b.id ? 1 : -1; }).filter(function (p) { return !q || String(p.id).toLowerCase().includes(q) || String(((typeof L === 'function') ? L(p, 'name') : (p.name || p.name_en)) || '').toLowerCase().includes(q); }).forEach(function (p) {
             const d = document.createElement('div');
             d.style.cssText = 'padding:8px;margin-bottom:4px;background:var(--panel2);border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;';
             if (p.id === selected)
@@ -299,7 +611,7 @@
                 idx = 0;
         }
         const p = arr[idx];
-        const name = prettyName(p.name_en || p.name || p.id);
+        const name = prettyName((typeof L === 'function') ? L(p, 'name') : (p.name || p.name_en || p.id));
         const flavor = prettyName(partFlavor(p));
         const owned = arr.filter(function (w) { return inStartInv(w.id); }).length;
         const imgBaseId = String(p.id || '').replace(/_UPGRADED$/i, '').replace(/_PLUS$/i, '');
@@ -336,13 +648,13 @@
     function makeHeroLoadout(cls) {
         try {
             if (typeof ensureCampLoadout !== 'function') {
-                alert('Loadout editor not available.');
+                alert(translateForgeText('Loadout editor not available.'));
                 return;
             }
             const classes = (typeof HERO_DEFAULT_LOADOUT_CLASSES !== 'undefined') ? (HERO_DEFAULT_LOADOUT_CLASSES[selectedHero] || []) : [];
             const slotIndex = classes.indexOf(cls);
             if (slotIndex < 0) {
-                alert('This weapon is not one of the selected hero default slots.');
+                alert(translateForgeText('This weapon is not one of the selected hero default slots.'));
                 return;
             }
             const a = currentCarouselPart(cls, 'A');
@@ -355,11 +667,11 @@
             if (typeof renderRight === 'function')
                 renderRight();
             renderHeroWeapons();
-            alert('Loadout updated for ' + selectedHero + ' slot ' + (slotIndex + 1) + '.');
+            alert(forgeLanguage() === 'es' ? 'Equipamiento actualizado para ' + selectedHero + ', ranura ' + (slotIndex + 1) + '.' : 'Loadout updated for ' + selectedHero + ', slot ' + (slotIndex + 1) + '.');
         }
         catch (e) {
             console.error('MAKE_LOADOUT_ERR', e && (e.stack || e));
-            alert('Failed: ' + (e && e.message || e));
+            alert((forgeLanguage() === 'es' ? 'Error: ' : 'Failed: ') + (e && e.message || e));
         }
     }
     function renderHeroWeapons() {
@@ -492,7 +804,7 @@
         if (!main)
             return;
         const rows = items.map(function (x) {
-            const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name_en || x.name || x.id));
+            const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name || x.name_en || x.id));
             const isIn = inStartInv(x.id);
             const img = imgFolder ? '<img src="../img/' + imgFolder + '/' + x.id + '.png" style="width:40px;height:40px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
             return '<div style="padding:8px;margin-bottom:6px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
@@ -581,7 +893,7 @@
             const baseId = fam;
             const plusId = fam + '_PLUS';
             const g = gear.find(function (x) { return x.id === baseId; }) || gear.find(function (x) { return x.id === plusId; });
-            const name = prettyName((typeof L === 'function' && g) ? L(g, 'name') : (g && (g.name_en || g.name) || fam));
+            const name = prettyName((typeof L === 'function' && g) ? L(g, 'name') : (g && (g.name || g.name_en) || fam));
             const baseOwned = inStartInv(baseId);
             const plusOwned = inStartInv(plusId);
             const act = (typeof itemActOf === 'function') ? itemActOf({ id: baseId }) : 1;
@@ -601,9 +913,9 @@
         const allowedAct2 = forgeAllowedAct2();
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeAddAllBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeAddAllUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeClearPage" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeAddAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeAddAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeClearPage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">' +
                 '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Armor - Act I</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">' + (act1Rows || '<p style="color:var(--dim);">No items found.</p>') + '</div></div>' +
@@ -647,7 +959,7 @@
             const baseId = fam;
             const plusId = fam + '_PLUS';
             const g = gear.find(function (x) { return x.id === baseId; }) || gear.find(function (x) { return x.id === plusId; });
-            const name = prettyName((typeof L === 'function' && g) ? L(g, 'name') : (g && (g.name_en || g.name) || fam));
+            const name = prettyName((typeof L === 'function' && g) ? L(g, 'name') : (g && (g.name || g.name_en) || fam));
             const baseOwned = inStartInv(baseId);
             const plusOwned = inStartInv(plusId);
             const act = (typeof itemActOf === 'function') ? itemActOf({ id: baseId }) : 1;
@@ -667,9 +979,9 @@
         const allowedAct2 = forgeAllowedAct2();
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeAddAllBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeAddAllUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeClearPage" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeAddAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeAddAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeClearPage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:12px;align-items:start;justify-items:center;margin:0 auto;width:fit-content;">' +
                 '<div><h2 style="margin:0 0 8px 0;font-size:16px;">Trinkets - Act I</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">' + (act1Rows || '<p style="color:var(--dim);">No items found.</p>') + '</div></div>' +
@@ -838,7 +1150,7 @@
         if (!baseId && id && (typeof DATA !== 'undefined' && Array.isArray(DATA.enemies) && DATA.enemies.some(function (e) { return e.id === id; })))
             baseId = id;
         const baseEnemy = (typeof DATA !== 'undefined' && Array.isArray(DATA.enemies)) ? DATA.enemies.find(function (e) { return e.id === baseId; }) : null;
-        const c = existing || { id: (baseId ? ('CUSTOM_' + baseId) : ('CUSTOM_ENEMY_' + (list.length + 1))), name: (baseEnemy && (baseEnemy.name_en || baseEnemy.name)) || ('Custom monster ' + (list.length + 1)), base: (baseId || ''), hp: (baseEnemy ? baseEnemy.hp : 40), def: (baseEnemy ? baseEnemy.def : 2), atk: (baseEnemy ? baseEnemy.atk : 2), mech: (baseEnemy && Array.isArray(baseEnemy.mech)) ? baseEnemy.mech.filter(function (t) { return t !== 'Huge' && t !== 'Small'; }).slice() : [], theme: (baseEnemy && Array.isArray(baseEnemy.theme)) ? baseEnemy.theme.slice() : [], weaknesses: _forgeWeaknessesFromExisting(existing, baseId), immune: (existing && Array.isArray(existing.immune)) ? existing.immune.slice() : ((baseEnemy && Array.isArray(baseEnemy.immune)) ? baseEnemy.immune.slice() : []) };
+        const c = existing || { id: (baseId ? ('CUSTOM_' + baseId) : ('CUSTOM_ENEMY_' + (list.length + 1))), name: (baseEnemy && ((typeof L === 'function') ? L(baseEnemy, 'name') : (baseEnemy.name || baseEnemy.name_en))) || ('Custom monster ' + (list.length + 1)), base: (baseId || ''), hp: (baseEnemy ? baseEnemy.hp : 40), def: (baseEnemy ? baseEnemy.def : 2), atk: (baseEnemy ? baseEnemy.atk : 2), mech: (baseEnemy && Array.isArray(baseEnemy.mech)) ? baseEnemy.mech.filter(function (t) { return t !== 'Huge' && t !== 'Small'; }).slice() : [], theme: (baseEnemy && Array.isArray(baseEnemy.theme)) ? baseEnemy.theme.slice() : [], weaknesses: _forgeWeaknessesFromExisting(existing, baseId), immune: (existing && Array.isArray(existing.immune)) ? existing.immune.slice() : ((baseEnemy && Array.isArray(baseEnemy.immune)) ? baseEnemy.immune.slice() : []) };
         if (!Array.isArray(c.tiers) || !c.tiers.length)
             c.tiers = _baseTiers(c.base || baseId);
         if (!Array.isArray(c.immune))
@@ -917,7 +1229,7 @@
                 '<option value="" ' + (c.base && !_famNames.some(function (nm) { return _familyReps[nm] === c.base; }) ? 'selected' : '') + '>— original —</option>';
         }
         else {
-            baseOpts = bases.map(function (e) { return '<option value="' + esc(e.id) + '" ' + (e.id === c.base ? 'selected' : '') + '>' + esc(e.name_en || e.name || e.id) + '</option>'; }).join('');
+            baseOpts = bases.map(function (e) { return '<option value="' + esc(e.id) + '" ' + (e.id === c.base ? 'selected' : '') + '>' + esc((typeof L === 'function') ? (L(e, 'name') || e.id) : (e.name || e.name_en || e.id)) + '</option>'; }).join('');
         }
         const sizeTraits = _sizeTraits(c.base);
         const lockedSizeOpts = ['Huge', 'Small'].map(function (t) { return '<label style="font-size:11px;margin-right:8px;opacity:.7;"><input type="checkbox" value="' + esc(t) + '" ' + (sizeTraits.indexOf(t) >= 0 ? 'checked' : '') + ' disabled> ' + esc(t) + ' (locked)</label>'; }).join('');
@@ -980,7 +1292,7 @@
             catch (e) { }
         }
         else {
-            alert('Dialog not available');
+            alert(translateForgeText('Dialog not available'));
             return;
         }
         const TRAIT_LIST = ['Crush', 'Slash', 'Pierce', 'Ignos', 'Anemos', 'Aquos', 'Terros', 'Lumos', 'Umbros', 'Vigos', 'Mortos', 'Toxos', 'Fortunos'];
@@ -1335,7 +1647,7 @@
                 '<div style="display:flex;align-items:flex-start;gap:8px;">' +
                 img +
                 '<div style="flex:1;min-width:0;">' +
-                '<div style="font-size:12px;">' + esc(x.name_en || x.name || x.id) + '</div>' +
+                '<div style="font-size:12px;">' + esc((typeof L === 'function') ? (L(x, 'name') || x.id) : (x.name || x.name_en || x.id)) + '</div>' +
                 '<div style="color:var(--dim);font-size:11px;">' + esc(x.id) + '</div>' +
                 '<div style="color:var(--dim);font-size:10px;">HP ' + esc(x.hp) + ' | DEF ' + esc(x.def) + ' | ATK ' + esc(x.atk) + ' | Act ' + ((x.act || 1) >= 2 ? 'II' : 'I') + '  •  Mech: ' + esc((x.mech || []).join(', ') || '---') + '  •  Theme: ' + esc((x.theme || []).join(', ') || '---') + '</div>' +
                 '<div style="color:var(--verd);font-size:11px;">Weak: ' + (weak.length ? weak.join(', ') : 'none listed') + '</div>' +
@@ -1372,7 +1684,7 @@
                 const r = _rankTag(a) - _rankTag(b);
                 if (r !== 0)
                     return r;
-                return ((a.act || 1) - (b.act || 1)) || String(a.name_en || a.name || a.id).localeCompare(String(b.name_en || b.name || b.id));
+                return ((a.act || 1) - (b.act || 1)) || String((typeof L === 'function') ? L(a, 'name') : (a.name || a.name_en || a.id)).localeCompare(String((typeof L === 'function') ? L(b, 'name') : (b.name || b.name_en || b.id)));
             });
             const rows = list.map(row).join('');
             const famCap = (function () { const fx = familyOf(list && list[0] ? list[0].id : ''); return (fx && fx.cap != null) ? ' (cap ' + fx.cap + ')' : ''; })();
@@ -1427,7 +1739,7 @@
             const chips = (function (ids) {
                 const groups = {};
                 const order = [];
-                (ids || []).forEach(function (id) { const fam = familyOf(id); const gname = (fam && fam.family_name) ? fam.family_name : (enemyById && enemyById[id] ? (enemyById[id].name_en || enemyById[id].name || id) : id); if (!groups[gname]) {
+                (ids || []).forEach(function (id) { const fam = familyOf(id); const gname = (fam && fam.family_name) ? fam.family_name : (enemyById && enemyById[id] ? ((typeof L === 'function') ? (L(enemyById[id], 'name') || id) : (enemyById[id].name || enemyById[id].name_en || id)) : id); if (!groups[gname]) {
                     groups[gname] = { ids: [], sample: (enemyById && enemyById[id]) || { id: id } };
                     order.push(gname);
                 } groups[gname].ids.push(id); });
@@ -1439,7 +1751,7 @@
                     const rankedIds = g.ids.slice().sort(function (a, b) { const ea = enemyById && enemyById[a]; const eb = enemyById && enemyById[b]; const aa = (ea && ea.act) ? ea.act : 99; const ab = (eb && eb.act) ? eb.act : 99; const r = rankTag(a) - rankTag(b); if (r !== 0)
                         return r; if (aa !== ab)
                         return aa - ab; return String(a).localeCompare(String(b)); });
-                    const idList = rankedIds.map(function (id) { const e = enemyById && enemyById[id]; const label = esc(e ? (e.name_en || e.name || id) : id); return '<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><button type="button" class="sm" data-rmpool="' + esc(id) + '" data-pool="' + i + '" style="border:0;background:transparent;color:var(--text);cursor:pointer;font-size:10px;line-height:1;padding:0;">x</button><span style="font-size:11px;">' + label + '</span></span>'; }).join(' ');
+                    const idList = rankedIds.map(function (id) { const e = enemyById && enemyById[id]; const label = esc(e ? ((typeof L === 'function') ? (L(e, 'name') || id) : (e.name || e.name_en || id)) : id); return '<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><button type="button" class="sm" data-rmpool="' + esc(id) + '" data-pool="' + i + '" style="border:0;background:transparent;color:var(--text);cursor:pointer;font-size:10px;line-height:1;padding:0;">x</button><span style="font-size:11px;">' + label + '</span></span>'; }).join(' ');
                     return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;padding:3px 6px;background:var(--panel);border:1px solid var(--edge);border-radius:4px;">' + (psrc ? '<img src="' + psrc + '" style="width:30px;height:30px;object-fit:contain;border-radius:4px;">' : '') + '<span style="font-size:11px;">' + idList + '</span></span>';
                 }).join('');
             })(Array.isArray(p.enemies) ? p.enemies : []);
@@ -1708,7 +2020,7 @@
             if (!arr.length)
                 return '<div style="color:var(--dim);font-size:12px;text-align:center;padding:8px 0;">none</div>';
             const p = arr[idx];
-            const name = prettyName(p.name_en || p.name || p.id);
+            const name = prettyName((typeof L === 'function') ? L(p, 'name') : (p.name || p.name_en || p.id));
             const imgTag = showImg ? '<img src="../img/weapon/' + String(p.id).replace(/_UPGRADED$/i, '').replace(/_PLUS$/i, '') + '.png" style="width:100%;max-width:180px;aspect-ratio:1/1;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:6px;margin-bottom:6px;" onerror="this.style.display=&quot;none&quot;;">' : '';
             const flavor = prettyName(partFlavor(p));
             const owned = arr.filter(function (w) { return inStartInv(w.id); }).length;
@@ -1848,7 +2160,7 @@
                 return 'Materials';
             return 'Other';
         }
-        function titleOf(x) { const n = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name_en || x.name || x.id)); return n || x.id; }
+        function titleOf(x) { const n = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name || x.name_en || x.id)); return n || x.id; }
         const weaponBtns = (typeof HERO_LABELS !== 'undefined') ? Object.keys(HERO_LABELS) : [];
         function renderGroup(items) {
             const cells = items.map(function (x) {
@@ -1970,7 +2282,7 @@
             if (!items || !items.length)
                 return '';
             const cells = items.map(function (x) {
-                const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name_en || x.name || x.id));
+                const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name || x.name_en || x.id));
                 const flavor = (typeof partFlavor === 'function') ? partFlavor(x) : '';
                 const title = flavor || name || x.id;
                 const img = imageFor(x.id);
@@ -2032,7 +2344,7 @@
                 const baseOwned = inStartInv(baseId);
                 const plusOwned = inStartInv(plusId);
                 const img = '<img src="../img/weapon/' + String(baseId).replace(/_UPGRADED$|_PLUS$/i, '') + '.png" style="width:40px;height:40px;object-fit:contain;background:var(--ink);border:1px solid var(--edge);border-radius:4px;margin-right:8px;" onerror="this.style.display=&quot;none&quot;;">';
-                const wname = prettyName((g && (g.name_en || g.name)) || baseId);
+                const wname = prettyName((g && typeof L === 'function') ? (L(g, 'name') || baseId) : (g && (g.name || g.name_en) || baseId));
                 const flavor = partFlavor(g || {});
                 const partAct = (typeof itemActOf === 'function') ? itemActOf({ id: baseId }) : 1;
                 return '<div style="padding:6px;margin-bottom:4px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:8px;">' +
@@ -2058,9 +2370,9 @@
         }).join('');
         main.innerHTML =
             '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;position:static;background:var(--panel2);padding:8px 0;">' +
-                '<button id="forgeInvAddBase" data-t="addAllBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
-                '<button id="forgeInvAddUpgraded" data-t="addAllUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
-                '<button id="forgeInvClear" data-t="clearForgePage" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
+                '<button id="forgeInvAddBase" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Add all base</button>' +
+                '<button id="forgeInvAddUpgraded" style="background:var(--torch);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:600;">Add all upgraded</button>' +
+                '<button id="forgeInvClear" style="background:var(--panel2);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:6px 12px;cursor:pointer;">Clear</button>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:130px 1fr;gap:12px;height:100%;">' +
                 '<div style="display:flex;flex-direction:column;gap:8px;">' + left + '</div>' +
@@ -2144,7 +2456,7 @@
                 return '';
             if (gn !== 'Weapons') {
                 const cells = items.map(function (x) {
-                    const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name_en || x.name || x.id));
+                    const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name || x.name_en || x.id));
                     const img = imageFor(x.id);
                     return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">' + img + '<span style="word-break:break-all;flex:1;">' + esc(name) + '</span><button data-reserve="' + x.id + '" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">RSV</button></div>';
                 }).join('');
@@ -2168,7 +2480,7 @@
             const blocks = heroNames.map(function (label) {
                 const its = heroGroups[label];
                 const cells = its.map(function (x) {
-                    const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name_en || x.name || x.id));
+                    const name = prettyName((typeof L === 'function') ? L(x, 'name') : (x.name || x.name_en || x.id));
                     const img = imageFor(x.id);
                     return '<div style="padding:8px;border:1px solid var(--edge);background:var(--panel2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.2;">' + img + '<span style="word-break:break-all;flex:1;">' + esc(name) + '</span><button data-reserve="' + x.id + '" style="background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;">RSV</button></div>';
                 }).join('');
@@ -2263,7 +2575,7 @@
     overlay.querySelector('#forgeNew').addEventListener('click', function () { const c = { id: 'WEAPON_PART_NEW', name: 'New Part', name_en: 'New Part', class: 'Rune', slot: 'A', upgrade: false }; state.weaponParts.push(c); selected = c.id; persist(); renderAll(); });
     const modesel = document.getElementById('modesel');
     const btn = document.createElement('button');
-    btn.textContent = 'Forge';
+    btn.textContent = typeof T === 'function' ? T('modeForge') : 'Forge';
     btn.id = 'forgeBtn';
     btn.setAttribute('data-forge', '1');
     btn.setAttribute('data-t', 'modeForge');
@@ -2422,20 +2734,20 @@ function openExternalEnemyGameDataPicker() {
             const txt = await f.text();
             const parsed = extractJsonED(txt);
             if (!parsed) {
-                alert('Could not parse file');
+                alert(translateForgeText('Could not parse file'));
                 return;
             }
             const ok = applyExternalEnemyGameData(parsed);
             if (!ok) {
-                alert('No enemies found in file');
+                alert(translateForgeText('No enemies found in file'));
                 return;
             }
             if (typeof renderEnemiesCategory === 'function')
                 renderEnemiesCategory();
-            alert('Loaded ' + (window.DESCENTFORGE_EXTERNAL_ENEMY_COUNT || 0) + ' enemies from game data.');
+            alert((forgeLanguage() === 'es' ? 'Cargados ' : 'Loaded ') + (window.DESCENTFORGE_EXTERNAL_ENEMY_COUNT || 0) + (forgeLanguage() === 'es' ? ' enemigos desde los datos del juego.' : ' enemies from game data.'));
         }
         catch (err) {
-            alert('Load failed: ' + (err && err.message ? err.message : err));
+            alert(translateForgeText('Load failed:') + ' ' + (err && err.message ? err.message : err));
         }
     };
     inp.click();

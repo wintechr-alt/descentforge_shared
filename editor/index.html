@@ -721,7 +721,7 @@
     <span data-t="subtitle"></span>
   </div>
   <div class="modesel" id="modesel">
-    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="workshop" data-t="modeWorkshop">Workshop</button>
+    <button data-mode="scenario" data-t="modeScenario"></button><button data-mode="campaign" data-t="modeCampaign"></button><button data-mode="workshop" data-t="modeWorkshop"></button>
   </div>
   <!-- La barra de útiles de arriba ya no existe: loseta, enemigo y objeto se
        elegían aquí Y en la paleta de la izquierda, y la paleta ya cambia el
@@ -786,10 +786,11 @@
     <div class="objcheckfloat" id="objCheckFloat"></div>
     <div class="overlay placehint" id="placeHint"></div>
     <div class="overlay" id="hint"></div>
+    <div class="overlay" id="coords">—</div>
     <div id="campTopBar">
-      <button id="btnCampMap" data-t="campViewMap" onclick="setCampView('map'); return false;">Campaign Map</button>
-      <button id="btnCampFlow" data-t="campViewFlow" onclick="setCampView('flow'); return false;">Flow Chart</button>
-      <div id="flowInfo"></div>
+      <button id="btnCampMap" data-t="campViewMap" onclick="setCampView('map'); return false;"></button>
+      <button id="btnCampFlow" data-t="campViewFlow" onclick="setCampView('flow'); return false;"></button>
+      <div id="flowInfo" data-t="flowChartInfo"></div>
     </div>
     <div id="flowStage"></div>
   </div>
@@ -868,6 +869,7 @@ const guardado={
 let lang = guardado.leer('descentforge.lang')
         || (navigator.language||'es').slice(0,2).toLowerCase();
 if(lang!=='en') lang='es';
+document.documentElement.lang=lang;
 const L=(o,k)=>(lang==='en'&&o?.[k+'_en'])||o?.[k]||'';
 
 /* ---- nombres del catálogo del juego ----
@@ -887,7 +889,7 @@ const T=(k,...a)=>{ let s=(UI[lang]||UI.es)[k]??(UI.es[k]??k);
   a.forEach((v,i)=>{ s=s.split('{'+i+'}').join(v); }); return s; };
 function setLang(l){ lang=l; guardado.poner('descentforge.lang',l);
   document.documentElement.lang=l; paintChrome(); renderTools(); renderPalette();
-  renderRight(); draw(); flash(T('hint')); }
+  renderRight(); draw(); if(window.__forgeRefreshLanguage) window.__forgeRefreshLanguage(); flash(T('hint')); }
 
 /* ================= textos de la interfaz =================
    Todo lo que se lee en pantalla, en los dos idiomas. Se llega por T('clave').
@@ -1156,8 +1158,7 @@ const UI={
   exported:'Exportado {0}', loaded:'Cargado {0}', badFile:'Archivo no válido',
   demoLoaded:'Mapa de ejemplo cargado',
   // ---- campaña ----
-  modeScenario:'Escenario', modeCampaign:'Campaña', modeFlow:'Flujo',modeWorkshop:'Taller', modeForge:'Forja',
-addAllBase:'Añadir todas las base', addAllUpgraded:'Añadir todas las mejoras', clearForgePage:'Limpiar forja', addAllUpgSelectedAct:'Añadir todas las mejoras (acto seleccionado)', defaultStartInventory:'Inventario inicial por defecto', manageStartInventory:'Gestionar inventario inicial', clearAll:'Limpiar todo', armor:'Armaduras', trinkets:'Abalorios', weapons:'Armas', itemPool:'Grupo de objetos', reserved:'Reservado', startingInventory:'Inventario inicial', enemies:'Enemigos',modeWorkshop:'Taller', modeForge:'Forja', addAllUpgSelectedAct:'Añadir todas las mejoras (acto seleccionado)', defaultStartInventory:'Inventario inicial por defecto', manageStartInventory:'Gestionar inventario inicial', clearAll:'Limpiar todo', armor:'Armaduras', trinkets:'Abalorios', weapons:'Armas', itemPool:'Grupo de objetos', reserved:'Reservado', startingInventory:'Inventario inicial', enemies:'Enemigos',
+  modeScenario:'Escenario', modeCampaign:'Campaña', modeFlow:'Flujo',modeWorkshop:'Taller', modeForge:'Forja', addAllUpgSelectedAct:'Añadir todas las mejoras (acto seleccionado)', defaultStartInventory:'Inventario inicial por defecto', manageStartInventory:'Gestionar inventario inicial', clearAll:'Limpiar todo', armor:'Armaduras', trinkets:'Abalorios', weapons:'Armas', itemPool:'Grupo de objetos', reserved:'Reservado', startingInventory:'Inventario inicial', enemies:'Enemigos',modeWorkshop:'Taller', modeForge:'Forja', addAllUpgSelectedAct:'Añadir todas las mejoras (acto seleccionado)', defaultStartInventory:'Inventario inicial por defecto', manageStartInventory:'Gestionar inventario inicial', clearAll:'Limpiar todo', armor:'Armaduras', trinkets:'Abalorios', weapons:'Armas', itemPool:'Grupo de objetos', reserved:'Reservado', startingInventory:'Inventario inicial', enemies:'Enemigos',modeWorkshop:'Taller', modeForge:'Forja', addAllUpgSelectedAct:'Añadir todas las mejoras (acto seleccionado)', defaultStartInventory:'Inventario inicial por defecto', manageStartInventory:'Gestionar inventario inicial', clearAll:'Limpiar todo', armor:'Armaduras', trinkets:'Abalorios', weapons:'Armas', itemPool:'Grupo de objetos', reserved:'Reservado', startingInventory:'Inventario inicial', enemies:'Enemigos', modeWorkshop:'Taller', modeForge:'Forja',
   campViewFlow:'Flujo de Mapa', campViewMap:'Campaña',
   campViewFlowTip:'Cambiar al diagrama de flujo', campViewMapTip:'Cambiar al mapa de campaña',
   exportCamp:'Exportar .dcamp',
@@ -1686,10 +1687,7 @@ addAllBase:'Añadir todas las base', addAllUpgraded:'Añadir todas las mejoras',
   exported:'Exported {0}', loaded:'Loaded {0}', badFile:'Not a valid file',
   demoLoaded:'Example map loaded',
   // ---- campaign ----
-  modeScenario:'Scenario', modeCampaign:'Campaign', modeFlow:'Flow',modeWorkshop:'Workshop', modeForge:'Forge',addAllBase:'Add All Base', addAllUpgraded:'Add All Upgraded', clearForgePage:'Clear Forge',
-addAllBase:'Add All Base', addAllUpgraded:'Add All Upgraded', clearForgePage:'Clear Forge',
-addAllBase:'Add All Base', addAllUpgraded:'Add All Upgraded', clearForgePage:'Clear Forge',
- addAllUpgSelectedAct:'Add all upgraded (selected act)', defaultStartInventory:'Default Starting Inventory', manageStartInventory:'Manage Starting Inventory', clearAll:'Clear all', armor:'Armor', trinkets:'Trinkets', weapons:'Weapons', itemPool:'Item Pool', reserved:'Reserved', startingInventory:'Starting Inventory', enemies:'Enemies',modeWorkshop:'Workshop', modeForge:'Forge', addAllUpgSelectedAct:'Add all upgraded (selected act)', defaultStartInventory:'Default Starting Inventory', manageStartInventory:'Manage Starting Inventory', clearAll:'Clear all', armor:'Armor', trinkets:'Trinkets', weapons:'Weapons', itemPool:'Item Pool', reserved:'Reserved', startingInventory:'Starting Inventory', enemies:'Enemies',
+  modeScenario:'Scenario', modeCampaign:'Campaign', modeFlow:'Flow',modeWorkshop:'Workshop', modeForge:'Forge', addAllUpgSelectedAct:'Add all upgraded (selected act)', defaultStartInventory:'Default Starting Inventory', manageStartInventory:'Manage Starting Inventory', clearAll:'Clear all', armor:'Armor', trinkets:'Trinkets', weapons:'Weapons', itemPool:'Item Pool', reserved:'Reserved', startingInventory:'Starting Inventory', enemies:'Enemies',modeWorkshop:'Workshop', modeForge:'Forge', addAllUpgSelectedAct:'Add all upgraded (selected act)', defaultStartInventory:'Default Starting Inventory', manageStartInventory:'Manage Starting Inventory', clearAll:'Clear all', armor:'Armor', trinkets:'Trinkets', weapons:'Weapons', itemPool:'Item Pool', reserved:'Reserved', startingInventory:'Starting Inventory', enemies:'Enemies',modeWorkshop:'Workshop', modeForge:'Forge', addAllUpgSelectedAct:'Add all upgraded (selected act)', defaultStartInventory:'Default Starting Inventory', manageStartInventory:'Manage Starting Inventory', clearAll:'Clear all', armor:'Armor', trinkets:'Trinkets', weapons:'Weapons', itemPool:'Item Pool', reserved:'Reserved', startingInventory:'Starting Inventory', enemies:'Enemies', modeWorkshop:'Workshop', modeForge:'Forge',
   campViewFlow:'Flow Chart', campViewMap:'Campaign Map',
   campViewFlowTip:'Switch to flow chart', campViewMapTip:'Switch to campaign map',
   exportCamp:'Export .dcamp',
@@ -4745,18 +4743,8 @@ function toVertex(ev){ const [x,y]=aTablero(ev);
   return [Math.round(x/BASE),Math.round(y/BASE)]; }
 stage.addEventListener('wheel',ev=>{ ev.preventDefault();
   const r=cv.getBoundingClientRect(), mx=ev.clientX-r.left, my=ev.clientY-r.top;
-  // Check if mouse is over the rpanel (objectives/triggers panel)
-  const rpanel=document.getElementById('rpanel');
-  if(rpanel && mx>=rpanel.offsetLeft && mx<=rpanel.offsetLeft+rpanel.offsetWidth && my>=rpanel.offsetTop && my<=rpanel.offsetTop+rpanel.offsetHeight){
-    // Mouse is over rpanel: scroll the objectives/triggers list
-    const scrollEl=rpanel.querySelector('.objcheckfloat,.objlist,.objcheckfloat>div')||rpanel;
-    const delta=ev.deltaY>0?-8:8;
-    scrollEl.scrollTop+=delta;
-  }else{
-    // Mouse is over the map: zoom
-    const f=ev.deltaY<0?1.12:1/1.12, nz=Math.min(3.2,Math.max(0.28,zoom*f));
-    panX=mx-(mx-panX)*(nz/zoom); panY=my-(my-panY)*(nz/zoom); zoom=nz; draw();
-  }
+  const f=ev.deltaY<0?1.12:1/1.12, nz=Math.min(3.2,Math.max(0.28,zoom*f));
+  panX=mx-(mx-panX)*(nz/zoom); panY=my-(my-panY)*(nz/zoom); zoom=nz; draw();
 },{passive:false});
 /* Punto del lienzo del mundo bajo el ratón, en píxeles de la imagen. */
 function toWorldPx(ev){ const r=cv.getBoundingClientRect();
